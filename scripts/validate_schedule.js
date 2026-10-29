@@ -13,7 +13,7 @@ if (fs.existsSync(fxtwitterPath)) {
   rawPosts = JSON.parse(fs.readFileSync(fxtwitterPath, 'utf8'));
 }
 
-async function checkUrl(url, label) {
+async function checkUrl(url, label, retry = 1) {
   if (!url) return { ok: false, error: 'URL is empty' };
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     // Local file check
@@ -29,17 +29,30 @@ async function checkUrl(url, label) {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; schedule-validator/1.0)'
       },
-      timeout: 5000
+      timeout: 10000
     }, res => {
       // 2xx, 3xx are valid
       const ok = res.statusCode >= 200 && res.statusCode < 400;
       resolve({ ok, status: res.statusCode });
     });
 
-    req.on('error', err => resolve({ ok: false, error: err.message }));
-    req.on('timeout', () => {
+    req.on('error', async err => {
+      if (retry > 0) {
+        const retryRes = await checkUrl(url, label, retry - 1);
+        resolve(retryRes);
+      } else {
+        resolve({ ok: false, error: err.message });
+      }
+    });
+
+    req.on('timeout', async () => {
       req.destroy();
-      resolve({ ok: false, error: 'Timeout' });
+      if (retry > 0) {
+        const retryRes = await checkUrl(url, label, retry - 1);
+        resolve(retryRes);
+      } else {
+        resolve({ ok: false, error: 'Timeout' });
+      }
     });
     req.end();
   });
@@ -52,13 +65,20 @@ async function validate() {
   for (const session of schedule.sessions) {
     console.log(`\nValidating [${session.date}] ${session.title} (${session.venue.name})`);
 
-    // 1. Image URL validation (HTTP 200 or local file)
-    const imgRes = await checkUrl(session.image_url, 'image');
-    if (imgRes.ok) {
-      console.log(`  ✓ Image Accessibility: ${session.image_url.slice(0, 45)}... (${imgRes.status})`);
-    } else {
-      console.error(`  ✗ Image FAILED: ${session.image_url} -> ${imgRes.error || imgRes.status}`);
-      hasError = true;
+    // 1. Multi-Image Validation (HTTP 200 or local file)
+    const imagesToCheck = session.images && session.images.length > 0 
+      ? session.images.map(img => img.url) 
+      : [session.image_url];
+
+    for (let idx = 0; idx < imagesToCheck.length; idx++) {
+      const u = imagesToCheck[idx];
+      const imgRes = await checkUrl(u, `image-${idx}`);
+      if (imgRes.ok) {
+        console.log(`  ✓ Image [${idx + 1}/${imagesToCheck.length}]: ${u.slice(0, 45)}... (${imgRes.status})`);
+      } else {
+        console.error(`  ✗ Image FAILED: ${u} -> ${imgRes.error || imgRes.status}`);
+        hasError = true;
+      }
     }
 
     // 2. Ticket URL validation
