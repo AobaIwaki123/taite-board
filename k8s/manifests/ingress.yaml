@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: cloudflare-tunnel
   rules:
-    - host: ribonclock.chekipla.com
+    - host: ribonclock.iorin.net
       http:
         paths:
           - path: /
