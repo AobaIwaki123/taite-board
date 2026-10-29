@@ -65,6 +65,23 @@
     #lightbox-modal.active {
       display: flex;
     }
+    /* Logo & Card Micro-Interactions */
+    @keyframes ribbon-pop {
+      0% { transform: scale(1) rotate(0deg); }
+      35% { transform: scale(1.35) rotate(-14deg); }
+      70% { transform: scale(1.1) rotate(10deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .animate-ribbon-pop {
+      animation: ribbon-pop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes card-refresh {
+      0% { opacity: 0.65; transform: scale(0.985); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .animate-card-refresh {
+      animation: card-refresh 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
   </style>
 </head>
 <body class="min-h-screen pb-20 antialiased selection:bg-rose-500/20">
@@ -72,12 +89,12 @@
   <!-- Mobile Frame (Max width 420px for perfect one-handed mobile view) -->
   <div class="mx-auto max-w-sm px-3.5 pt-3 space-y-3">
 
-    <!-- Top App Bar: Minimal & Clean Header -->
+    <!-- Top App Bar: Minimal & Clean Header (押し感付きインタラクティブロゴ) -->
     <header class="flex items-center justify-between py-1 border-b border-white/5 pb-2">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🎀</span>
-        <span class="text-base font-extrabold text-white tracking-wide">リボンクロック</span>
-      </div>
+      <button onclick="handleLogoClick()" class="flex items-center gap-2 py-1 px-2 -ml-2 rounded-xl hover:bg-white/5 active:scale-90 transition-all duration-150 select-none group cursor-pointer focus:outline-none" title="直近ライブへジャンプ">
+        <span id="logo-icon" class="text-xl inline-block transition-transform duration-200 group-hover:scale-110">🎀</span>
+        <span class="text-base font-extrabold text-white tracking-wide group-hover:text-rose-300 transition-colors">リボンクロック</span>
+      </button>
     </header>
 
     <!-- 戻るナビゲーションバー（他日程のライブ詳細を閲覧中のみ表示） -->
@@ -105,7 +122,7 @@
       </div>
 
       <!-- HERO FLYER PREVIEW & EVENT INFO (画像の上に文字を被せずスッキリ分離) -->
-      <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group" onclick="openLightbox()">
+      <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group active:scale-[0.98] transition-all duration-150" onclick="openLightbox()">
         <!-- フライヤー画像プレビュー（文字被せゼロ、見切れOK、右上に控えめな拡大アイコン） -->
         <div class="relative w-full h-36 bg-stone-950 overflow-hidden">
           <img id="hero-strip-img" 
@@ -703,6 +720,27 @@
     }
 
     // 5. Navigation & History Helpers
+    function handleLogoClick() {
+      // 1. リボンアイコンの弾けるマイクロアニメーション
+      const icon = document.getElementById('logo-icon');
+      if (icon) {
+        icon.classList.remove('animate-ribbon-pop');
+        void icon.offsetWidth;
+        icon.classList.add('animate-ribbon-pop');
+      }
+
+      // 2. コックピットカードのリフレッシュ・アニメーション（直近ページ閲覧中でも反応が伝わる）
+      const cockpit = document.getElementById('tab-content-next');
+      if (cockpit) {
+        cockpit.classList.remove('animate-card-refresh');
+        void cockpit.offsetWidth;
+        cockpit.classList.add('animate-card-refresh');
+      }
+
+      // 3. 直近ライブへジャンプ
+      goToNextLive();
+    }
+
     function openSessionDetail(id, fromTab = 'week') {
       previousTab = fromTab;
       renderCockpit(id);
