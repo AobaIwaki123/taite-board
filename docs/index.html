@@ -130,6 +130,15 @@
         <!-- JSでピルボタンを自動注入 -->
       </div>
 
+      <!-- 他日程の公演詳細を閲覧中のみ表示される「直近ライブに戻る」トップバー -->
+      <div id="subpage-return-bar" class="hidden flex items-center justify-between px-1 py-1 -mb-1">
+        <span class="text-xs text-stone-400 font-medium">別日程の公演を表示中</span>
+        <button onclick="goToNextLive()" class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 active:scale-95 text-xs font-bold transition-all shadow-sm">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-400"></i>
+          <span>直近ライブに戻る</span>
+        </button>
+      </div>
+
       <!-- EVENT TITLE (最上段にイベント名を堂々と配置) -->
       <div class="px-1 pt-0.5">
         <h1 id="live-title" class="text-lg font-black text-white leading-snug drop-shadow-sm">
@@ -270,6 +279,14 @@
               <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
               <span id="ticket-btn-text">チケット</span>
             </a>
+          </div>
+
+          <!-- 他日程閲覧時のみカード最下部にも表示される直近ライブ戻り導線 -->
+          <div id="subpage-return-bottom" class="hidden pt-1">
+            <button onclick="goToNextLive()" class="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-stone-900/90 hover:bg-stone-800 text-stone-300 hover:text-white border border-white/10 text-xs font-bold active:scale-[0.98] transition-all">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>直近ライブの予定に戻る</span>
+            </button>
           </div>
 
 
@@ -530,7 +547,7 @@
       // 同日2回しピル（1部/2部）の更新 (コックピット内のみ)
       renderSameDaySwitcher(s.date);
 
-      // 第1タブのラベル同期 (直近ライブか、他日程の公演詳細かを正確に反映)
+      // 第1タブのラベル同期 ＆ 直近ライブに戻るボタンの表示切替
       const nextId = appData.current_next_id || (appData.sessions[0] && appData.sessions[0].id);
       const isNext = id === nextId;
       const navNext = document.getElementById('nav-next');
@@ -538,6 +555,17 @@
         navNext.innerHTML = isNext 
           ? `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>直近ライブ</span>`
           : `<i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-400"></i><span>公演詳細</span>`;
+      }
+
+      const returnTop = document.getElementById('subpage-return-bar');
+      const returnBottom = document.getElementById('subpage-return-bottom');
+      if (returnTop) {
+        if (isNext) returnTop.classList.add('hidden');
+        else returnTop.classList.remove('hidden');
+      }
+      if (returnBottom) {
+        if (isNext) returnBottom.classList.add('hidden');
+        else returnBottom.classList.remove('hidden');
       }
 
       // Telemetry Times: ライブ出番 (主役) / 特典会 (サブ)
