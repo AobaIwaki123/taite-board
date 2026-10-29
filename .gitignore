@@ -1,0 +1,4 @@
+bin/
+*.exe
+*.test
+data/sample_images/
