@@ -47,7 +47,7 @@ func main() {
 		downloadDir = flag.String("download", "", "Download extracted images to directory")
 	)
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: taite-fetch [options] <x-post-url>\n\nOptions:\n")
+		fmt.Fprintf(os.Stderr, "Usage: taite-fetch [options] <x-post-url> [more-urls...]\n\nOptions:\n")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -57,34 +57,64 @@ func main() {
 		os.Exit(1)
 	}
 
-	targetURL := flag.Arg(0)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeoutSec)*time.Second)
-	defer cancel()
+	urls := flag.Args()
+	ctx := context.Background()
 
-	data, err := extractPost(ctx, targetURL)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	var results []*PostData
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	// Download images if requested
-	if *downloadDir != "" && len(data.Images) > 0 {
-		if err := os.MkdirAll(*downloadDir, 0755); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create download dir: %v\n", err)
-		} else {
-			for i, imgURL := range data.Images {
-				fileName := fmt.Sprintf("image_%d.jpg", i+1)
-				savePath := filepath.Join(*downloadDir, fileName)
-				if err := downloadImage(ctx, imgURL, savePath); err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to download %s: %v\n", imgURL, err)
-				} else {
-					fmt.Fprintf(os.Stderr, "Downloaded image to %s\n", savePath)
+	// Fetch concurrently with worker pool
+	sem := make(chan struct{}, 5) // max 5 concurrent requests
+
+	for _, u := range urls {
+		u := u
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			reqCtx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSec)*time.Second)
+			defer cancel()
+
+			data, err := extractPost(reqCtx, u)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to extract %s: %v\n", u, err)
+				return
+			}
+
+			// Download images if requested
+			if *downloadDir != "" && len(data.Images) > 0 {
+				_ = os.MkdirAll(*downloadDir, 0755)
+				for i, imgURL := range data.Images {
+					idMatch := statusIDRegex.FindStringSubmatch(data.URL)
+					prefix := "img"
+					if len(idMatch) > 1 {
+						prefix = idMatch[1]
+					}
+					fileName := fmt.Sprintf("%s_%d.jpg", prefix, i+1)
+					savePath := filepath.Join(*downloadDir, fileName)
+					_ = downloadImage(reqCtx, imgURL, savePath)
 				}
 			}
-		}
+
+			mu.Lock()
+			results = append(results, data)
+			mu.Unlock()
+		}()
 	}
 
-	outputJSON, err := json.MarshalIndent(data, "", "  ")
+	wg.Wait()
+
+	var outputJSON []byte
+	var err error
+	if len(results) == 1 {
+		outputJSON, err = json.MarshalIndent(results[0], "", "  ")
+	} else {
+		outputJSON, err = json.MarshalIndent(results, "", "  ")
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to format JSON: %v\n", err)
 		os.Exit(1)
@@ -95,7 +125,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Failed to write output file: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stderr, "Wrote extracted data to %s\n", *outputPath)
+		fmt.Fprintf(os.Stderr, "Wrote %d posts to %s\n", len(results), *outputPath)
 	} else {
 		fmt.Println(string(outputJSON))
 	}
