@@ -47,7 +47,4 @@ spec:
               memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
-            capabilities:
-              drop:
-                - ALL
 
