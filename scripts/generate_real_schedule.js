@@ -237,6 +237,44 @@ const realSchedule = {
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2109237575764656308"
     },
     {
+      id: "20261107-1",
+      title: "MARQUEE祭 mini Vol.355",
+      date: "2026-11-07",
+      day_of_week: "土",
+      session_name: "夕方帯",
+      venue: {
+        name: "渋谷 Spotify O-nest",
+        map_url: "https://maps.google.com/?q=Spotify+O-nest"
+      },
+      live: {
+        start_time: "17:40",
+        end_time: "18:00",
+        stage: "O-nest"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "18:10",
+        end_time: "19:10",
+        booth: "並行物販 ブースA"
+      },
+      photo: {
+        allowed: true,
+        rule: "静止画撮影可能（要公式アナウンス確認）"
+      },
+      special_notes: "雑誌MARQUEE主催「MARQUEE祭 mini」出演！全10組対バン（OPEN 16:30 / START 17:00）",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
+      ticket: {
+        platform: "イープラス",
+        url: "https://eplus.jp/marquee-matsuri/",
+        prices: [
+          { tier: "前売券", price: "¥3,000" },
+          { tier: "当日券", price: "¥3,500" }
+        ]
+      },
+      image_url: "images/20261107_marquee_mini.png",
+      source_tweet_url: "https://eplus.jp/marquee-matsuri/"
+    },
+    {
       id: "20261108-1",
       title: "アイドルアラモードプチVol.142",
       date: "2026-11-08",
