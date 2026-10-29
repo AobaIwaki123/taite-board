@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ribonclock
+  namespace: ribonclock
+  labels:
+    app.kubernetes.io/name: ribonclock
+spec:
+  selector:
+    app.kubernetes.io/name: ribonclock
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+
