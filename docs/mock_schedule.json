@@ -227,18 +227,18 @@
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
-        "start_time": "16:20",
-        "end_time": "16:45",
-        "stage": "メイン"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "終演後",
-        "start_time": "17:30",
-        "end_time": "18:45",
-        "booth": "フロア内"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "通常エリア入場無料！前方のみ有料",
+      "special_notes": "木曜無銭ライブ！※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名特典：①10秒動画券 / ②写真+30秒トーク / ③ランチェキ",
       "ticket": {
         "platform": "TicketDive",
@@ -254,7 +254,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2109237575764656308"
     },
     {
@@ -340,24 +340,24 @@
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
-        "start_time": "16:20",
-        "end_time": "16:45",
-        "stage": "メイン"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "終演後",
-        "start_time": "17:30",
-        "end_time": "18:45",
-        "booth": "フロア内"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "月曜無銭ライブ！",
+      "special_notes": "月曜無銭ライブ！※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名特典3択あり",
       "ticket": {
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/261109_PF"
       },
-      "image_url": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111808264258089266"
     },
     {
@@ -447,18 +447,18 @@
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
-        "start_time": "16:20",
-        "end_time": "16:45",
-        "stage": "メイン"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "終演後",
-        "start_time": "17:30",
-        "end_time": "18:45",
-        "booth": "フロア内"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "11月ラストの原宿RUIDO無銭！",
+      "special_notes": "11月ラストの原宿RUIDO無銭！※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
         "platform": "公式アナウンス待ち",
@@ -474,7 +474,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111809522243117188"
     }
   ]

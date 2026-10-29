@@ -96,12 +96,19 @@
   <!-- Mobile Frame (Max width 420px for perfect one-handed mobile view) -->
   <div class="mx-auto max-w-sm px-3.5 pt-3 space-y-3">
 
-    <!-- Top App Bar: Minimal & Clean Header (押し感付きインタラクティブロゴ) -->
+    <!-- Top App Bar: Minimal & Clean Header (押し感付きロゴ ＆ 公式Xリンク) -->
     <header class="flex items-center justify-between py-1 border-b border-white/5 pb-2">
       <button onclick="handleLogoClick()" class="flex items-center gap-2 py-1 px-2 -ml-2 rounded-xl hover:bg-white/5 active:scale-90 transition-all duration-150 select-none group cursor-pointer focus:outline-none" title="直近ライブへジャンプ">
         <span id="logo-icon" class="text-xl inline-block transition-transform duration-200 group-hover:scale-110">🎀</span>
         <span class="text-base font-extrabold text-white tracking-wide group-hover:text-rose-300 transition-colors">リボンクロック</span>
       </button>
+
+      <a href="https://x.com/Ribbon_Clock" target="_blank" rel="noopener" class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-stone-900/90 hover:bg-stone-800 active:scale-95 text-stone-300 hover:text-white border border-white/10 text-xs font-bold transition-all shadow-sm" title="リボンクロック公式Xを開く">
+        <svg class="w-3.5 h-3.5 fill-current text-white shrink-0" viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        <span>公式X</span>
+      </a>
     </header>
 
     <!-- 戻るナビゲーションバー（他日程のライブ詳細を閲覧中のみ表示） -->
@@ -155,48 +162,71 @@
       <!-- PRIMARY COCKPIT TELEMETRY CARD -->
       <section class="soft-card rounded-2xl p-3.5 space-y-3 shadow-xl">
         
-        <!-- 【日程表示】(時間帯のすぐ上に配置！) -->
-        <div class="flex items-center justify-between pb-2 border-b border-white/5">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">公演日</span>
-            <span id="live-date-header" class="text-base font-black text-white tracking-tight">--/-- (--)</span>
+        <!-- 【日程表示】(目が滑らない高コントラスト・カレンダーバッジ調) -->
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-stone-900/90 border border-white/10 shadow-sm">
+          <div class="flex items-center gap-2.5">
+            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">公演日</div>
+              <div id="live-date-header" class="text-base font-black text-white tracking-tight">--/-- (--)</div>
+            </div>
           </div>
-          <span id="live-relative-day" class="text-xs font-bold text-rose-400"></span>
+          <span id="live-relative-day"></span>
         </div>
 
-        <!-- 【時間帯表示】(出番ハイライト ＆ 特典会) -->
+        <!-- 【時間帯表示】(出番ハイライト ＆ 特典会 / ステージ・ブースの視認性最大化) -->
         <div class="grid grid-cols-2 gap-2.5">
           
           <!-- Stage Live Time (主役：赤・ローズグラデーションで強調) -->
-          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl px-3 py-2.5 space-y-1 border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
-            <div class="flex items-center justify-between text-xs font-bold text-rose-300">
-              <span class="flex items-center gap-1.5">
-                <i data-lucide="mic" class="w-4 h-4 text-rose-400"></i>
-                <span>ライブ出番</span>
+          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl px-3 py-2.5 flex flex-col justify-between border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
+            <div>
+              <div class="flex items-center justify-between text-xs font-bold text-rose-300">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="mic" class="w-4 h-4 text-rose-400"></i>
+                  <span>ライブ出番</span>
+                </span>
+              </div>
+              <div class="flex items-baseline gap-1 pt-1 overflow-hidden">
+                <span id="live-start" class="text-2xl font-display font-black text-white tracking-tight shrink-0">--:--</span>
+                <span class="text-xs font-display text-stone-400 shrink-0">〜</span>
+                <span id="live-end" class="text-sm font-display font-bold text-rose-200 tracking-tight shrink-0">--:--</span>
+              </div>
+            </div>
+            
+            <!-- ステージ名バッジ (目が滑らない独立ピル表示) -->
+            <div class="pt-2 mt-1 border-t border-rose-500/20">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-200 border border-rose-500/30 text-xs font-bold truncate max-w-full">
+                <i data-lucide="map-pin" class="w-3 h-3 text-rose-400 shrink-0"></i>
+                <span id="live-stage" class="truncate font-black">--</span>
               </span>
             </div>
-            <div class="flex items-baseline gap-1 pt-0.5 overflow-hidden">
-              <span id="live-start" class="text-2xl font-display font-black text-white tracking-tight shrink-0">--:--</span>
-              <span class="text-xs font-display text-stone-400 shrink-0">〜</span>
-              <span id="live-end" class="text-sm font-display font-bold text-rose-200 tracking-tight shrink-0">--:--</span>
-            </div>
-            <div id="live-stage" class="text-xs text-rose-300 font-semibold truncate pt-0.5">--</div>
           </div>
 
           <!-- Benefit Merch Time (サブ：落ち着いた通常カード) -->
-          <div class="bg-stone-900/80 rounded-xl px-3 py-2.5 space-y-1 border border-white/10">
-            <div class="flex items-center justify-between text-xs font-bold text-stone-300">
-              <span class="flex items-center gap-1.5">
-                <i data-lucide="camera" class="w-4 h-4 text-stone-400"></i>
-                <span id="benefit-type-label">特典会</span>
+          <div class="bg-stone-900/80 rounded-xl px-3 py-2.5 flex flex-col justify-between border border-white/10">
+            <div>
+              <div class="flex items-center justify-between text-xs font-bold text-stone-300">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="camera" class="w-4 h-4 text-stone-400"></i>
+                  <span id="benefit-type-label">特典会</span>
+                </span>
+              </div>
+              <div class="flex items-baseline gap-1 pt-1 overflow-hidden">
+                <span id="benefit-start" class="text-2xl font-display font-extrabold text-stone-200 tracking-tight shrink-0">--:--</span>
+                <span class="text-xs font-display text-stone-500 shrink-0">〜</span>
+                <span id="benefit-end" class="text-sm font-display font-bold text-stone-400 tracking-tight shrink-0">--:--</span>
+              </div>
+            </div>
+            
+            <!-- 特典会ブースバッジ (目が滑らない独立ピル表示) -->
+            <div class="pt-2 mt-1 border-t border-white/5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-stone-800 text-stone-200 border border-white/10 text-xs font-bold truncate max-w-full">
+                <i data-lucide="tag" class="w-3 h-3 text-stone-400 shrink-0"></i>
+                <span id="benefit-booth" class="truncate font-black">--</span>
               </span>
             </div>
-            <div class="flex items-baseline gap-1 pt-0.5 overflow-hidden">
-              <span id="benefit-start" class="text-2xl font-display font-extrabold text-stone-200 tracking-tight shrink-0">--:--</span>
-              <span class="text-xs font-display text-stone-500 shrink-0">〜</span>
-              <span id="benefit-end" class="text-sm font-display font-bold text-stone-400 tracking-tight shrink-0">--:--</span>
-            </div>
-            <div id="benefit-booth" class="text-xs text-stone-400 font-medium truncate pt-0.5">--</div>
           </div>
 
         </div>
@@ -349,24 +379,31 @@
 
   </div>
 
-  <!-- [FULLSCREEN LIGHTBOX MODAL] (タイテ画像ピンチズーム・拡大) -->
-  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex-col justify-between p-4" onclick="closeLightbox()">
-    <div class="flex items-center justify-between text-xs text-stone-400 pb-2">
-      <span class="flex items-center gap-1 text-rose-300 font-bold">
-        <i data-lucide="image" class="w-3.5 h-3.5"></i>
-        <span>タイテ公式フライヤー画像</span>
+  <!-- [FLOATING FLYER LIGHTBOX MODAL] (背景タップで閉じる・フライヤーのみ浮き上がる半透明ブラー) -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex-col justify-between p-4" onclick="closeLightbox()">
+    <!-- Top hint bar (タップで閉じる案内) -->
+    <div class="flex items-center justify-between text-xs text-stone-300 pb-2 pointer-events-none">
+      <span class="flex items-center gap-1.5 text-rose-300 font-bold">
+        <i data-lucide="image" class="w-4 h-4"></i>
+        <span>公式フライヤー画像</span>
       </span>
-      <button onclick="closeLightbox()" class="px-2.5 py-1 rounded-full bg-stone-800 text-white font-bold text-xs">
+      <span class="px-2.5 py-1 rounded-full bg-stone-800/90 border border-white/20 text-white font-bold text-xs pointer-events-auto cursor-pointer" onclick="closeLightbox()">
         ✕ 閉じる
-      </button>
+      </span>
     </div>
     
-    <div class="flex-1 flex items-center justify-center overflow-auto py-2" onclick="event.stopPropagation()">
-      <img id="lightbox-img" src="" referrerpolicy="no-referrer" alt="Timetable enlarged" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+    <!-- Image Floating Container: 画像外側の余白タップで自然に戻れるよう、img本体のみにstopPropagation -->
+    <div class="flex-1 flex items-center justify-center p-2 cursor-pointer" onclick="closeLightbox()">
+      <img id="lightbox-img" 
+           src="" 
+           referrerpolicy="no-referrer" 
+           alt="Timetable enlarged" 
+           onclick="event.stopPropagation()"
+           class="max-w-[92vw] max-h-[75vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/20 cursor-default">
     </div>
 
-    <div class="text-center text-[11px] text-stone-400 pt-2">
-      画面をタップして閉じる / ピンチ操作で拡大できます
+    <div class="text-center text-xs font-semibold text-stone-400 pt-2 pointer-events-none">
+      画像の周囲をタップして戻る
     </div>
   </div>
 
