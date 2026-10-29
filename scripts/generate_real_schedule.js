@@ -1,0 +1,403 @@
+const fs = require('fs');
+
+const realSchedule = {
+  target_group: {
+    name: "リボンクロック",
+    short_name: "リボクロ",
+    official_x: "https://x.com/Ribbon_Clock",
+    official_tiktok: "https://www.tiktok.com/@ribbon_clock"
+  },
+  featured_member: {
+    name: "神楽あゆ",
+    member_color: "red",
+    color_code: "#ef4444",
+    birthday_title: "神楽あゆ生誕祭 2026（20th Anniversary）",
+    crowdfunding_url: "https://x.com/Ribbon_Clock/status/2114643208710033610",
+    banner_image: "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig"
+  },
+  promotions: [
+    {
+      "id": "promo-ayyu-birthday",
+      "type": "hero",
+      "badge": "20TH BIRTHDAY",
+      "title": "神楽あゆ 生誕祭クラウドファンディング",
+      "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
+      "cta_label": "生誕詳細・支援 ↗",
+      "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
+      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
+      "priority": 100,
+      "active": true
+    },
+    {
+      "id": "promo-tiktok-latest",
+      "type": "inline",
+      "badge": "TikTok",
+      "title": "リボンクロック 公式TikTok",
+      "subtitle": "最新動画をチェックしていいね・保存で応援🎀",
+      "cta_label": "TikTokを開く ↗",
+      "cta_url": "https://www.tiktok.com/@ribbon_clock",
+      "priority": 50,
+      "active": true
+    }
+  ],
+  current_next_id: "20261031-1",
+  sessions: [
+    {
+      id: "20261031-1",
+      title: "はなまるっ Vol.158～全組25分ハロウィンSP～",
+      date: "2026-10-31",
+      day_of_week: "土",
+      session_name: "昼帯SP",
+      venue: {
+        name: "渋谷RING",
+        map_url: "https://maps.google.com/?q=渋谷RING"
+      },
+      live: {
+        start_time: "12:50",
+        end_time: "13:15",
+        stage: "メインステージ"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "13:20",
+        end_time: "14:20",
+        booth: "並行C"
+      },
+      photo: {
+        allowed: true,
+        rule: "静止画のみ撮影可能（スマホ/一眼OK）"
+      },
+      special_notes: "🎃 ハロウィン特別衣装での出演！全組25分枠",
+      admission_bonus: "指名入場特典：個別写メ券 または 特製ステッカー",
+      ticket: {
+        platform: "TIGET / 直チケ",
+        url: "https://x.com/Ribbon_Clock/status/2112891667640656194",
+        prices: [
+          { tier: "前方エリア", price: "¥4,500" },
+          { tier: "通常エリア", price: "¥2,500" },
+          { tier: "当日券", price: "各+¥500 (+1D)" }
+        ]
+      },
+      image_url: "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2112891667640656194"
+    },
+    {
+      id: "20261101-1",
+      title: "はなまるっ Vol.159～全組25分SP～",
+      date: "2026-11-01",
+      day_of_week: "日",
+      session_name: "1部（昼）",
+      venue: {
+        name: "新宿ZircoTokyo",
+        map_url: "https://maps.google.com/?q=新宿ZircoTokyo"
+      },
+      live: {
+        start_time: "15:05",
+        end_time: "15:30",
+        stage: "Zirco Stage"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "15:35",
+        end_time: "16:35",
+        booth: "並行B"
+      },
+      photo: {
+        allowed: false,
+        rule: "撮影禁止"
+      },
+      special_notes: "日曜昼・全組25分SP",
+      admission_bonus: "お目当て指名特典：下記3つから選択（①10秒動画券 / ②写メ券 / ③トーク延長券）",
+      ticket: {
+        platform: "TIGET / 直チケ",
+        url: "https://x.com/Ribbon_Clock/status/2114341213147205692",
+        prices: [
+          { tier: "前方エリア", price: "¥4,500" },
+          { tier: "通常エリア", price: "¥2,500" },
+          { tier: "当日券", price: "各+¥500 (+1D)" }
+        ]
+      },
+      image_url: "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2114341213147205692"
+    },
+    {
+      id: "20261101-2",
+      title: "IDOL Treasure bottle LIVE",
+      date: "2026-11-01",
+      day_of_week: "日",
+      session_name: "2部（夜）",
+      venue: {
+        name: "BATUR TOKYO（バトゥール東京）",
+        map_url: "https://maps.google.com/?q=バトゥール東京"
+      },
+      live: {
+        start_time: "18:35",
+        end_time: "18:55",
+        stage: "メインチャペル"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "19:05",
+        end_time: "20:05",
+        booth: "2階チャペルB"
+      },
+      photo: {
+        allowed: true,
+        rule: "撮可曲あり（当日告知予定）"
+      },
+      special_notes: "バトゥール東京・夜帯ライブ！前売券は当日会場精算",
+      admission_bonus: "指名入場特典：個別写メ券 または 2shotトーク券",
+      ticket: {
+        platform: "TIGET事前予約",
+        url: "https://x.com/Ribbon_Clock/status/2114597900827115847",
+        prices: [
+          { tier: "前売券", price: "¥3,200 (+1D)" },
+          { tier: "当日券", price: "¥3,700 (+1D)" }
+        ]
+      },
+      image_url: "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2114597900827115847"
+    },
+    {
+      id: "20261103-1",
+      title: "アイドルマリアージュVol.79",
+      date: "2026-11-03",
+      day_of_week: "火祝",
+      session_name: "祝日昼帯",
+      venue: {
+        name: "ベルサール虎ノ門",
+        map_url: "https://maps.google.com/?q=ベルサール虎ノ門"
+      },
+      live: {
+        start_time: "11:55",
+        end_time: "12:15",
+        stage: "ホール"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "12:20",
+        end_time: "13:20",
+        booth: "並行C"
+      },
+      photo: {
+        allowed: true,
+        rule: "指定曲のみ撮影可能"
+      },
+      special_notes: "文化の日祝日！マリアージュ出演",
+      admission_bonus: "指名特典：お目当て3択（①10秒動画券 / ②写メ券 / ③トーク延長）",
+      ticket: {
+        platform: "TicketLive / LivePocket",
+        url: "https://x.com/Ribbon_Clock/status/2115639776422625284",
+        prices: [
+          { tier: "前方エリア", price: "¥5,000" },
+          { tier: "通常エリア", price: "¥3,000" },
+          { tier: "当日券", price: "各+¥500 (+1D)" }
+        ]
+      },
+      image_url: "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2115639776422625284"
+    },
+    {
+      id: "20261105-1",
+      title: "POLAROID - FREE -",
+      date: "2026-11-05",
+      day_of_week: "木",
+      session_name: "夕方無銭",
+      venue: {
+        name: "原宿RUIDO",
+        map_url: "https://maps.google.com/?q=原宿RUIDO"
+      },
+      live: {
+        start_time: "16:20",
+        end_time: "16:45",
+        stage: "メイン"
+      },
+      benefit: {
+        type: "終演後",
+        start_time: "17:30",
+        end_time: "18:45",
+        booth: "フロア内"
+      },
+      photo: {
+        allowed: true,
+        rule: "全曲静止画のみ可能"
+      },
+      special_notes: "通常エリア入場無料！前方のみ有料",
+      admission_bonus: "指名特典：①10秒動画券 / ②写真+30秒トーク / ③ランチェキ",
+      ticket: {
+        platform: "直チケ",
+        url: "https://x.com/Ribbon_Clock/status/2109237575764656308",
+        prices: [
+          { tier: "前方エリア", price: "¥2,000" },
+          { tier: "通常エリア", price: "¥0 (無料)" }
+        ]
+      },
+      image_url: "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2109237575764656308"
+    },
+    {
+      id: "20261108-1",
+      title: "アイドルアラモードプチVol.142",
+      date: "2026-11-08",
+      day_of_week: "日",
+      session_name: "昼帯",
+      venue: {
+        name: "横浜ランドマークホール",
+        map_url: "https://maps.google.com/?q=横浜ランドマークホール"
+      },
+      live: {
+        start_time: "10:20",
+        end_time: "10:45",
+        stage: "ホール"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "11:00",
+        end_time: "12:00",
+        booth: "ホワイエ特設"
+      },
+      photo: {
+        allowed: false,
+        rule: "撮影禁止"
+      },
+      special_notes: "横浜遠征大型対バン！数量限定特別チケットあり",
+      admission_bonus: "指名特典：横浜限定チェキ券",
+      ticket: {
+        platform: "TicketDive / LivePocket",
+        url: "https://x.com/Ribbon_Clock/status/2113918424439296285"
+      },
+      image_url: "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2113918424439296285"
+    },
+    {
+      id: "20261109-1",
+      title: "POLAROID - FREE -",
+      date: "2026-11-09",
+      day_of_week: "月",
+      session_name: "夕方無銭",
+      venue: {
+        name: "原宿RUIDO",
+        map_url: "https://maps.google.com/?q=原宿RUIDO"
+      },
+      live: {
+        start_time: "16:20",
+        end_time: "16:45",
+        stage: "メイン"
+      },
+      benefit: {
+        type: "終演後",
+        start_time: "17:30",
+        end_time: "18:45",
+        booth: "フロア内"
+      },
+      photo: { allowed: true, rule: "静止画のみ可能" },
+      special_notes: "月曜無銭ライブ！",
+      admission_bonus: "指名特典3択あり",
+      ticket: {
+        platform: "直チケ",
+        url: "https://x.com/Ribbon_Clock/status/2111808264258089266"
+      },
+      image_url: "https://pbs.twimg.com/media/HVNsriIaUAEK6E-?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2111808264258089266"
+    },
+    {
+      id: "20261112-1",
+      title: "Girls Carnival vol.11",
+      date: "2026-11-12",
+      day_of_week: "木",
+      session_name: "夕方帯",
+      venue: {
+        name: "日暮里ネコシアター",
+        map_url: "https://maps.google.com/?q=日暮里ネコシアター"
+      },
+      live: {
+        start_time: "16:30",
+        end_time: "16:55",
+        stage: "シアター"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "17:10",
+        end_time: "18:10",
+        booth: "並行卓"
+      },
+      photo: { allowed: true, rule: "指定曲のみ可能" },
+      special_notes: "ネコシアター対バン！前方¥3000 通常¥1000",
+      admission_bonus: "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
+      ticket: {
+        platform: "TIGET",
+        url: "https://x.com/Ribbon_Clock/status/2114295917075460118"
+      },
+      image_url: "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2114295917075460118"
+    },
+    {
+      id: "20261123-1",
+      title: "ギガ盛りMAX 前夜祭＠新橋",
+      date: "2026-11-23",
+      day_of_week: "月祝",
+      session_name: "昼帯",
+      venue: {
+        name: "ZEAL THEATER 新橋",
+        map_url: "https://maps.google.com/?q=ZEAL+THEATER+新橋"
+      },
+      live: {
+        start_time: "11:15",
+        end_time: "11:40",
+        stage: "メイン"
+      },
+      benefit: {
+        type: "並行",
+        start_time: "11:50",
+        end_time: "12:50",
+        booth: "ロビー"
+      },
+      photo: { allowed: true, rule: "全曲静止画のみ可能" },
+      special_notes: "勤労感謝の日祝日！ギガ盛りMAX前夜祭",
+      admission_bonus: "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
+      ticket: {
+        platform: "LivePocket",
+        url: "https://x.com/Ribbon_Clock/status/2113948622446571638"
+      },
+      image_url: "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2113948622446571638"
+    },
+    {
+      id: "20261125-1",
+      title: "POLAROID - FREE -",
+      date: "2026-11-25",
+      day_of_week: "水",
+      session_name: "夕方無銭",
+      venue: {
+        name: "原宿RUIDO",
+        map_url: "https://maps.google.com/?q=原宿RUIDO"
+      },
+      live: {
+        start_time: "16:20",
+        end_time: "16:45",
+        stage: "メイン"
+      },
+      benefit: {
+        type: "終演後",
+        start_time: "17:30",
+        end_time: "18:45",
+        booth: "フロア内"
+      },
+      photo: { allowed: true, rule: "静止画のみ可能" },
+      special_notes: "11月ラストの原宿RUIDO無銭！",
+      admission_bonus: "指名特典3択あり",
+      ticket: {
+        platform: "直チケ",
+        url: "https://x.com/Ribbon_Clock/status/2111809522243117188"
+      },
+      image_url: "https://pbs.twimg.com/media/HU6lt88bIAAGXKa?format=jpg&name=orig",
+      source_tweet_url: "https://x.com/Ribbon_Clock/status/2111809522243117188"
+    }
+  ]
+};
+
+fs.writeFileSync('space/taite-board/data/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
+fs.writeFileSync('space/taite-board/docs/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
+fs.writeFileSync('space/taite-board/web/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
+
+console.log('Successfully written real live schedules for Ribbon Clock!');
