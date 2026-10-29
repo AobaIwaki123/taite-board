@@ -1,0 +1,232 @@
+{
+  "target_group": {
+    "name": "リボンクロック",
+    "short_name": "リボクロ",
+    "official_x": "https://x.com/Ribbon_Clock"
+  },
+  "promotions": [
+    {
+      "id": "promo-birthday-2026",
+      "type": "hero",
+      "badge": "SPECIAL HERO",
+      "title": "生誕祭2026 応援プロジェクト",
+      "subtitle": "公式クラウドファンディング開催中（11月29日 本番）",
+      "cta_label": "クラファンで支援する",
+      "cta_url": "https://camp-fire.jp/",
+      "days_left": 30,
+      "priority": 100,
+      "active": true
+    },
+    {
+      "id": "promo-tiktok-latest",
+      "type": "inline",
+      "badge": "TikTok",
+      "title": "新曲ダンス動画 公開中",
+      "subtitle": "公式TikTokをチェックしていいね・保存で応援",
+      "cta_label": "TikTokを開く",
+      "cta_url": "https://www.tiktok.com/@ribbon_clock",
+      "priority": 50,
+      "active": true
+    }
+  ],
+  "current_next_id": "20261103-1",
+  "sessions": [
+    {
+      "id": "20261103-1",
+      "title": "アイドルマリアージュVol.79",
+      "date": "2026-11-03",
+      "day_of_week": "火祝",
+      "session_name": "1部（昼）",
+      "venue": {
+        "name": "ベルサール虎ノ門",
+        "map_url": "https://maps.google.com/?q=ベルサール虎ノ門"
+      },
+      "live": {
+        "start_time": "11:55",
+        "end_time": "12:15",
+        "stage": "メインホール"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "12:20",
+        "end_time": "13:20",
+        "booth": "並行C"
+      },
+      "photo": {
+        "allowed": true,
+        "rule": "指定曲のみ静止画撮影可能（スマホ/一眼OK）",
+        "songs": ["2曲目: 「初恋タイムリープ」"]
+      },
+      "special_notes": "祝日特別タイテ / 新衣装着用予定",
+      "admission_bonus": "お目当て指名特典：下記3つから選択（①個別写メ券 / ②ランチェキ / ③トーク1分延長券）",
+      "ticket": {
+        "platform": "TicketLive",
+        "url": "https://ticketdive.com/",
+        "prices": [
+          {"tier": "前方エリア", "price": "¥5,000"},
+          {"tier": "通常エリア", "price": "¥3,000"},
+          {"tier": "当日券", "price": "各+¥500 (+1D)"}
+        ]
+      },
+      "surrounding_acts": [
+        {
+          "order": -2,
+          "name": "きゅ〜くる",
+          "live_time": "11:15〜11:35",
+          "benefit_time": "11:40〜12:40 (並行A)"
+        },
+        {
+          "order": -1,
+          "name": "ポンコツコンポ",
+          "live_time": "11:35〜11:55",
+          "benefit_time": "12:00〜13:00 (並行B)"
+        },
+        {
+          "order": 0,
+          "name": "リボンクロック",
+          "live_time": "11:55〜12:15",
+          "benefit_time": "12:20〜13:20 (並行C)",
+          "is_target": true
+        },
+        {
+          "order": 1,
+          "name": "アキシブproject",
+          "live_time": "12:15〜12:35",
+          "benefit_time": "12:40〜13:40 (並行D)"
+        },
+        {
+          "order": 2,
+          "name": "なんキニ！",
+          "live_time": "12:35〜12:55",
+          "benefit_time": "13:00〜14:00 (並行E)"
+        }
+      ],
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284"
+    },
+    {
+      "id": "20261103-2",
+      "title": "TOKYO GIRLS GIRLS circuit",
+      "date": "2026-11-03",
+      "day_of_week": "火祝",
+      "session_name": "2部（夜サーキット）",
+      "venue": {
+        "name": "Spotify O-EAST",
+        "map_url": "https://maps.google.com/?q=Spotify+O-EAST"
+      },
+      "live": {
+        "start_time": "18:40",
+        "end_time": "19:05",
+        "stage": "O-EAST メイン"
+      },
+      "benefit": {
+        "type": "終演後",
+        "start_time": "20:30",
+        "end_time": "21:45",
+        "booth": "2Fホワイエ 特典会ブース2"
+      },
+      "photo": {
+        "allowed": false,
+        "rule": "撮影禁止"
+      },
+      "special_notes": "夜帯サーキットフェス出演",
+      "admission_bonus": "指名入場特典: 2ショットチェキ券 + 生誕メッセージカード引換券",
+      "ticket": {
+        "platform": "LivePocket",
+        "url": "https://t.livepocket.jp/",
+        "prices": [
+          {"tier": "一般", "price": "¥4,000 (+1D)"}
+        ]
+      },
+      "surrounding_acts": [
+        {
+          "order": -1,
+          "name": "夜光性アミューズ",
+          "live_time": "18:15〜18:40",
+          "benefit_time": "終演後"
+        },
+        {
+          "order": 0,
+          "name": "リボンクロック",
+          "live_time": "18:40〜19:05",
+          "benefit_time": "20:30〜21:45 (終演後)",
+          "is_target": true
+        },
+        {
+          "order": 1,
+          "name": "JamsCollection",
+          "live_time": "19:05〜19:30",
+          "benefit_time": "終演後"
+        }
+      ]
+    },
+    {
+      "id": "20261107-1",
+      "title": "秋のアイドル大感謝祭 Day1",
+      "date": "2026-11-07",
+      "day_of_week": "土",
+      "session_name": "単独部",
+      "venue": {
+        "name": "新宿ReNY",
+        "map_url": "https://maps.google.com/?q=新宿ReNY"
+      },
+      "live": {
+        "start_time": "14:00",
+        "end_time": "14:25",
+        "stage": "メイン"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "14:40",
+        "end_time": "15:40",
+        "booth": "ロビーA"
+      },
+      "photo": {
+        "allowed": true,
+        "rule": "全曲静止画のみ可能"
+      },
+      "special_notes": "秋服私服特典会",
+      "admission_bonus": "指名特典: 私服ソロ写メ券",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/"
+      }
+    },
+    {
+      "id": "20261129-1",
+      "title": "リボンクロック 単独生誕祭2026 〜Special Birthday Live〜",
+      "date": "2026-11-29",
+      "day_of_week": "日",
+      "session_name": "生誕祭本番",
+      "is_birthday_event": true,
+      "venue": {
+        "name": "白金高輪SELENE b2",
+        "map_url": "https://maps.google.com/?q=白金高輪SELENE+b2"
+      },
+      "live": {
+        "start_time": "17:30",
+        "end_time": "19:00",
+        "stage": "単独ホール"
+      },
+      "benefit": {
+        "type": "終演後",
+        "start_time": "19:15",
+        "end_time": "21:30",
+        "booth": "ホール内特設"
+      },
+      "photo": {
+        "allowed": true,
+        "rule": "生誕ソロ曲のみ動画・静止画撮影可能"
+      },
+      "special_notes": "🎂 生誕祭当日！生誕特別衣装・ソロカバー曲披露",
+      "admission_bonus": "生誕来場者全員プレゼント + 指名特典: 生誕限定ステッカー",
+      "ticket": {
+        "platform": "LivePocket",
+        "url": "https://t.livepocket.jp/",
+        "prices": [
+          {"tier": "Sチケット（前方・特典付）", "price": "¥8,000"},
+          {"tier": "一般", "price": "¥3,000"}
+        ]
+      }
+    }
+  ]
+}

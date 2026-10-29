@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TAITE BOARD | 計器盤UI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              pink: '#f43f5e',
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #09090b;
+      color: #f4f4f5;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass-card {
+      background: linear-gradient(135deg, rgba(24, 24, 27, 0.8) 0%, rgba(9, 9, 11, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+    }
+    .glass-hero {
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(24, 24, 27, 0.85) 100%);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 20px -5px rgba(6, 182, 212, 0.25);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-12 font-sans antialiased selection:bg-brand-cyan/20">
+
+  <!-- Mobile Container (Max width 480px, auto centered) -->
+  <div class="mx-auto max-w-md px-4 pt-3 space-y-3">
+
+    <!-- Top Brand & Group Identifier -->
+    <header class="flex items-center justify-between py-1 border-b border-zinc-800/80">
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-brand-emerald animate-pulse"></span>
+        <span class="text-xs font-mono font-bold tracking-wider text-zinc-400">TAITE BOARD</span>
+        <span class="text-xs text-zinc-600">/</span>
+        <span id="group-name" class="text-xs font-bold text-zinc-200">リボンクロック</span>
+      </div>
+      <div class="text-[11px] font-mono text-zinc-500" id="current-clock">--:--:--</div>
+    </header>
+
+    <!-- [HERO PROMOTION SLOT] (生誕クラファン・特別告知) -->
+    <section id="hero-promotion" class="glass-hero rounded-xl p-3.5 relative overflow-hidden transition-all duration-200 hover:border-brand-pink/40">
+      <div class="flex items-start justify-between gap-2">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-brand-pink/20 text-brand-pink border border-brand-pink/30" id="hero-badge">SPECIAL HERO</span>
+            <span class="text-[11px] font-mono text-zinc-400">生誕まであと <span id="hero-days" class="text-white font-bold text-sm">30</span> 日</span>
+          </div>
+          <h2 id="hero-title" class="text-sm font-bold text-zinc-100 leading-snug">生誕祭2026 応援プロジェクト</h2>
+          <p id="hero-subtitle" class="text-xs text-zinc-400 leading-relaxed">公式クラウドファンディング開催中（11月29日 本番）</p>
+        </div>
+        <a id="hero-cta" href="#" target="_blank" rel="noopener" class="shrink-0 flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-pink text-white text-xs font-bold shadow-md hover:bg-brand-pink/90 active:scale-95 transition-all">
+          <span>支援する</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+        </a>
+      </div>
+    </section>
+
+    <!-- [VIEW SWITCHER TABS] (直近 / 週間 / 月間) -->
+    <nav class="flex p-1 bg-zinc-900/90 rounded-lg border border-zinc-800/80 text-xs font-medium">
+      <button onclick="switchView('next')" id="tab-next" class="flex-1 py-1.5 rounded-md text-center font-bold bg-zinc-800 text-white shadow-sm transition-all">直近 (Next)</button>
+      <button onclick="switchView('week')" id="tab-week" class="flex-1 py-1.5 rounded-md text-center text-zinc-400 hover:text-zinc-200 transition-all">週間 (Week)</button>
+      <button onclick="switchView('month')" id="tab-month" class="flex-1 py-1.5 rounded-md text-center text-zinc-400 hover:text-zinc-200 transition-all">月間 (Month)</button>
+    </nav>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 1: [直近 (NEXT) 計器盤ビュー] -->
+    <!-- ======================================================== -->
+    <main id="view-next" class="space-y-3">
+
+      <!-- 同日複数セッション切り替え (同日回しがある場合のみ表示) -->
+      <div id="session-switcher" class="flex items-center gap-2 overflow-x-auto pb-0.5 custom-scrollbar">
+        <!-- JSでピルボタンを自動注入 -->
+      </div>
+
+      <!-- MAIN COCKPIT CARD -->
+      <article class="glass-card rounded-2xl p-4 space-y-4 border-l-4 border-l-brand-cyan glow-cyan">
+        
+        <!-- Live Status & Date Header -->
+        <div class="flex items-start justify-between border-b border-zinc-800/80 pb-2.5">
+          <div class="space-y-0.5">
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand-cyan animate-ping"></span>
+              <span id="live-relative-time" class="text-xs font-mono font-bold text-brand-cyan tracking-wider">NEXT UP</span>
+            </div>
+            <h1 id="live-title" class="text-base font-bold text-white tracking-tight">--</h1>
+          </div>
+          <div class="text-right">
+            <div id="live-date" class="text-xs font-mono font-bold text-zinc-200">--/-- (--)</div>
+            <div id="live-session-badge" class="text-[10px] font-mono text-zinc-400">1部</div>
+          </div>
+        </div>
+
+        <!-- Venue & Map Link -->
+        <div class="flex items-center justify-between text-xs bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800/60">
+          <div class="flex items-center gap-2 text-zinc-300 truncate">
+            <i data-lucide="map-pin" class="w-4 h-4 text-brand-cyan shrink-0"></i>
+            <span id="live-venue" class="font-medium truncate">--</span>
+          </div>
+          <a id="live-map-link" href="#" target="_blank" rel="noopener" class="shrink-0 flex items-center gap-1 text-[11px] font-mono font-bold text-brand-cyan hover:underline ml-2">
+            <span>MAP</span>
+            <i data-lucide="navigation" class="w-3 h-3"></i>
+          </a>
+        </div>
+
+        <!-- PRIMARY TELEMETRY: 出演 ＆ 特典会 (特大フォント) -->
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          
+          <!-- LIVE TIME BOX -->
+          <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800/90 space-y-1">
+            <div class="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+              <span class="flex items-center gap-1">
+                <i data-lucide="mic" class="w-3.5 h-3.5 text-brand-pink"></i>
+                <span>出演</span>
+              </span>
+              <span id="live-stage" class="text-[10px] text-zinc-500 truncate">--</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="live-start" class="text-2xl font-mono font-extrabold text-white tracking-tight">--:--</span>
+              <span class="text-xs font-mono text-zinc-500">〜</span>
+              <span id="live-end" class="text-sm font-mono text-zinc-400">--:--</span>
+            </div>
+          </div>
+
+          <!-- BENEFIT TIME BOX -->
+          <div class="bg-zinc-900/80 p-3 rounded-xl border border-zinc-800/90 space-y-1">
+            <div class="flex items-center justify-between text-[11px] text-zinc-400 font-mono">
+              <span class="flex items-center gap-1">
+                <i data-lucide="camera" class="w-3.5 h-3.5 text-brand-amber"></i>
+                <span id="benefit-type-badge">特典会 (並行)</span>
+              </span>
+              <span id="benefit-booth" class="text-[10px] text-brand-amber font-mono truncate">--</span>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span id="benefit-start" class="text-2xl font-mono font-extrabold text-white tracking-tight">--:--</span>
+              <span class="text-xs font-mono text-zinc-500">〜</span>
+              <span id="benefit-end" class="text-sm font-mono text-zinc-400">--:--</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAGS & RULES: 撮可ルール ＆ 特記事項 ＆ 指名入場特典 -->
+        <div class="space-y-2 pt-1 text-xs">
+          
+          <!-- Photo Rule Badge -->
+          <div id="photo-box" class="flex items-start gap-2 p-2 rounded-lg bg-zinc-900/50 border border-zinc-800/60">
+            <i data-lucide="aperture" class="w-3.5 h-3.5 text-brand-cyan shrink-0 mt-0.5"></i>
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-2">
+                <span id="photo-allowed-label" class="font-bold text-zinc-200">撮可</span>
+                <span id="photo-rule-text" class="text-[11px] text-zinc-400">--</span>
+              </div>
+              <div id="photo-songs-list" class="text-[11px] text-brand-cyan font-mono"></div>
+            </div>
+          </div>
+
+          <!-- Special Notes (コスプレ等) -->
+          <div id="special-notes-box" class="flex items-start gap-2 p-2 rounded-lg bg-brand-amber/10 border border-brand-amber/20 text-brand-amber">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i>
+            <div id="special-notes-text" class="text-xs font-medium">--</div>
+          </div>
+
+          <!-- Admission Bonus (お目当て特典) -->
+          <div class="flex items-start gap-2 p-2 rounded-lg bg-zinc-900/50 border border-zinc-800/60 text-zinc-300">
+            <i data-lucide="gift" class="w-3.5 h-3.5 text-brand-pink shrink-0 mt-0.5"></i>
+            <div class="space-y-0.5">
+              <div class="text-[10px] font-mono text-zinc-500">お目当て指名特典</div>
+              <div id="admission-bonus-text" class="text-xs font-medium text-zinc-200">--</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TICKET ACTION & PRICES -->
+        <div class="pt-2 border-t border-zinc-800/80 space-y-2">
+          <div id="ticket-prices-box" class="flex flex-wrap gap-2 text-[11px] font-mono text-zinc-400">
+            <!-- Prices injected via JS -->
+          </div>
+          <a id="ticket-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-800 text-white font-bold text-xs shadow-md transition-all border border-zinc-700/80">
+            <i data-lucide="ticket" class="w-4 h-4 text-brand-cyan"></i>
+            <span>チケットを開く (<span id="ticket-platform">LivePocket</span>)</span>
+            <i data-lucide="external-link" class="w-3.5 h-3.5 text-zinc-500 ml-auto"></i>
+          </a>
+        </div>
+
+        <!-- [SURROUNDING ACTS: 前後ローカルタイテ (前後2〜3組)] -->
+        <div class="pt-2 border-t border-zinc-800/80 space-y-2">
+          <div class="flex items-center justify-between text-xs text-zinc-400">
+            <span class="font-mono font-bold flex items-center gap-1.5">
+              <i data-lucide="list-ordered" class="w-3.5 h-3.5 text-zinc-400"></i>
+              <span>前後タイテ (前後2組)</span>
+            </span>
+            <a id="source-tweet-link" href="#" target="_blank" rel="noopener" class="text-[11px] text-brand-cyan hover:underline flex items-center gap-1">
+              <span>公式告知を見る</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </div>
+
+          <div id="surrounding-acts-list" class="space-y-1.5 text-xs font-mono">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+      </article>
+
+    </main>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 2: [週間 (WEEK) リストビュー] -->
+    <!-- ======================================================== -->
+    <section id="view-week" class="hidden space-y-2.5">
+      <div class="text-xs font-mono text-zinc-400 px-1">今週〜直近のスケジュール一覧</div>
+      <div id="week-list" class="space-y-2">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 3: [月間 (MONTH) カレンダービュー] -->
+    <!-- ======================================================== -->
+    <section id="view-month" class="hidden space-y-3">
+      <div class="text-xs font-mono text-zinc-400 px-1">2026年 11月 スケジュール</div>
+      <div class="glass-card rounded-2xl p-3.5 space-y-3">
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 gap-1 text-center text-xs font-mono">
+          <span class="text-red-400 font-bold py-1">日</span>
+          <span class="text-zinc-500 py-1">月</span>
+          <span class="text-zinc-500 py-1">火</span>
+          <span class="text-zinc-500 py-1">水</span>
+          <span class="text-zinc-500 py-1">木</span>
+          <span class="text-zinc-500 py-1">金</span>
+          <span class="text-blue-400 font-bold py-1">土</span>
+        </div>
+        <div id="calendar-days-grid" class="grid grid-cols-7 gap-1.5 text-center text-xs font-mono">
+          <!-- Calendar Days injected via JS -->
+        </div>
+      </div>
+
+      <!-- Month selected session detail sheet -->
+      <div id="month-session-detail" class="space-y-2">
+        <!-- Injected when a day is clicked -->
+      </div>
+    </section>
+
+    <!-- [INLINE PROMOTION SLOT] (TikTokや常設告知) -->
+    <section id="inline-promotion" class="glass-card rounded-xl p-3 flex items-center justify-between border-zinc-800/80">
+      <div class="flex items-center gap-2.5 truncate">
+        <div class="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-700/60">
+          <i data-lucide="play" class="w-4 h-4 text-brand-cyan fill-brand-cyan/20"></i>
+        </div>
+        <div class="truncate">
+          <div id="inline-promo-title" class="text-xs font-bold text-zinc-200 truncate">新曲ダンス動画 公開中</div>
+          <div id="inline-promo-subtitle" class="text-[11px] text-zinc-400 truncate">公式TikTokをチェック</div>
+        </div>
+      </div>
+      <a id="inline-promo-cta" href="#" target="_blank" rel="noopener" class="shrink-0 ml-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-brand-cyan border border-zinc-700/60 transition-all">
+        開く ↗
+      </a>
+    </section>
+
+    <!-- Footer Note -->
+    <footer class="pt-2 text-center text-[10px] font-mono text-zinc-600">
+      TAITE BOARD · MINIMAL HIGH-VISIBILITY COCKPIT
+    </footer>
+
+  </div>
+
+  <!-- APPLICATION LOGIC & STATE ENGINE -->
+  <script>
+    let appData = null;
+    let currentSessionId = null;
+
+    // 1. Initialize Application
+    async function init() {
+      try {
+        const res = await fetch('mock_schedule.json');
+        appData = await res.json();
+      } catch (e) {
+        console.error('Failed to load mock data, fallbacking to local memory', e);
+      }
+
+      currentSessionId = appData.current_next_id || appData.sessions[0].id;
+      
+      // Render Initial View
+      renderPromotions();
+      renderNextView(currentSessionId);
+      renderWeekView();
+      renderMonthView();
+      
+      // Clock tick
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // Re-trigger Lucide icons
+      lucide.createIcons();
+    }
+
+    // 2. Promotion Slots Renderer
+    function renderPromotions() {
+      const hero = appData.promotions.find(p => p.type === 'hero' && p.active);
+      if (hero) {
+        document.getElementById('hero-badge').textContent = hero.badge;
+        document.getElementById('hero-days').textContent = hero.days_left;
+        document.getElementById('hero-title').textContent = hero.title;
+        document.getElementById('hero-subtitle').textContent = hero.subtitle;
+        const cta = document.getElementById('hero-cta');
+        cta.href = hero.cta_url;
+        cta.querySelector('span').textContent = hero.cta_label;
+      }
+
+      const inline = appData.promotions.find(p => p.type === 'inline' && p.active);
+      if (inline) {
+        document.getElementById('inline-promo-title').textContent = inline.title;
+        document.getElementById('inline-promo-subtitle').textContent = inline.subtitle;
+        const cta = document.getElementById('inline-promo-cta');
+        cta.href = inline.cta_url;
+        cta.textContent = `${inline.cta_label} ↗`;
+      }
+    }
+
+    // 3. Render Next / Cockpit View
+    function renderNextView(sessionId) {
+      const session = appData.sessions.find(s => s.id === sessionId);
+      if (!session) return;
+
+      currentSessionId = sessionId;
+
+      // Group & Live Meta
+      document.getElementById('group-name').textContent = appData.target_group.name;
+      document.getElementById('live-title').textContent = session.title;
+      document.getElementById('live-date').textContent = `${session.date} (${session.day_of_week})`;
+      document.getElementById('live-session-badge').textContent = session.session_name;
+      document.getElementById('live-venue').textContent = session.venue.name;
+      document.getElementById('live-map-link').href = session.venue.map_url;
+
+      // Telemetry Numbers
+      document.getElementById('live-start').textContent = session.live.start_time;
+      document.getElementById('live-end').textContent = session.live.end_time;
+      document.getElementById('live-stage').textContent = session.live.stage || 'ステージ';
+
+      document.getElementById('benefit-type-badge').textContent = `特典会 (${session.benefit.type})`;
+      document.getElementById('benefit-booth').textContent = session.benefit.booth;
+      document.getElementById('benefit-start').textContent = session.benefit.start_time;
+      document.getElementById('benefit-end').textContent = session.benefit.end_time;
+
+      // Photo rules
+      const photoSongs = document.getElementById('photo-songs-list');
+      photoSongs.innerHTML = '';
+      if (session.photo.allowed) {
+        document.getElementById('photo-allowed-label').textContent = '撮可';
+        document.getElementById('photo-allowed-label').className = 'font-bold text-brand-cyan';
+        document.getElementById('photo-rule-text').textContent = session.photo.rule;
+        if (session.photo.songs && session.photo.songs.length) {
+          session.photo.songs.forEach(song => {
+            const el = document.createElement('div');
+            el.textContent = `▶ ${song}`;
+            photoSongs.appendChild(el);
+          });
+        }
+      } else {
+        document.getElementById('photo-allowed-label').textContent = '撮禁';
+        document.getElementById('photo-allowed-label').className = 'font-bold text-zinc-500';
+        document.getElementById('photo-rule-text').textContent = session.photo.rule;
+      }
+
+      // Special Notes
+      const notesBox = document.getElementById('special-notes-box');
+      if (session.special_notes) {
+        notesBox.classList.remove('hidden');
+        document.getElementById('special-notes-text').textContent = session.special_notes;
+      } else {
+        notesBox.classList.add('hidden');
+      }
+
+      // Admission Bonus
+      document.getElementById('admission-bonus-text').textContent = session.admission_bonus || '特になし';
+
+      // Tickets
+      const pricesBox = document.getElementById('ticket-prices-box');
+      pricesBox.innerHTML = '';
+      if (session.ticket.prices) {
+        session.ticket.prices.forEach(p => {
+          const span = document.createElement('span');
+          span.className = 'px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300';
+          span.textContent = `${p.tier}: ${p.price}`;
+          pricesBox.appendChild(span);
+        });
+      }
+      document.getElementById('ticket-platform').textContent = session.ticket.platform;
+      document.getElementById('ticket-link').href = session.ticket.url;
+
+      // Source tweet
+      const tweetLink = document.getElementById('source-tweet-link');
+      if (session.source_tweet_url) {
+        tweetLink.classList.remove('hidden');
+        tweetLink.href = session.source_tweet_url;
+      } else {
+        tweetLink.classList.add('hidden');
+      }
+
+      // Render Same-Day Sessions Switcher Pills
+      renderSessionSwitcher(session.date);
+
+      // Render Surrounding Acts
+      renderSurroundingActs(session.surrounding_acts || []);
+
+      lucide.createIcons();
+    }
+
+    // Render Same-Day Switcher Pills
+    function renderSessionSwitcher(date) {
+      const sameDaySessions = appData.sessions.filter(s => s.date === date);
+      const container = document.getElementById('session-switcher');
+      container.innerHTML = '';
+
+      if (sameDaySessions.length <= 1) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      container.classList.remove('hidden');
+      sameDaySessions.forEach(s => {
+        const btn = document.createElement('button');
+        const isActive = s.id === currentSessionId;
+        btn.className = `px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all shrink-0 ${
+          isActive 
+            ? 'bg-brand-cyan text-zinc-950 shadow-sm' 
+            : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:text-white'
+        }`;
+        btn.textContent = `${s.session_name} (${s.live.start_time}〜)`;
+        btn.onclick = () => renderNextView(s.id);
+        container.appendChild(btn);
+      });
+    }
+
+    // Render Surrounding Acts
+    function renderSurroundingActs(acts) {
+      const container = document.getElementById('surrounding-acts-list');
+      container.innerHTML = '';
+
+      if (!acts.length) {
+        container.innerHTML = '<div class="text-zinc-500 py-1">対バン情報未登録</div>';
+        return;
+      }
+
+      acts.forEach(act => {
+        const row = document.createElement('div');
+        if (act.is_target) {
+          row.className = 'flex items-center justify-between p-2 rounded-lg bg-brand-cyan/15 border border-brand-cyan/40 text-brand-cyan font-bold';
+        } else {
+          row.className = 'flex items-center justify-between p-1.5 rounded bg-zinc-900/40 text-zinc-400';
+        }
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2 truncate">
+            <span class="w-14 shrink-0 text-[11px] font-mono text-zinc-300">${act.live_time}</span>
+            <span class="truncate ${act.is_target ? 'text-white font-bold' : ''}">${act.name}</span>
+          </div>
+          <span class="text-[10px] text-zinc-500 shrink-0 ml-2">物販: ${act.benefit_time}</span>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    // 4. Render Week View
+    function renderWeekView() {
+      const container = document.getElementById('week-list');
+      container.innerHTML = '';
+
+      appData.sessions.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'glass-card rounded-xl p-3 space-y-2 border-zinc-800/80 cursor-pointer hover:border-zinc-700 transition-all';
+        card.onclick = () => {
+          switchView('next');
+          renderNextView(s.id);
+        };
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono font-bold text-brand-cyan">${s.date} (${s.day_of_week})</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">${s.session_name}</span>
+          </div>
+          <div class="text-sm font-bold text-zinc-100">${s.title}</div>
+          <div class="flex items-center justify-between text-xs font-mono text-zinc-400 pt-1 border-t border-zinc-800/60">
+            <span>出番: <strong class="text-white">${s.live.start_time}〜${s.live.end_time}</strong></span>
+            <span>物販: <strong class="text-white">${s.benefit.start_time}〜</strong> (${s.benefit.type})</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // 5. Render Month Calendar View
+    function renderMonthView() {
+      const grid = document.getElementById('calendar-days-grid');
+      grid.innerHTML = '';
+
+      // Dummy padding for 2026-11-01 (Sunday starts at index 0)
+      for (let day = 1; day <= 30; day++) {
+        const dateStr = `2026-11-${String(day).padStart(2, '0')}`;
+        const hasSessions = appData.sessions.filter(s => s.date === dateStr);
+        const isBirthday = hasSessions.some(s => s.is_birthday_event);
+
+        const cell = document.createElement('button');
+        cell.className = `p-2 rounded-xl flex flex-col items-center justify-center transition-all ${
+          isBirthday 
+            ? 'bg-brand-pink/20 border border-brand-pink/50 text-brand-pink font-bold glow-pink' 
+            : hasSessions.length 
+              ? 'bg-zinc-800/90 border border-brand-cyan/40 text-brand-cyan font-bold hover:bg-zinc-700' 
+              : 'bg-zinc-900/40 text-zinc-500 hover:bg-zinc-800'
+        }`;
+
+        cell.innerHTML = `
+          <span class="text-xs">${day}</span>
+          ${hasSessions.length ? `<span class="w-1.5 h-1.5 rounded-full mt-1 ${isBirthday ? 'bg-brand-pink' : 'bg-brand-cyan'}"></span>` : '<span class="h-1.5 mt-1"></span>'}
+        `;
+
+        if (hasSessions.length) {
+          cell.onclick = () => renderMonthDetail(dateStr);
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderMonthDetail(dateStr) {
+      const container = document.getElementById('month-session-detail');
+      const sessions = appData.sessions.filter(s => s.date === dateStr);
+      container.innerHTML = '';
+
+      sessions.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'glass-card rounded-xl p-3 space-y-2 border-l-4 border-l-brand-cyan cursor-pointer';
+        div.onclick = () => {
+          switchView('next');
+          renderNextView(s.id);
+        };
+        div.innerHTML = `
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-brand-cyan font-bold">${s.date} ${s.session_name}</span>
+            <span class="text-zinc-400">${s.venue.name}</span>
+          </div>
+          <div class="text-sm font-bold text-white">${s.title}</div>
+          <div class="text-xs font-mono text-zinc-400">出演: ${s.live.start_time}〜${s.live.end_time} / 物販: ${s.benefit.start_time}〜 (${s.benefit.type})</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // View Switcher logic
+    function switchView(viewName) {
+      ['next', 'week', 'month'].forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        const tab = document.getElementById(`tab-${v}`);
+        if (v === viewName) {
+          el.classList.remove('hidden');
+          tab.className = 'flex-1 py-1.5 rounded-md text-center font-bold bg-zinc-800 text-white shadow-sm transition-all';
+        } else {
+          el.classList.add('hidden');
+          tab.className = 'flex-1 py-1.5 rounded-md text-center text-zinc-400 hover:text-zinc-200 transition-all';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('current-clock').textContent = now.toTimeString().split(' ')[0];
+    }
+
+    // Start
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
