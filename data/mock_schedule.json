@@ -61,10 +61,7 @@
         "end_time": "14:20",
         "booth": "並行C"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "静止画のみ撮影可能（スマホ/一眼OK）"
-      },
+      "photo": null,
       "special_notes": "🎃 ハロウィン特別衣装での出演！全組25分枠",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -109,10 +106,7 @@
         "end_time": "16:35",
         "booth": "並行B"
       },
-      "photo": {
-        "allowed": false,
-        "rule": "撮影禁止"
-      },
+      "photo": null,
       "special_notes": "日曜昼・全組25分SP",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -157,10 +151,7 @@
         "end_time": "20:05",
         "booth": "2階チャペルB"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "撮可曲あり（当日告知予定）"
-      },
+      "photo": null,
       "special_notes": "バトゥール東京・夜帯ライブ！前売券は当日会場精算",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -201,10 +192,7 @@
         "end_time": "13:20",
         "booth": "並行C"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "指定曲のみ撮影可能"
-      },
+      "photo": null,
       "special_notes": "文化の日祝日！マリアージュ出演",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -249,10 +237,7 @@
         "end_time": "18:45",
         "booth": "フロア内"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "全曲静止画のみ可能"
-      },
+      "photo": null,
       "special_notes": "通常エリア入場無料！前方のみ有料",
       "admission_bonus": "指名特典：①10秒動画券 / ②写真+30秒トーク / ③ランチェキ",
       "ticket": {
@@ -293,10 +278,7 @@
         "end_time": "19:10",
         "booth": "並行物販 ブースA"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "静止画撮影可能（要公式アナウンス確認）"
-      },
+      "photo": null,
       "special_notes": "雑誌MARQUEE主催「MARQUEE祭 mini」出演！全10組対バン（OPEN 16:30 / START 17:00）",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -337,10 +319,7 @@
         "end_time": "12:00",
         "booth": "ホワイエ特設"
       },
-      "photo": {
-        "allowed": false,
-        "rule": "撮影禁止"
-      },
+      "photo": null,
       "special_notes": "横浜遠征大型対バン！数量限定特別チケットあり",
       "admission_bonus": "指名特典：横浜限定チェキ券",
       "ticket": {
@@ -371,10 +350,7 @@
         "end_time": "18:45",
         "booth": "フロア内"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "静止画のみ可能"
-      },
+      "photo": null,
       "special_notes": "月曜無銭ライブ！",
       "admission_bonus": "指名特典3択あり",
       "ticket": {
@@ -405,10 +381,7 @@
         "end_time": "18:10",
         "booth": "並行卓"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "指定曲のみ可能"
-      },
+      "photo": null,
       "special_notes": "ネコシアター対バン！前方¥3000 通常¥1000",
       "admission_bonus": "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
       "ticket": {
@@ -439,10 +412,7 @@
         "end_time": "12:50",
         "booth": "ロビー"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "静止画のみ可能"
-      },
+      "photo": null,
       "special_notes": "勤労感謝の日祝日！ギガ盛りMAX前夜祭",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
@@ -487,10 +457,7 @@
         "end_time": "18:45",
         "booth": "フロア内"
       },
-      "photo": {
-        "allowed": true,
-        "rule": "静止画のみ可能"
-      },
+      "photo": null,
       "special_notes": "11月ラストの原宿RUIDO無銭！",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
