@@ -337,7 +337,7 @@
     <!-- [FLOATING BOTTOM NAVIGATION] (親指でワンタップ切り替え) -->
     <nav class="fixed bottom-3 left-0 right-0 max-w-sm mx-auto px-3.5 z-40">
       <div class="p-1.5 bg-stone-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex items-center justify-around text-xs font-medium">
-        <button onclick="handleNextTabClick()" id="nav-next" class="flex-1 py-2 rounded-xl text-center font-bold active-nav-tab transition-all flex items-center justify-center gap-1.5">
+        <button onclick="handleFirstTabClick()" id="nav-next" class="flex-1 py-2 rounded-xl text-center font-bold active-nav-tab transition-all flex items-center justify-center gap-1.5">
           <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
           <span>直近ライブ</span>
         </button>
@@ -529,6 +529,16 @@
 
       // 同日2回しピル（1部/2部）の更新 (コックピット内のみ)
       renderSameDaySwitcher(s.date);
+
+      // 第1タブのラベル同期 (直近ライブか、他日程の公演詳細かを正確に反映)
+      const nextId = appData.current_next_id || (appData.sessions[0] && appData.sessions[0].id);
+      const isNext = id === nextId;
+      const navNext = document.getElementById('nav-next');
+      if (navNext) {
+        navNext.innerHTML = isNext 
+          ? `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>直近ライブ</span>`
+          : `<i data-lucide="calendar" class="w-3.5 h-3.5 text-rose-400"></i><span>公演詳細</span>`;
+      }
 
       // Telemetry Times: ライブ出番 (主役) / 特典会 (サブ)
       document.getElementById('live-start').textContent = s.live.start_time;
@@ -910,13 +920,19 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function handleNextTabClick() {
-      const nextId = appData.current_next_id || appData.sessions[0].id;
-      if (currentId !== nextId) {
+    // 第1タブのクリックハンドラ: 状態を勝手にリセットせず保持。再タップ時のみ直近ライブへリセット
+    function handleFirstTabClick() {
+      const nextId = appData.current_next_id || (appData.sessions[0] && appData.sessions[0].id);
+      
+      // すでに第1タブを表示中で、かつ別日程を閲覧中の場合のみ、タップで直近ライブへリセット
+      if (currentTabName === 'next' && currentId !== nextId) {
         renderCockpit(nextId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
       }
+      
+      // 通常のタブ遷移時は、閲覧中の状態（選んだ公演）をそのまま維持してスムーズに移動
       setTab('next');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // Tab Order & Active State
