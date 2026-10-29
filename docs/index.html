@@ -33,7 +33,7 @@
   </script>
   <style>
     html {
-      font-size: 15px; /* スマホで一番読みやすい文字スケールに固定 */
+      font-size: 16.5px; /* 全体フォントサイズをしっかり拡大 */
     }
     body {
       background-color: #0c0a09;
@@ -121,44 +121,47 @@
         <!-- JSでピルボタンを自動注入 -->
       </div>
 
-      <!-- HERO FLYER PREVIEW & EVENT INFO (画像の上に文字を被せずスッキリ分離) -->
+      <!-- EVENT TITLE (最上段にイベント名を堂々と配置) -->
+      <div class="px-1 pt-0.5">
+        <h1 id="live-title" class="text-lg font-black text-white leading-snug drop-shadow-sm">
+          --
+        </h1>
+      </div>
+
+      <!-- HERO FLYER PREVIEW (タップで拡大・文字被せゼロ・リファラー保護) -->
       <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group active:scale-[0.98] transition-all duration-150" onclick="openLightbox()">
-        <!-- フライヤー画像プレビュー（文字被せゼロ、見切れOK、右上に控えめな拡大アイコン） -->
-        <div class="relative w-full h-36 bg-stone-950 overflow-hidden">
+        <div class="relative w-full h-40 bg-stone-950 overflow-hidden flex items-center justify-center">
           <img id="hero-strip-img" 
                src="" 
                alt="Flyer visual preview" 
+               referrerpolicy="no-referrer"
+               onerror="handleImageFallback(this)"
                class="w-full h-full object-cover object-top opacity-95 group-hover:scale-105 transition-transform duration-300">
           
-          <!-- Tap hint overlay: 右上に小さくスッキリ配置 -->
-          <div class="absolute top-2 right-2 p-1.5 rounded-lg bg-stone-950/70 backdrop-blur-md border border-white/20 text-white shadow">
-            <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-rose-300"></i>
-          </div>
-        </div>
-
-        <!-- 画像の下にイベントタイトル・会場・日付をクリアに配置（文字被り一切なし） -->
-        <div class="p-3 bg-stone-900/90 border-t border-white/5 space-y-1">
-          <h1 id="live-title" class="text-base font-extrabold text-white truncate">
-            --
-          </h1>
-          <div class="flex items-center justify-between text-xs text-stone-300 pt-0.5">
-            <span id="live-venue" class="truncate font-semibold flex items-center gap-1.5">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
-              <span id="live-venue-name">--</span>
-            </span>
-            <span id="live-date-header" class="font-display font-bold text-rose-300 shrink-0 ml-2">--/-- (--)</span>
+          <!-- Tap hint overlay: 右上に小さく配置 -->
+          <div class="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-stone-950/80 backdrop-blur-md border border-white/20 text-white shadow">
+            <i data-lucide="maximize-2" class="w-4 h-4 text-rose-300"></i>
           </div>
         </div>
       </section>
 
-      <!-- PRIMARY COCKPIT TELEMETRY CARD (出番ハイライト ＆ 特典会通常) -->
-      <section class="soft-card rounded-2xl p-3 space-y-3 shadow-xl">
+      <!-- PRIMARY COCKPIT TELEMETRY CARD -->
+      <section class="soft-card rounded-2xl p-3.5 space-y-3 shadow-xl">
         
-        <!-- Large Dual Time Display: ライブ出番を主役にハイライト（文字切れを完全防止） -->
-        <div class="grid grid-cols-2 gap-2">
+        <!-- 【日程表示】(時間帯のすぐ上に配置！) -->
+        <div class="flex items-center justify-between pb-2 border-b border-white/5">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">公演日</span>
+            <span id="live-date-header" class="text-base font-black text-white tracking-tight">--/-- (--)</span>
+          </div>
+          <span id="live-relative-day" class="text-xs font-bold text-rose-400"></span>
+        </div>
+
+        <!-- 【時間帯表示】(出番ハイライト ＆ 特典会) -->
+        <div class="grid grid-cols-2 gap-2.5">
           
           <!-- Stage Live Time (主役：赤・ローズグラデーションで強調) -->
-          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl px-2.5 py-2.5 space-y-1 border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
+          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl px-3 py-2.5 space-y-1 border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
             <div class="flex items-center justify-between text-xs font-bold text-rose-300">
               <span class="flex items-center gap-1.5">
                 <i data-lucide="mic" class="w-4 h-4 text-rose-400"></i>
@@ -174,7 +177,7 @@
           </div>
 
           <!-- Benefit Merch Time (サブ：落ち着いた通常カード) -->
-          <div class="bg-stone-900/80 rounded-xl px-2.5 py-2.5 space-y-1 border border-white/10">
+          <div class="bg-stone-900/80 rounded-xl px-3 py-2.5 space-y-1 border border-white/10">
             <div class="flex items-center justify-between text-xs font-bold text-stone-300">
               <span class="flex items-center gap-1.5">
                 <i data-lucide="camera" class="w-4 h-4 text-stone-400"></i>
@@ -191,10 +194,10 @@
 
         </div>
 
-        <!-- High-Priority Highlights: 撮可ルール & 指名入場特典 (文字サイズ拡大) -->
+        <!-- High-Priority Highlights: 撮可ルール & 指名入場特典 -->
         <div class="space-y-2 text-xs pt-0.5">
           
-          <div id="photo-box" class="flex items-start gap-2.5 py-1.5 px-3 rounded-xl bg-stone-900/70 border border-white/5">
+          <div id="photo-box" class="flex items-start gap-2.5 py-2 px-3 rounded-xl bg-stone-900/70 border border-white/5">
             <i data-lucide="aperture" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
             <div class="text-xs leading-relaxed">
               <span class="font-bold text-white" id="photo-status">撮可：</span>
@@ -202,7 +205,7 @@
             </div>
           </div>
 
-          <div id="bonus-box" class="flex items-start gap-2.5 py-1.5 px-3 rounded-xl bg-stone-900/70 border border-white/5">
+          <div id="bonus-box" class="flex items-start gap-2.5 py-2 px-3 rounded-xl bg-stone-900/70 border border-white/5">
             <i data-lucide="gift" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
             <div class="text-xs leading-relaxed">
               <span class="font-bold text-white">指名特典：</span>
@@ -211,14 +214,14 @@
           </div>
 
           <!-- Special Notes (コスプレ等) -->
-          <div id="special-notes-box" class="hidden flex items-start gap-2.5 py-1.5 px-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200">
+          <div id="special-notes-box" class="hidden flex items-start gap-2.5 py-2 px-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200">
             <i data-lucide="sparkles" class="w-4 h-4 text-rose-400 shrink-0 mt-0.5"></i>
             <div id="special-notes-desc" class="text-xs font-semibold leading-relaxed">--</div>
           </div>
 
         </div>
 
-        <!-- Ticket Pricing Preview (外部に飛ばなくても価格がわかる) -->
+        <!-- Ticket Pricing Preview -->
         <div id="ticket-prices-box" class="pt-1.5 border-t border-white/5 space-y-1.5">
           <div class="flex items-center justify-between text-xs text-stone-400 font-semibold px-0.5">
             <span>チケット料金</span>
@@ -229,16 +232,28 @@
           </div>
         </div>
 
-        <!-- Action Links: チケット ＆ 会場マップ (親指1タップ) -->
-        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
-          <a id="venue-map-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 font-bold text-xs border border-white/10 transition-colors">
-            <i data-lucide="navigation" class="w-3.5 h-3.5 text-rose-400"></i>
-            <span>会場マップ</span>
-          </a>
-          <a id="ticket-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all">
-            <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
-            <span id="ticket-btn-text">チケット</span>
-          </a>
+        <!-- 【会場情報 ＆ アクションボタン】(会場ボタンの直上に会場名を目立つように配置！) -->
+        <div class="pt-2 border-t border-white/5 space-y-2">
+          <!-- 目立つ会場名バー -->
+          <div class="flex items-center justify-between bg-stone-900/90 px-3 py-2 rounded-xl border border-white/10">
+            <div class="flex items-center gap-2 min-w-0">
+              <i data-lucide="map-pin" class="w-4 h-4 text-rose-400 shrink-0"></i>
+              <span id="live-venue-name" class="text-base font-black text-white truncate">--</span>
+            </div>
+            <span class="text-xs text-rose-300 font-bold shrink-0">会場</span>
+          </div>
+
+          <!-- 会場マップ ＆ チケット購入 (親指操作) -->
+          <div class="grid grid-cols-2 gap-2">
+            <a id="venue-map-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-stone-200 font-bold text-xs border border-white/10 transition-colors">
+              <i data-lucide="navigation" class="w-3.5 h-3.5 text-rose-400"></i>
+              <span>会場マップ</span>
+            </a>
+            <a id="ticket-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all">
+              <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
+              <span id="ticket-btn-text">チケット</span>
+            </a>
+          </div>
         </div>
 
       </section>
@@ -331,7 +346,7 @@
     </div>
     
     <div class="flex-1 flex items-center justify-center overflow-auto py-2" onclick="event.stopPropagation()">
-      <img id="lightbox-img" src="" alt="Timetable enlarged" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+      <img id="lightbox-img" src="" referrerpolicy="no-referrer" alt="Timetable enlarged" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
     </div>
 
     <div class="text-center text-[11px] text-stone-400 pt-2">
@@ -381,6 +396,19 @@
       document.getElementById('live-title').textContent = s.title;
       document.getElementById('live-venue-name').textContent = s.venue.name;
       document.getElementById('live-date-header').textContent = `${s.date} (${s.day_of_week})`;
+
+      // Relative Day Badge (直近公演バッジ)
+      const relativeDayEl = document.getElementById('live-relative-day');
+      if (relativeDayEl) {
+        const nextId = appData.current_next_id || (appData.sessions[0] && appData.sessions[0].id);
+        if (id === nextId) {
+          relativeDayEl.textContent = '★ 直近ライブ';
+          relativeDayEl.className = 'text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30';
+        } else {
+          relativeDayEl.textContent = '';
+          relativeDayEl.className = '';
+        }
+      }
 
       // 同日2回しピル（1部/2部）の更新 (コックピット内のみ)
       renderSameDaySwitcher(s.date);
@@ -663,7 +691,7 @@
           <div class="rounded-2xl overflow-hidden soft-card border-2 border-rose-500/50 bg-stone-900 shadow-xl">
             <!-- 画像枠（画像の上に文字・ラベルを一切被せず、推しの顔を保護。見切れOK） -->
             <div class="w-full h-44 overflow-hidden bg-stone-950">
-              <img src="${promo.image_url}" alt="${promo.title}" class="w-full h-full object-cover object-center">
+              <img src="${promo.image_url}" referrerpolicy="no-referrer" onerror="handleImageFallback(this)" alt="${promo.title}" class="w-full h-full object-cover object-center">
             </div>
 
             <!-- 画像の下に全情報を集約配置 (20th削除) -->
@@ -691,7 +719,7 @@
         container.innerHTML = `
           <div class="rounded-2xl p-3 soft-card border border-rose-500/40 bg-stone-900 shadow-md">
             <div class="flex items-center gap-3">
-              <img src="${promo.image_url}" alt="${promo.title}" class="w-16 h-16 rounded-xl object-cover shrink-0 border border-rose-400/30 shadow">
+              <img src="${promo.image_url}" referrerpolicy="no-referrer" onerror="handleImageFallback(this)" alt="${promo.title}" class="w-16 h-16 rounded-xl object-cover shrink-0 border border-rose-400/30 shadow">
               <div class="flex-1 min-w-0 space-y-1">
                 <div class="flex items-center justify-between">
                   <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white">🎂 生誕祭クラファン</span>
@@ -717,6 +745,12 @@
         `;
       }
       lucide.createIcons();
+    }
+
+    // Image Fallback Handler
+    function handleImageFallback(img) {
+      img.onerror = null;
+      img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200' viewBox='0 0 400 200'%3E%3Crect width='100%25' height='100%25' fill='%231c1917'/%3E%3Ctext x='50%25' y='50%25' fill='%2378716c' font-family='sans-serif' font-size='14' text-anchor='middle' dominant-baseline='middle'%3Eフライヤー画像準備中%3C/text%3E%3C/svg%3E";
     }
 
     // 5. Navigation & History Helpers
