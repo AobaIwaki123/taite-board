@@ -137,20 +137,28 @@
         </h1>
       </div>
 
-      <!-- HERO FLYER PREVIEW (タップで拡大・文字被せゼロ・リファラー保護) -->
-      <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group active:scale-[0.98] transition-all duration-150" onclick="openLightbox()">
-        <div class="relative w-full h-40 bg-stone-950 overflow-hidden flex items-center justify-center">
-          <img id="hero-strip-img" 
-               src="" 
-               alt="Flyer visual preview" 
-               referrerpolicy="no-referrer"
-               onerror="handleImageFallback(this)"
-               class="w-full h-full object-cover object-top opacity-95 group-hover:scale-105 transition-transform duration-300">
-          
-          <!-- Tap hint overlay: 右上に小さく配置 -->
-          <div class="absolute top-2.5 right-2.5 p-1.5 rounded-lg bg-stone-950/80 backdrop-blur-md border border-white/20 text-white shadow">
-            <i data-lucide="maximize-2" class="w-4 h-4 text-rose-300"></i>
+      <!-- HERO FLYER & TIMETABLE PREVIEW (複数画像対応・タップで拡大) -->
+      <section class="space-y-1.5">
+        <div class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group active:scale-[0.98] transition-all duration-150" onclick="openLightbox()">
+          <div class="relative w-full h-44 bg-stone-950 overflow-hidden flex items-center justify-center">
+            <img id="hero-strip-img" 
+                 src="" 
+                 alt="Flyer visual preview" 
+                 referrerpolicy="no-referrer"
+                 onerror="handleImageFallback(this)"
+                 class="w-full h-full object-cover object-top opacity-95 group-hover:scale-105 transition-transform duration-300">
+            
+            <!-- Tap hint overlay: 拡大アイコン ＆ 複数画像カウント -->
+            <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 p-1.5 rounded-lg bg-stone-950/80 backdrop-blur-md border border-white/20 text-white shadow">
+              <span id="hero-img-count-badge" class="hidden text-[11px] font-bold text-rose-300 px-0.5">1/2</span>
+              <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-rose-300"></i>
+            </div>
           </div>
+        </div>
+
+        <!-- 複数画像がある場合の切り替えピル (フライヤー ⇄ タイムテーブル) -->
+        <div id="hero-image-pills" class="hidden flex items-center gap-1.5 px-0.5">
+          <!-- JSで自動注入 -->
         </div>
       </section>
 
@@ -344,31 +352,31 @@
 
   </div>
 
-  <!-- [FLOATING FLYER LIGHTBOX MODAL] (背景タップで閉じる・フライヤーのみ浮き上がる半透明ブラー) -->
-  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex-col justify-between p-4" onclick="closeLightbox()">
-    <!-- Top hint bar (タップで閉じる案内) -->
-    <div class="flex items-center justify-between text-xs text-stone-300 pb-2 pointer-events-none">
-      <span class="flex items-center gap-1.5 text-rose-300 font-bold">
-        <i data-lucide="image" class="w-4 h-4"></i>
-        <span>公式フライヤー画像</span>
-      </span>
-      <span class="px-2.5 py-1 rounded-full bg-stone-800/90 border border-white/20 text-white font-bold text-xs pointer-events-auto cursor-pointer" onclick="closeLightbox()">
+  <!-- [FLOATING FLYER LIGHTBOX MODAL] (背景タップで閉じる・フライヤー＆タイテ切り替え対応) -->
+  <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex-col justify-between p-3.5" onclick="closeLightbox()">
+    <!-- Top Bar: タイトル ＆ 画像切替ピル ＆ 閉じるボタン -->
+    <div class="flex items-center justify-between text-xs text-stone-300 pb-2">
+      <!-- 複数画像切り替えピル (Lightbox内) -->
+      <div id="lightbox-image-pills" class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+        <!-- JSで自動注入 -->
+      </div>
+      <button onclick="closeLightbox()" class="px-2.5 py-1 rounded-full bg-stone-800/90 border border-white/20 text-white font-bold text-xs hover:bg-stone-700 transition-colors">
         ✕ 閉じる
-      </span>
+      </button>
     </div>
     
-    <!-- Image Floating Container: 画像外側の余白タップで自然に戻れるよう、img本体のみにstopPropagation -->
-    <div class="flex-1 flex items-center justify-center p-2 cursor-pointer" onclick="closeLightbox()">
+    <!-- Image Floating Container: 画像本体のみstopPropagation、周囲タップで閉じる -->
+    <div class="flex-1 flex items-center justify-center p-1 cursor-pointer" onclick="closeLightbox()">
       <img id="lightbox-img" 
            src="" 
            referrerpolicy="no-referrer" 
            alt="Timetable enlarged" 
            onclick="event.stopPropagation()"
-           class="max-w-[92vw] max-h-[75vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/20 cursor-default">
+           class="max-w-[94vw] max-h-[76vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/20 cursor-default">
     </div>
 
-    <div class="text-center text-xs font-semibold text-stone-400 pt-2 pointer-events-none">
-      画像の周囲をタップして戻る
+    <div class="text-center text-[11px] font-medium text-stone-400 pt-2 pointer-events-none">
+      画像の周囲をタップして閉じる
     </div>
   </div>
 
@@ -405,19 +413,99 @@
       lucide.createIcons();
     }
 
+    // Multiple Images State
+    let currentSessionImages = [];
+    let currentSessionImageIdx = 0;
+
+    function switchSessionImage(idx) {
+      if (!currentSessionImages[idx]) return;
+      currentSessionImageIdx = idx;
+      const target = currentSessionImages[idx];
+
+      const stripImg = document.getElementById('hero-strip-img');
+      const lightboxImg = document.getElementById('lightbox-img');
+      if (stripImg) stripImg.src = target.url;
+      if (lightboxImg) lightboxImg.src = target.url;
+
+      const badge = document.getElementById('hero-img-count-badge');
+      if (badge && currentSessionImages.length > 1) {
+        badge.textContent = `${idx + 1}/${currentSessionImages.length}`;
+      }
+
+      renderImageSwitchers();
+      lucide.createIcons();
+    }
+
+    function renderImageSwitchers() {
+      const heroPills = document.getElementById('hero-image-pills');
+      const lightboxPills = document.getElementById('lightbox-image-pills');
+      const badge = document.getElementById('hero-img-count-badge');
+
+      if (!heroPills || !lightboxPills) return;
+      heroPills.innerHTML = '';
+      lightboxPills.innerHTML = '';
+
+      if (currentSessionImages.length <= 1) {
+        heroPills.classList.add('hidden');
+        lightboxPills.classList.add('hidden');
+        if (badge) badge.classList.add('hidden');
+        return;
+      }
+
+      heroPills.classList.remove('hidden');
+      lightboxPills.classList.remove('hidden');
+      if (badge) {
+        badge.classList.remove('hidden');
+        badge.textContent = `${currentSessionImageIdx + 1}/${currentSessionImages.length}`;
+      }
+
+      currentSessionImages.forEach((imgObj, i) => {
+        const isActive = i === currentSessionImageIdx;
+        const iconName = imgObj.type === 'timetable' ? 'calendar-days' : 'image';
+        const label = imgObj.type === 'timetable' ? 'タイテ表' : 'フライヤー';
+
+        // 1. Hero Pill
+        const btnHero = document.createElement('button');
+        btnHero.className = `flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+          isActive 
+            ? 'bg-rose-500 text-stone-950 shadow-sm' 
+            : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-white/10'
+        }`;
+        btnHero.innerHTML = `<i data-lucide="${iconName}" class="w-3.5 h-3.5"></i><span>${label}</span>`;
+        btnHero.onclick = (e) => {
+          e.stopPropagation();
+          switchSessionImage(i);
+        };
+        heroPills.appendChild(btnHero);
+
+        // 2. Lightbox Pill
+        const btnLightbox = document.createElement('button');
+        btnLightbox.className = `flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          isActive 
+            ? 'bg-rose-500 text-stone-950 shadow' 
+            : 'bg-stone-800 text-stone-300 hover:text-white border border-white/20'
+        }`;
+        btnLightbox.innerHTML = `<i data-lucide="${iconName}" class="w-3.5 h-3.5"></i><span>${label}</span>`;
+        btnLightbox.onclick = (e) => {
+          e.stopPropagation();
+          switchSessionImage(i);
+        };
+        lightboxPills.appendChild(btnLightbox);
+      });
+    }
+
     // 1. Render Cockpit
     function renderCockpit(id) {
       const s = appData.sessions.find(x => x.id === id);
       if (!s) return;
       currentId = id;
 
-      // Flyer Image Preview
-      const stripImg = document.getElementById('hero-strip-img');
-      const lightboxImg = document.getElementById('lightbox-img');
-      if (s.image_url) {
-        stripImg.src = s.image_url;
-        lightboxImg.src = s.image_url;
-      }
+      // Flyer & Timetable Multi-Image Setup
+      currentSessionImages = s.images && s.images.length > 0 ? s.images : [
+        { type: 'flyer', label: 'フライヤー', url: s.image_url }
+      ];
+      currentSessionImageIdx = 0;
+      switchSessionImage(0);
 
       document.getElementById('live-title').textContent = s.title;
       document.getElementById('live-venue-name').textContent = s.venue.name;

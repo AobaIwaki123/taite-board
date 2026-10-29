@@ -83,7 +83,19 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9.jpg?name=orig"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HVIjWzDbwAE3HCU.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261101-1",
@@ -128,7 +140,19 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114341213147205692"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114341213147205692",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q.jpg?name=orig"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HVYs_ptbcAESY9P.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261101-2",
@@ -169,7 +193,19 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114597900827115847"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114597900827115847",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5.jpg?name=orig"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HVeSDfIbAAAOaN2.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261103-1",
@@ -214,7 +250,14 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー",
+          "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig"
+        }
+      ]
     },
     {
       "id": "20261105-1",
@@ -255,7 +298,14 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2109237575764656308"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2109237575764656308",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261107-1",
@@ -296,7 +346,14 @@
         ]
       },
       "image_url": "images/20261107_marquee_mini.png",
-      "source_tweet_url": "https://eplus.jp/marquee-matsuri/"
+      "source_tweet_url": "https://eplus.jp/marquee-matsuri/",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー",
+          "url": "images/20261107_marquee_mini.png"
+        }
+      ]
     },
     {
       "id": "20261108-1",
@@ -327,7 +384,14 @@
         "url": "https://ticketdive.com/event/alamodepetite_142"
       },
       "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113918424439296285"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113918424439296285",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261109-1",
@@ -358,7 +422,14 @@
         "url": "https://ticketdive.com/event/261109_PF"
       },
       "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111808264258089266"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111808264258089266",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261112-1",
@@ -389,7 +460,14 @@
         "url": "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y"
       },
       "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114295917075460118"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114295917075460118",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261123-1",
@@ -434,7 +512,14 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113948622446571638"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113948622446571638",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=orig"
+        }
+      ]
     },
     {
       "id": "20261125-1",
@@ -475,7 +560,14 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111809522243117188"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111809522243117188",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig"
+        }
+      ]
     }
   ]
 }
