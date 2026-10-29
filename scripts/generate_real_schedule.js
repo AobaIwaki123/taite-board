@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 
 const realSchedule = {
   target_group: {
@@ -68,10 +69,10 @@ const realSchedule = {
         rule: "静止画のみ撮影可能（スマホ/一眼OK）"
       },
       special_notes: "🎃 ハロウィン特別衣装での出演！全組25分枠",
-      admission_bonus: "指名入場特典：個別写メ券 または 特製ステッカー",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
-        platform: "TIGET / 直チケ",
-        url: "https://x.com/Ribbon_Clock/status/2112891667640656194",
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/hanamaru_158",
         prices: [
           { tier: "前方エリア", price: "¥4,500" },
           { tier: "通常エリア", price: "¥2,500" },
@@ -107,10 +108,10 @@ const realSchedule = {
         rule: "撮影禁止"
       },
       special_notes: "日曜昼・全組25分SP",
-      admission_bonus: "お目当て指名特典：下記3つから選択（①10秒動画券 / ②写メ券 / ③トーク延長券）",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
-        platform: "TIGET / 直チケ",
-        url: "https://x.com/Ribbon_Clock/status/2114341213147205692",
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/hanamaru_159",
         prices: [
           { tier: "前方エリア", price: "¥4,500" },
           { tier: "通常エリア", price: "¥2,500" },
@@ -146,10 +147,10 @@ const realSchedule = {
         rule: "撮可曲あり（当日告知予定）"
       },
       special_notes: "バトゥール東京・夜帯ライブ！前売券は当日会場精算",
-      admission_bonus: "指名入場特典：個別写メ券 または 2shotトーク券",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
-        platform: "TIGET事前予約",
-        url: "https://x.com/Ribbon_Clock/status/2114597900827115847",
+        platform: "TIGET",
+        url: "http://tiget.net/events/531498",
         prices: [
           { tier: "前売券", price: "¥3,200 (+1D)" },
           { tier: "当日券", price: "¥3,700 (+1D)" }
@@ -184,10 +185,10 @@ const realSchedule = {
         rule: "指定曲のみ撮影可能"
       },
       special_notes: "文化の日祝日！マリアージュ出演",
-      admission_bonus: "指名特典：お目当て3択（①10秒動画券 / ②写メ券 / ③トーク延長）",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
-        platform: "TicketLive / LivePocket",
-        url: "https://x.com/Ribbon_Clock/status/2115639776422625284",
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/idolmariage_79",
         prices: [
           { tier: "前方エリア", price: "¥5,000" },
           { tier: "通常エリア", price: "¥3,000" },
@@ -225,8 +226,8 @@ const realSchedule = {
       special_notes: "通常エリア入場無料！前方のみ有料",
       admission_bonus: "指名特典：①10秒動画券 / ②写真+30秒トーク / ③ランチェキ",
       ticket: {
-        platform: "直チケ",
-        url: "https://x.com/Ribbon_Clock/status/2109237575764656308",
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/261105_PF",
         prices: [
           { tier: "前方エリア", price: "¥2,000" },
           { tier: "通常エリア", price: "¥0 (無料)" }
@@ -263,8 +264,8 @@ const realSchedule = {
       special_notes: "横浜遠征大型対バン！数量限定特別チケットあり",
       admission_bonus: "指名特典：横浜限定チェキ券",
       ticket: {
-        platform: "TicketDive / LivePocket",
-        url: "https://x.com/Ribbon_Clock/status/2113918424439296285"
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/alamodepetite_142"
       },
       image_url: "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=orig",
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2113918424439296285"
@@ -294,8 +295,8 @@ const realSchedule = {
       special_notes: "月曜無銭ライブ！",
       admission_bonus: "指名特典3択あり",
       ticket: {
-        platform: "直チケ",
-        url: "https://x.com/Ribbon_Clock/status/2111808264258089266"
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/261109_PF"
       },
       image_url: "https://pbs.twimg.com/media/HVNsriIaUAEK6E-?format=jpg&name=orig",
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2111808264258089266"
@@ -325,8 +326,8 @@ const realSchedule = {
       special_notes: "ネコシアター対バン！前方¥3000 通常¥1000",
       admission_bonus: "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
       ticket: {
-        platform: "TIGET",
-        url: "https://x.com/Ribbon_Clock/status/2114295917075460118"
+        platform: "TicketDive",
+        url: "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y"
       },
       image_url: "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=orig",
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2114295917075460118"
@@ -347,17 +348,22 @@ const realSchedule = {
         stage: "メイン"
       },
       benefit: {
-        type: "並行",
+        type: "終演後",
         start_time: "11:50",
         end_time: "12:50",
         booth: "ロビー"
       },
-      photo: { allowed: true, rule: "全曲静止画のみ可能" },
+      photo: { allowed: true, rule: "静止画のみ可能" },
       special_notes: "勤労感謝の日祝日！ギガ盛りMAX前夜祭",
-      admission_bonus: "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
         platform: "LivePocket",
-        url: "https://x.com/Ribbon_Clock/status/2113948622446571638"
+        url: "https://livepocket.jp/e/x8-ap",
+        prices: [
+          { tier: "前方エリア", price: "¥4,000" },
+          { tier: "通常エリア", price: "¥2,500" },
+          { tier: "当日券", price: "+¥500" }
+        ]
       },
       image_url: "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=orig",
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2113948622446571638"
@@ -385,10 +391,14 @@ const realSchedule = {
       },
       photo: { allowed: true, rule: "静止画のみ可能" },
       special_notes: "11月ラストの原宿RUIDO無銭！",
-      admission_bonus: "指名特典3択あり",
+      admission_bonus: "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       ticket: {
-        platform: "直チケ",
-        url: "https://x.com/Ribbon_Clock/status/2111809522243117188"
+        platform: "公式アナウンス待ち",
+        url: "https://x.com/Ribbon_Clock/status/2111809522243117188",
+        prices: [
+          { tier: "前方エリア", price: "¥2,000" },
+          { tier: "通常エリア", price: "¥0 (無料)" }
+        ]
       },
       image_url: "https://pbs.twimg.com/media/HU6lt88bIAAGXKa?format=jpg&name=orig",
       source_tweet_url: "https://x.com/Ribbon_Clock/status/2111809522243117188"
@@ -396,8 +406,9 @@ const realSchedule = {
   ]
 };
 
-fs.writeFileSync('space/taite-board/data/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
-fs.writeFileSync('space/taite-board/docs/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
-fs.writeFileSync('space/taite-board/web/mock_schedule.json', JSON.stringify(realSchedule, null, 2));
+const rootDir = path.resolve(__dirname, '..');
+fs.writeFileSync(path.join(rootDir, 'data/mock_schedule.json'), JSON.stringify(realSchedule, null, 2));
+fs.writeFileSync(path.join(rootDir, 'docs/mock_schedule.json'), JSON.stringify(realSchedule, null, 2));
+fs.writeFileSync(path.join(rootDir, 'web/mock_schedule.json'), JSON.stringify(realSchedule, null, 2));
 
-console.log('Successfully written real live schedules for Ribbon Clock!');
+console.log('Successfully written real live schedules with exact ticket URLs!');
