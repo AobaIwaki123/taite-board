@@ -10,9 +10,10 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 env:
-  IMAGE_NAME: gcr.io/my-docker-471807/ribonclock
+  IMAGE_NAME: ghcr.io/aobaiwaki123/taite-board
 
 jobs:
   deploy:
@@ -22,16 +23,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          credentials_json: '${{ secrets.GCP_SA_KEY }}'
-
-      - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Configure Docker for GCR
-        run: gcloud auth configure-docker gcr.io --quiet
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push image
         run: |

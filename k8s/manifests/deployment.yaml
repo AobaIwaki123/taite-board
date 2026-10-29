@@ -16,11 +16,9 @@ spec:
       labels:
         app.kubernetes.io/name: ribonclock
     spec:
-      imagePullSecrets:
-        - name: gcr-pull-secret
       containers:
         - name: web
-          image: gcr.io/my-docker-471807/ribonclock:sha-0000000
+          image: ghcr.io/aobaiwaki123/taite-board:sha-0000000
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
