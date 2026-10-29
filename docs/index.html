@@ -101,78 +101,70 @@
     <!-- 1. [NEXT LIVE COCKPIT VIEW] -->
     <main id="tab-content-next" class="space-y-3">
 
-      <!-- COMPACT HERO STRIP (タップでタイテ画像を全画面拡大) -->
-      <section class="relative rounded-xl overflow-hidden soft-card cursor-pointer group shadow-lg" onclick="openLightbox()">
-        <div class="relative w-full h-28 bg-stone-900 overflow-hidden">
+      <!-- HERO FLYER PREVIEW & EVENT INFO (画像の上に文字を被せずスッキリ分離) -->
+      <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group" onclick="openLightbox()">
+        <!-- フライヤー画像プレビュー（文字被せゼロ、見切れOK、右上に控えめな拡大アイコン） -->
+        <div class="relative w-full h-36 bg-stone-950 overflow-hidden">
           <img id="hero-strip-img" 
                src="" 
-               alt="Live timetable visual" 
-               class="w-full h-full object-cover object-top opacity-85 group-hover:scale-105 transition-transform duration-300">
+               alt="Flyer visual preview" 
+               class="w-full h-full object-cover object-top opacity-95 group-hover:scale-105 transition-transform duration-300">
           
-          <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent"></div>
-          
-          <!-- Tap hint overlay: アイコンのみでスッキリ -->
-          <div class="absolute top-2 right-2 p-1.5 rounded-lg bg-stone-900/80 backdrop-blur-md border border-white/20 text-white flex items-center justify-center shadow">
-            <i data-lucide="maximize-2" class="w-4 h-4 text-rose-400"></i>
+          <!-- Tap hint overlay: 右上に小さくスッキリ配置 -->
+          <div class="absolute top-2 right-2 p-1.5 rounded-lg bg-stone-950/70 backdrop-blur-md border border-white/20 text-white shadow">
+            <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-rose-300"></i>
           </div>
+        </div>
 
-          <!-- Same-day Pill Tag -->
-          <div class="absolute top-2 left-2 flex gap-1">
-            <span id="session-badge" class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-500 text-stone-950 shadow">
-              --
+        <!-- 画像の下にイベントタイトル・会場・日付をクリアに配置（文字被り一切なし） -->
+        <div class="p-3 bg-stone-900/90 border-t border-white/5 space-y-1">
+          <h1 id="live-title" class="text-base font-extrabold text-white truncate">
+            --
+          </h1>
+          <div class="flex items-center justify-between text-xs text-stone-300 pt-0.5">
+            <span id="live-venue" class="truncate font-semibold flex items-center gap-1.5">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
+              <span id="live-venue-name">--</span>
             </span>
-          </div>
-
-          <!-- Title Overlaid -->
-          <div class="absolute bottom-2 left-3 right-3">
-            <h1 id="live-title" class="text-base font-bold text-white truncate drop-shadow-md">
-              --
-            </h1>
-            <div class="flex items-center justify-between text-xs text-stone-200 pt-0.5">
-              <span id="live-venue" class="truncate font-semibold flex items-center gap-1">
-                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i>
-                <span id="live-venue-name">--</span>
-              </span>
-              <span id="live-date-header" class="font-display font-bold text-rose-300 shrink-0 ml-2">--/-- (--)</span>
-            </div>
+            <span id="live-date-header" class="font-display font-bold text-rose-300 shrink-0 ml-2">--/-- (--)</span>
           </div>
         </div>
       </section>
 
       <!-- PRIMARY COCKPIT TELEMETRY CARD (出番ハイライト ＆ 特典会通常) -->
-      <section class="soft-card rounded-2xl p-3.5 space-y-3 shadow-xl">
+      <section class="soft-card rounded-2xl p-3 space-y-3 shadow-xl">
         
-        <!-- Large Dual Time Display: ライブ出番を主役にハイライト！ -->
-        <div class="grid grid-cols-2 gap-2.5">
+        <!-- Large Dual Time Display: ライブ出番を主役にハイライト（文字切れを完全防止） -->
+        <div class="grid grid-cols-2 gap-2">
           
           <!-- Stage Live Time (主役：赤・ローズグラデーションで強調) -->
-          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl p-3 space-y-1 border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
+          <div class="bg-gradient-to-br from-rose-950/60 to-stone-900/90 rounded-xl px-2.5 py-2.5 space-y-1 border-2 border-rose-500/60 shadow-lg shadow-rose-950/40">
             <div class="flex items-center justify-between text-xs font-bold text-rose-300">
               <span class="flex items-center gap-1.5">
                 <i data-lucide="mic" class="w-4 h-4 text-rose-400"></i>
                 <span>ライブ出番</span>
               </span>
             </div>
-            <div class="flex items-baseline gap-1 pt-0.5">
-              <span id="live-start" class="text-3xl font-display font-black text-white tracking-tight">--:--</span>
-              <span class="text-sm font-display text-stone-400">〜</span>
-              <span id="live-end" class="text-lg font-display font-bold text-rose-200">--:--</span>
+            <div class="flex items-baseline gap-1 pt-0.5 overflow-hidden">
+              <span id="live-start" class="text-2xl font-display font-black text-white tracking-tight shrink-0">--:--</span>
+              <span class="text-xs font-display text-stone-400 shrink-0">〜</span>
+              <span id="live-end" class="text-sm font-display font-bold text-rose-200 tracking-tight shrink-0">--:--</span>
             </div>
             <div id="live-stage" class="text-xs text-rose-300 font-semibold truncate pt-0.5">--</div>
           </div>
 
           <!-- Benefit Merch Time (サブ：落ち着いた通常カード) -->
-          <div class="bg-stone-900/80 rounded-xl p-3 space-y-1 border border-white/10">
+          <div class="bg-stone-900/80 rounded-xl px-2.5 py-2.5 space-y-1 border border-white/10">
             <div class="flex items-center justify-between text-xs font-bold text-stone-300">
               <span class="flex items-center gap-1.5">
                 <i data-lucide="camera" class="w-4 h-4 text-stone-400"></i>
                 <span id="benefit-type-label">特典会</span>
               </span>
             </div>
-            <div class="flex items-baseline gap-1 pt-0.5">
-              <span id="benefit-start" class="text-3xl font-display font-extrabold text-stone-200 tracking-tight">--:--</span>
-              <span class="text-sm font-display text-stone-500">〜</span>
-              <span id="benefit-end" class="text-lg font-display font-bold text-stone-400">--:--</span>
+            <div class="flex items-baseline gap-1 pt-0.5 overflow-hidden">
+              <span id="benefit-start" class="text-2xl font-display font-extrabold text-stone-200 tracking-tight shrink-0">--:--</span>
+              <span class="text-xs font-display text-stone-500 shrink-0">〜</span>
+              <span id="benefit-end" class="text-sm font-display font-bold text-stone-400 tracking-tight shrink-0">--:--</span>
             </div>
             <div id="benefit-booth" class="text-xs text-stone-400 font-medium truncate pt-0.5">--</div>
           </div>
@@ -370,9 +362,9 @@
       document.getElementById('live-title').textContent = s.title;
       document.getElementById('live-venue-name').textContent = s.venue.name;
       document.getElementById('live-date-header').textContent = `${s.date} (${s.day_of_week})`;
-      document.getElementById('session-badge').textContent = s.session_name;
 
-      // Telemetry Times: ライブ出番 (主役) / 特典会 (サブ)
+      // 同日2回しピル（1部/2部）の更新
+      renderSameDaySwitcher(s.date);
       document.getElementById('live-start').textContent = s.live.start_time;
       document.getElementById('live-end').textContent = s.live.end_time;
       document.getElementById('live-stage').textContent = s.live.stage || 'ステージ';
@@ -467,12 +459,13 @@
       sameDay.forEach(item => {
         const btn = document.createElement('button');
         const isActive = item.id === currentId;
-        btn.className = `px-3 py-1 rounded-lg text-xs font-display font-semibold transition-all shrink-0 ${
+        btn.className = `px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-all shrink-0 ${
           isActive 
             ? 'bg-rose-500 text-stone-950 font-bold shadow-md' 
             : 'bg-stone-900 text-stone-400 border border-white/5'
         }`;
-        btn.textContent = `${item.session_name} (${item.live.start_time}〜)`;
+        const label = item.session_name.includes('昼') ? '☀️ 昼公演' : (item.session_name.includes('夜') ? '🌙 夜公演' : item.session_name);
+        btn.textContent = `${label} (${item.live.start_time}〜)`;
         btn.onclick = () => renderCockpit(item.id);
         bar.appendChild(btn);
       });
@@ -493,9 +486,12 @@
           openSessionDetail(s.id, 'week');
         };
 
+        const sameDayCount = appData.sessions.filter(x => x.date === s.date).length;
+        const sessionTag = sameDayCount > 1 ? (s.session_name.includes('昼') ? ' [昼]' : ' [夜]') : '';
+
         card.innerHTML = `
           <div class="flex items-center justify-between text-xs">
-            <span class="font-display font-bold text-rose-300 text-xs">${s.date} (${s.day_of_week}) ${s.session_name}</span>
+            <span class="font-display font-bold text-rose-300 text-xs">${s.date} (${s.day_of_week})${sessionTag}</span>
             <span class="text-stone-300 truncate max-w-[150px] text-right font-medium text-xs">${s.venue.name}</span>
           </div>
           <div class="text-sm font-bold text-white pt-0.5">${s.title}</div>
@@ -567,9 +563,10 @@
         div.onclick = () => {
           openSessionDetail(s.id, 'month');
         };
+        const sessionTag = sessions.length > 1 ? (s.session_name.includes('昼') ? ' [昼公演]' : ' [夜公演]') : '';
         div.innerHTML = `
           <div class="flex items-center justify-between text-xs">
-            <span class="font-display font-bold text-rose-300">${s.date} ${s.session_name}</span>
+            <span class="font-display font-bold text-rose-300">${s.date}${sessionTag}</span>
             <span class="text-stone-300 text-xs">${s.venue.name}</span>
           </div>
           <div class="text-sm font-bold text-white pt-0.5">${s.title}</div>
@@ -583,10 +580,8 @@
     }
 
     // 4. Render Promotion (大・中・小 バリエーション対応コンポーネント)
-    let currentPromoSize = 'large';
-
-    function renderPromotion(size = currentPromoSize) {
-      currentPromoSize = size;
+    // ※ 管理者・実装側でサイズ指定。UI上に切り替えトグルは出さず、画像の上にもラベルを被せない
+    function renderPromotion(size = 'large') {
       const container = document.getElementById('promo-container');
       if (!container || !appData || !appData.promotions) return;
       const promo = appData.promotions.find(p => p.id === 'promo-ayyu-birthday') || appData.promotions[0];
@@ -594,30 +589,23 @@
 
       if (size === 'large') {
         container.innerHTML = `
-          <div class="rounded-2xl overflow-hidden soft-card border-2 border-rose-500/50 bg-gradient-to-b from-rose-950/40 via-stone-900 to-stone-950 shadow-xl relative group">
-            <div class="relative w-full h-32 overflow-hidden bg-stone-900">
-              <img src="${promo.image_url}" alt="${promo.title}" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300">
-              <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/30 to-transparent"></div>
-              
-              <!-- Badges -->
-              <div class="absolute top-2 left-2 flex gap-1.5">
-                <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-red-600 text-white shadow">🎂 生誕祭クラファン</span>
-                <span class="px-2 py-0.5 rounded-md text-xs font-bold bg-stone-900/80 backdrop-blur-md text-stone-200 border border-white/10">〜11/22まで</span>
-              </div>
-
-              <!-- Size Switcher pills (大/中/小) -->
-              <div class="absolute top-2 right-2 flex bg-stone-900/90 backdrop-blur-md rounded-lg p-0.5 border border-white/20 text-[10px]">
-                <button onclick="renderPromotion('large')" class="px-1.5 py-0.5 rounded font-bold ${size === 'large' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">大</button>
-                <button onclick="renderPromotion('medium')" class="px-1.5 py-0.5 rounded font-bold ${size === 'medium' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">中</button>
-                <button onclick="renderPromotion('small')" class="px-1.5 py-0.5 rounded font-bold ${size === 'small' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">小</button>
-              </div>
+          <div class="rounded-2xl overflow-hidden soft-card border-2 border-rose-500/50 bg-stone-900 shadow-xl">
+            <!-- 画像枠（画像の上に文字・ラベルを一切被せず、推しの顔を保護。見切れOK） -->
+            <div class="w-full h-44 overflow-hidden bg-stone-950">
+              <img src="${promo.image_url}" alt="${promo.title}" class="w-full h-full object-cover object-center">
             </div>
 
-            <div class="p-3.5 space-y-2.5">
+            <!-- 画像の下に全情報を集約配置 -->
+            <div class="p-3.5 space-y-2.5 bg-stone-900">
+              <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-red-600 text-white shadow">🎂 生誕祭クラファン</span>
+                <span class="text-xs font-bold text-rose-300">受付期間：〜11/22まで</span>
+              </div>
+
               <div class="space-y-1">
-                <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                <h3 class="text-base font-extrabold text-white flex items-center gap-1.5">
                   <span class="text-rose-400 font-bold">神楽あゆ 生誕祭2026 ❤️</span>
-                  <span class="text-[11px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">20th</span>
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">20th</span>
                 </h3>
                 <p class="text-xs text-stone-300 leading-relaxed">初めての生誕祭＆20歳の大切な節目🎀 皆さまと素敵な1日をつくるためのクラファン開催中！</p>
               </div>
@@ -631,24 +619,17 @@
         `;
       } else if (size === 'medium') {
         container.innerHTML = `
-          <div class="rounded-2xl p-3 soft-card border border-rose-500/40 bg-gradient-to-r from-rose-950/30 to-stone-900 shadow-md relative">
-            <div class="absolute top-2 right-2 flex bg-stone-900/90 backdrop-blur-md rounded-lg p-0.5 border border-white/10 text-[10px]">
-              <button onclick="renderPromotion('large')" class="px-1.5 py-0.5 rounded font-bold ${size === 'large' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">大</button>
-              <button onclick="renderPromotion('medium')" class="px-1.5 py-0.5 rounded font-bold ${size === 'medium' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">中</button>
-              <button onclick="renderPromotion('small')" class="px-1.5 py-0.5 rounded font-bold ${size === 'small' ? 'bg-rose-500 text-stone-950' : 'text-stone-400'}">小</button>
-            </div>
-            
+          <div class="rounded-2xl p-3 soft-card border border-rose-500/40 bg-stone-900 shadow-md">
             <div class="flex items-center gap-3">
-              <img src="${promo.image_url}" alt="${promo.title}" class="w-14 h-14 rounded-xl object-cover shrink-0 border border-rose-400/30 shadow">
-              <div class="flex-1 min-w-0 pr-14 space-y-1">
-                <div class="flex items-center gap-1.5">
-                  <span class="text-xs">🎂</span>
-                  <h3 class="text-xs font-bold text-rose-200 truncate">神楽あゆ 生誕祭2026 ❤️</h3>
+              <img src="${promo.image_url}" alt="${promo.title}" class="w-16 h-16 rounded-xl object-cover shrink-0 border border-rose-400/30 shadow">
+              <div class="flex-1 min-w-0 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-red-600 text-white">🎂 生誕祭クラファン</span>
+                  <span class="text-[11px] font-medium text-rose-300">〜11/22</span>
                 </div>
-                <p class="text-xs text-stone-300 leading-tight truncate">初めての生誕祭＆20歳節目！クラファン開催中</p>
+                <h3 class="text-xs font-bold text-white truncate">神楽あゆ 生誕祭2026 ❤️</h3>
                 <a href="${promo.cta_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs font-bold text-rose-400 hover:underline">
-                  <span>詳細・支援はこちら</span>
-                  <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                  <span>CAMPFIREで支援 ↗</span>
                 </a>
               </div>
             </div>
@@ -656,17 +637,12 @@
         `;
       } else {
         container.innerHTML = `
-          <div class="rounded-xl px-3 py-2 soft-card border border-rose-500/30 bg-rose-950/20 flex items-center justify-between text-xs relative">
+          <div class="rounded-xl px-3 py-2 soft-card border border-rose-500/30 bg-rose-950/20 flex items-center justify-between text-xs">
             <a href="${promo.cta_url}" target="_blank" rel="noopener" class="flex items-center gap-2 truncate flex-1 hover:underline">
               <span class="text-sm">🎂</span>
               <span class="font-bold text-white truncate">神楽あゆ生誕クラファン開催中 (〜11/22)</span>
-              <span class="text-rose-400 shrink-0 font-bold ml-1">詳細 ↗</span>
+              <span class="text-rose-400 shrink-0 font-bold ml-1">支援 ↗</span>
             </a>
-            <div class="flex bg-stone-900/90 rounded-md p-0.5 border border-white/10 text-[9px] ml-2 shrink-0">
-              <button onclick="renderPromotion('large')" class="px-1 py-0.2 rounded font-bold text-stone-400">大</button>
-              <button onclick="renderPromotion('medium')" class="px-1 py-0.2 rounded font-bold text-stone-400">中</button>
-              <button onclick="renderPromotion('small')" class="px-1 py-0.2 rounded font-bold bg-rose-500 text-stone-950">小</button>
-            </div>
           </div>
         `;
       }
