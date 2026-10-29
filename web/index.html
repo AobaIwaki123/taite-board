@@ -6,9 +6,6 @@
   <title>Ribbon Clock | ライブ・タイテ情報</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&family=Zen+Kaku+Gothic+New:wght@400;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -27,23 +24,33 @@
             }
           },
           fontFamily: {
-            sans: ['"Zen Kaku Gothic New"', '-apple-system', 'sans-serif'],
-            display: ['"Plus Jakarta Sans"', 'sans-serif'],
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Hiragino Sans"', '"Hiragino Kaku Gothic ProN"', '"Noto Sans JP"', 'sans-serif'],
+            display: ['-apple-system', 'BlinkMacSystemFont', '"Hiragino Sans"', 'sans-serif'],
           }
         }
       }
     }
   </script>
   <style>
+    :root {
+      --app-font-scale: 1rem;
+    }
     body {
       background-color: #0c0a09;
       color: #fafaf9;
       -webkit-tap-highlight-color: transparent;
-      font-family: 'Zen Kaku Gothic New', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      font-size: var(--app-font-scale);
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.01em;
     }
     .font-display {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-feature-settings: "palt";
     }
+    .scale-standard { --app-font-scale: 1rem; }
+    .scale-large    { --app-font-scale: 1.125rem; }
+    .scale-xlarge   { --app-font-scale: 1.25rem; }
     .soft-card {
       background: rgba(28, 25, 23, 0.9);
       backdrop-filter: blur(16px);
@@ -69,11 +76,17 @@
   <!-- Mobile Frame (Max width 420px for perfect one-handed mobile view) -->
   <div class="mx-auto max-w-sm px-3.5 pt-3 space-y-3">
 
-    <!-- Top App Bar: Minimal & Clean Header (タイテ速報・NEXT LIVE削除) -->
-    <header class="flex items-center justify-between py-1">
+    <!-- Top App Bar: Minimal Header + 文字サイズ切り替え (標準/大/特大) -->
+    <header class="flex items-center justify-between py-1 border-b border-white/5 pb-2">
       <div class="flex items-center gap-2">
         <span class="text-xl">🎀</span>
-        <span class="text-sm font-bold text-white tracking-wide">リボンクロック</span>
+        <span class="text-base font-extrabold text-white tracking-wide">リボンクロック</span>
+      </div>
+      <!-- 文字サイズ3段階トグル -->
+      <div class="flex items-center bg-stone-900 rounded-lg p-0.5 border border-white/10 text-xs font-bold text-stone-400 shadow-sm">
+        <button id="font-scale-standard" onclick="setFontScale('standard')" class="px-2 py-0.5 rounded bg-rose-500 text-stone-950 font-bold transition-all">標準</button>
+        <button id="font-scale-large" onclick="setFontScale('large')" class="px-2 py-0.5 rounded hover:text-white transition-all">大</button>
+        <button id="font-scale-xlarge" onclick="setFontScale('xlarge')" class="px-2 py-0.5 rounded hover:text-white transition-all">特大</button>
       </div>
     </header>
 
@@ -89,17 +102,17 @@
       </button>
     </div>
 
-    <!-- 同日2回し切り替えピル (1部 / 2部) - 最上段で分かりやすく -->
-    <div id="session-pills-bar" class="hidden flex gap-1.5 overflow-x-auto pb-0.5">
-      <!-- JSでピルボタンを自動注入 -->
-    </div>
-
     <!-- ======================================================== -->
     <!-- VIEW CONTAINER: [NEXT / WEEK / MONTH] -->
     <!-- ======================================================== -->
     
     <!-- 1. [NEXT LIVE COCKPIT VIEW] -->
     <main id="tab-content-next" class="space-y-3">
+
+      <!-- 同日2回し切り替えピル (1部 / 2部) - コックピット内のみ表示 -->
+      <div id="session-pills-bar" class="hidden flex gap-1.5 overflow-x-auto pb-0.5">
+        <!-- JSでピルボタンを自動注入 -->
+      </div>
 
       <!-- HERO FLYER PREVIEW & EVENT INFO (画像の上に文字を被せずスッキリ分離) -->
       <section class="rounded-2xl overflow-hidden soft-card shadow-xl cursor-pointer group" onclick="openLightbox()">
@@ -230,48 +243,44 @@
 
     </main>
 
-    <!-- 2. [WEEKLY UPCOMING LIST VIEW] -->
+    <!-- 2. [UPCOMING LIVE SCHEDULE LIST] (目が滑らないカレンダーバッジ付きリスト) -->
     <section id="tab-content-week" class="hidden space-y-3">
-      <div class="flex items-center justify-between text-xs px-1">
-        <span class="font-bold text-stone-200">今後のライブスケジュール</span>
-        <span class="text-[10px] text-rose-400 font-display">UPCOMING</span>
+      <div class="flex items-center justify-between px-1">
+        <span class="text-sm font-extrabold text-white">ライブ日程一覧</span>
+        <span id="upcoming-count-badge" class="text-xs font-bold text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/30">--公演</span>
       </div>
       
       <!-- Upcoming list -->
-      <div id="upcoming-list" class="space-y-2">
-        <!-- JSで注入 -->
-      </div>
-
-      <!-- Past archive accordion toggle -->
-      <div class="pt-3 border-t border-white/5 text-center">
-        <button onclick="togglePastArchive()" class="text-xs text-stone-400 hover:text-stone-200 font-medium flex items-center justify-center gap-1 mx-auto py-1">
-          <span>過去のライブ履歴を表示</span>
-          <i id="past-icon" data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-        </button>
-        <div id="past-list" class="hidden space-y-2 pt-2 text-left">
-          <!-- 過去ライブ注入 -->
-        </div>
+      <div id="upcoming-list" class="space-y-2.5">
+        <!-- JSで日付バッジ付きカードを注入 -->
       </div>
     </section>
 
-    <!-- 3. [MONTHLY CALENDAR VIEW] -->
+    <!-- 3. [MONTHLY CALENDAR VIEW] (月送りで過去・未来を自在に閲覧) -->
     <section id="tab-content-month" class="hidden space-y-3">
-      <div class="flex items-center justify-between text-xs px-1">
-        <span class="font-bold text-stone-200">2026年 11月 カレンダー</span>
-        <span class="text-[10px] text-rose-400 font-display">MONTHLY</span>
+      <div class="flex items-center justify-between px-1">
+        <button onclick="changeCalendarMonth(-1)" class="py-1 px-2 rounded-lg bg-stone-900 border border-white/10 text-xs font-bold text-stone-300 hover:text-white flex items-center gap-1 transition-colors">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+          <span id="prev-month-label">10月</span>
+        </button>
+        <span id="calendar-header-title" class="text-sm font-extrabold text-white">2026年 11月</span>
+        <button onclick="changeCalendarMonth(1)" class="py-1 px-2 rounded-lg bg-stone-900 border border-white/10 text-xs font-bold text-stone-300 hover:text-white flex items-center gap-1 transition-colors">
+          <span id="next-month-label">12月</span>
+          <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
       </div>
 
-      <div class="soft-card rounded-2xl p-3.5 space-y-3">
-        <div class="grid grid-cols-7 gap-1 text-center text-xs font-display">
-          <span class="text-rose-400 font-bold py-1">SUN</span>
-          <span class="text-stone-500 py-1">MON</span>
-          <span class="text-stone-500 py-1">TUE</span>
-          <span class="text-stone-500 py-1">WED</span>
-          <span class="text-stone-500 py-1">THU</span>
-          <span class="text-stone-500 py-1">FRI</span>
-          <span class="text-blue-400 font-bold py-1">SAT</span>
+      <div class="soft-card rounded-2xl p-3.5 space-y-3 shadow-xl">
+        <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold">
+          <span class="text-rose-400 py-1">日</span>
+          <span class="text-stone-400 py-1">月</span>
+          <span class="text-stone-400 py-1">火</span>
+          <span class="text-stone-400 py-1">水</span>
+          <span class="text-stone-400 py-1">木</span>
+          <span class="text-stone-400 py-1">金</span>
+          <span class="text-blue-400 py-1">土</span>
         </div>
-        <div id="calendar-cells" class="grid grid-cols-7 gap-1 text-center text-xs font-display">
+        <div id="calendar-cells" class="grid grid-cols-7 gap-1 text-center text-xs">
           <!-- JSで日付セル生成 -->
         </div>
       </div>
@@ -327,9 +336,16 @@
   <script>
     let appData = null;
     let currentId = null;
+    let previousTab = 'week';
     const TODAY_STR = "2026-10-30"; // 基準日
+    let currentCalYear = 2026;
+    let currentCalMonth = 11; // 1-12
 
     async function init() {
+      // 1. Font scale restore
+      const savedScale = localStorage.getItem('preferred-font-scale') || 'standard';
+      setFontScale(savedScale);
+
       try {
         const res = await fetch('mock_schedule.json');
         appData = await res.json();
@@ -339,10 +355,27 @@
 
       currentId = appData.current_next_id || appData.sessions[0].id;
       renderCockpit(currentId);
-      renderUpcomingAndPast();
-      renderCalendar();
+      renderUpcomingList();
+      renderCalendar(currentCalYear, currentCalMonth);
       renderPromotion('large');
       lucide.createIcons();
+    }
+
+    // Font Scale Switcher (標準 / 大 / 特大)
+    function setFontScale(scale) {
+      document.body.classList.remove('scale-standard', 'scale-large', 'scale-xlarge');
+      document.body.classList.add(`scale-${scale}`);
+      localStorage.setItem('preferred-font-scale', scale);
+      ['standard', 'large', 'xlarge'].forEach(s => {
+        const btn = document.getElementById(`font-scale-${s}`);
+        if (btn) {
+          if (s === scale) {
+            btn.className = 'px-2 py-0.5 rounded bg-rose-500 text-stone-950 font-bold transition-all';
+          } else {
+            btn.className = 'px-2 py-0.5 rounded hover:text-white transition-all';
+          }
+        }
+      });
     }
 
     // 1. Render Cockpit
@@ -351,7 +384,7 @@
       if (!s) return;
       currentId = id;
 
-      // Hero Strip & Image
+      // Flyer Image Preview
       const stripImg = document.getElementById('hero-strip-img');
       const lightboxImg = document.getElementById('lightbox-img');
       if (s.image_url) {
@@ -363,8 +396,10 @@
       document.getElementById('live-venue-name').textContent = s.venue.name;
       document.getElementById('live-date-header').textContent = `${s.date} (${s.day_of_week})`;
 
-      // 同日2回しピル（1部/2部）の更新
+      // 同日2回しピル（1部/2部）の更新 (コックピット内のみ)
       renderSameDaySwitcher(s.date);
+
+      // Telemetry Times: ライブ出番 (主役) / 特典会 (サブ)
       document.getElementById('live-start').textContent = s.live.start_time;
       document.getElementById('live-end').textContent = s.live.end_time;
       document.getElementById('live-stage').textContent = s.live.stage || 'ステージ';
@@ -374,19 +409,17 @@
       document.getElementById('benefit-end').textContent = s.benefit.end_time;
       document.getElementById('benefit-booth').textContent = s.benefit.booth;
 
-      // Photo & Bonus
-      const photoStatus = document.getElementById('photo-status');
-      const photoDesc = document.getElementById('photo-desc');
-      if (s.photo.allowed) {
-        photoStatus.textContent = "撮可：";
-        photoStatus.className = "font-bold text-rose-400";
-        photoDesc.textContent = s.photo.rule;
+      // Photo Rule (曲名や楽曲情報がある場合のみ表示。不明・確認中は非表示)
+      const photoBox = document.getElementById('photo-box');
+      if (s.photo && s.photo.allowed && s.photo.rule && !s.photo.rule.includes('確認') && !s.photo.rule.includes('未定')) {
+        photoBox.classList.remove('hidden');
+        document.getElementById('photo-status').textContent = "撮可：";
+        document.getElementById('photo-desc').textContent = s.photo.rule;
       } else {
-        photoStatus.textContent = "撮禁：";
-        photoStatus.className = "font-bold text-stone-400";
-        photoDesc.textContent = "撮影不可";
+        photoBox.classList.add('hidden');
       }
 
+      // Bonus
       document.getElementById('bonus-desc').textContent = s.admission_bonus || '特になし';
 
       // Special Notes
@@ -427,10 +460,7 @@
         ticketLink.className = 'flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all';
       }
 
-      // Same-Day Switcher
-      renderSameDaySwitcher(s.date);
-
-      // Subpage Nav Bar (直近以外の公演を閲覧中のみ「一覧に戻る / 直近に戻る」を表示)
+      // Subpage Nav Bar (直近以外の公演を閲覧中のみ表示)
       const nextId = appData.current_next_id || appData.sessions[0].id;
       const isNextLive = id === nextId;
       const subpageNav = document.getElementById('subpage-nav-bar');
@@ -471,79 +501,127 @@
       });
     }
 
-    // 2. Render Upcoming and Past
-    function renderUpcomingAndPast() {
-      const upcomingContainer = document.getElementById('upcoming-list');
-      const pastContainer = document.getElementById('past-list');
-      upcomingContainer.innerHTML = '';
-      pastContainer.innerHTML = '';
+    // 2. Render Upcoming Schedule List (目が滑らないカレンダーバッジUI)
+    function renderUpcomingList() {
+      const container = document.getElementById('upcoming-list');
+      container.innerHTML = '';
 
-      appData.sessions.forEach(s => {
-        const isPast = s.date < TODAY_STR;
+      // 今後の公演のみ抽出
+      const upcoming = appData.sessions.filter(s => s.date >= TODAY_STR);
+      
+      const countBadge = document.getElementById('upcoming-count-badge');
+      if (countBadge) countBadge.textContent = `${upcoming.length}公演`;
+
+      upcoming.forEach(s => {
         const card = document.createElement('div');
-        card.className = 'soft-card rounded-xl p-3 space-y-1.5 cursor-pointer hover:border-rose-400/40 transition-all';
-        card.onclick = () => {
-          openSessionDetail(s.id, 'week');
-        };
+        card.className = 'soft-card rounded-2xl p-3 flex items-center gap-3.5 cursor-pointer hover:border-rose-400/40 transition-all shadow-md';
+        card.onclick = () => openSessionDetail(s.id, 'week');
+
+        // 日付・月・曜日の抽出
+        const [, mStr, dStr] = s.date.split('-');
+        const monthNum = parseInt(mStr, 10);
+        const dayNum = parseInt(dStr, 10);
+        
+        // 曜日カラー
+        let dayColor = 'text-stone-400';
+        if (s.day_of_week === '土') dayColor = 'text-blue-400';
+        if (s.day_of_week === '日' || s.day_of_week.includes('祝')) dayColor = 'text-rose-400';
 
         const sameDayCount = appData.sessions.filter(x => x.date === s.date).length;
         const sessionTag = sameDayCount > 1 ? (s.session_name.includes('昼') ? ' [昼]' : ' [夜]') : '';
 
         card.innerHTML = `
-          <div class="flex items-center justify-between text-xs">
-            <span class="font-display font-bold text-rose-300 text-xs">${s.date} (${s.day_of_week})${sessionTag}</span>
-            <span class="text-stone-300 truncate max-w-[150px] text-right font-medium text-xs">${s.venue.name}</span>
+          <!-- カレンダー風・日付アンカーブロック (目が滑らない) -->
+          <div class="w-13 h-14 w-[52px] h-[56px] rounded-xl bg-stone-950 border border-white/10 flex flex-col items-center justify-center shrink-0 shadow-inner">
+            <span class="text-[10px] font-bold text-stone-400 leading-none">${monthNum}月</span>
+            <span class="text-xl font-display font-black text-white leading-tight my-0.5">${dayNum}</span>
+            <span class="text-[10px] font-bold ${dayColor} leading-none">${s.day_of_week}</span>
           </div>
-          <div class="text-sm font-bold text-white pt-0.5">${s.title}</div>
-          <div class="text-xs font-display text-stone-300 flex justify-between pt-1.5 border-t border-white/5">
-            <span>出演: <strong class="text-white font-bold">${s.live.start_time}〜${s.live.end_time}</strong></span>
-            <span>物販: <strong class="text-white font-bold">${s.benefit.start_time}〜</strong> (${s.benefit.type})</span>
+
+          <!-- イベント情報本体 -->
+          <div class="flex-1 min-w-0 space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-stone-300 font-semibold truncate flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3 h-3 text-rose-400 shrink-0"></i>
+                <span class="truncate">${s.venue.name}</span>
+              </span>
+              ${sessionTag ? `<span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px]">${sessionTag}</span>` : ''}
+            </div>
+
+            <div class="text-sm font-extrabold text-white leading-snug line-clamp-2">${s.title}</div>
+
+            <div class="text-xs flex items-center justify-between pt-1 border-t border-white/5 text-stone-300">
+              <span class="flex items-center gap-1">
+                <span class="text-rose-400 font-bold">出番</span>
+                <strong class="text-white font-display font-bold">${s.live.start_time}〜</strong>
+              </span>
+              <span class="flex items-center gap-1 text-stone-400">
+                <span>特典会</span>
+                <strong class="text-stone-200 font-display">${s.benefit.start_time}〜</strong>
+              </span>
+            </div>
           </div>
         `;
 
-        if (isPast) {
-          card.classList.add('opacity-50');
-          pastContainer.appendChild(card);
-        } else {
-          upcomingContainer.appendChild(card);
-        }
+        container.appendChild(card);
       });
-    }
-
-    function togglePastArchive() {
-      const pastList = document.getElementById('past-list');
-      const pastIcon = document.getElementById('past-icon');
-      if (pastList.classList.contains('hidden')) {
-        pastList.classList.remove('hidden');
-        pastIcon.setAttribute('data-lucide', 'chevron-up');
-      } else {
-        pastList.classList.add('hidden');
-        pastIcon.setAttribute('data-lucide', 'chevron-down');
-      }
       lucide.createIcons();
     }
 
-    // 3. Render Calendar
-    function renderCalendar() {
+    // 3. Render Calendar (月送りで過去・未来を無限に遡れる)
+    function changeCalendarMonth(delta) {
+      currentCalMonth += delta;
+      if (currentCalMonth > 12) {
+        currentCalMonth = 1;
+        currentCalYear++;
+      } else if (currentCalMonth < 1) {
+        currentCalMonth = 12;
+        currentCalYear--;
+      }
+      renderCalendar(currentCalYear, currentCalMonth);
+    }
+
+    function renderCalendar(year, month) {
+      const headerTitle = document.getElementById('calendar-header-title');
+      if (headerTitle) headerTitle.textContent = `${year}年 ${month}月`;
+
+      const prevLabel = document.getElementById('prev-month-label');
+      const nextLabel = document.getElementById('next-month-label');
+      if (prevLabel) prevLabel.textContent = `${month === 1 ? 12 : month - 1}月`;
+      if (nextLabel) nextLabel.textContent = `${month === 12 ? 1 : month + 1}月`;
+
       const grid = document.getElementById('calendar-cells');
       grid.innerHTML = '';
 
-      // 2026-11-01 is Sunday (index 0)
-      for (let day = 1; day <= 30; day++) {
-        const dateStr = `2026-11-${String(day).padStart(2, '0')}`;
-        const sessions = appData.sessions.filter(s => s.date === dateStr);
+      // 月の日数と1日の曜日インデックスを取得
+      const firstDayIndex = new Date(year, month - 1, 1).getDay(); // 0 = Sun
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      // 前月の空白埋め
+      for (let i = 0; i < firstDayIndex; i++) {
+        const blank = document.createElement('div');
+        blank.className = 'py-2.5 text-stone-700';
+        grid.appendChild(blank);
+      }
+
+      // 日付セルの描画
+      for (let day = 1; day <= daysInMonth; day++) {
+        const monthStr = String(month).padStart(2, '0');
+        const dayStr = String(day).padStart(2, '0');
+        const dateStr = `${year}-${monthStr}-${dayStr}`;
+        const sessions = appData ? appData.sessions.filter(s => s.date === dateStr) : [];
         const hasLive = sessions.length > 0;
 
         const cell = document.createElement('button');
         cell.className = `py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
           hasLive 
-            ? 'bg-rose-950/40 border border-rose-500/40 text-rose-300 font-bold shadow-sm' 
-            : 'bg-stone-900/40 text-stone-500'
+            ? 'bg-rose-950/50 border-2 border-rose-500/60 text-white font-extrabold shadow-sm scale-105' 
+            : 'bg-stone-900/30 text-stone-500 hover:text-stone-400'
         }`;
 
         cell.innerHTML = `
-          <span>${day}</span>
-          ${hasLive ? `<span class="w-1.5 h-1.5 rounded-full mt-1 bg-rose-400"></span>` : '<span class="h-1.5 mt-1"></span>'}
+          <span class="text-xs font-display">${day}</span>
+          ${hasLive ? `<span class="w-1.5 h-1.5 rounded-full mt-1 bg-rose-400 animate-pulse"></span>` : '<span class="h-1.5 mt-1"></span>'}
         `;
 
         if (hasLive) {
@@ -551,6 +629,13 @@
         }
         grid.appendChild(cell);
       }
+
+      // 詳細カードのクリア
+      const detailContainer = document.getElementById('calendar-day-detail');
+      if (detailContainer) {
+        detailContainer.innerHTML = '<div class="text-xs text-stone-400 text-center py-2">日付をタップすると詳細が表示されます</div>';
+      }
+      lucide.createIcons();
     }
 
     function renderCalendarDetail(dateStr, sessions) {
@@ -559,10 +644,9 @@
 
       sessions.forEach(s => {
         const div = document.createElement('div');
-        div.className = 'soft-card rounded-xl p-3 space-y-1.5 border-l-4 border-l-rose-500 cursor-pointer';
-        div.onclick = () => {
-          openSessionDetail(s.id, 'month');
-        };
+        div.className = 'soft-card rounded-xl p-3 space-y-1.5 border-l-4 border-l-rose-500 cursor-pointer hover:border-rose-400/40 transition-all';
+        div.onclick = () => openSessionDetail(s.id, 'month');
+
         const sessionTag = sessions.length > 1 ? (s.session_name.includes('昼') ? ' [昼公演]' : ' [夜公演]') : '';
         div.innerHTML = `
           <div class="flex items-center justify-between text-xs">
@@ -577,10 +661,11 @@
         `;
         container.appendChild(div);
       });
+      lucide.createIcons();
     }
 
     // 4. Render Promotion (大・中・小 バリエーション対応コンポーネント)
-    // ※ 管理者・実装側でサイズ指定。UI上に切り替えトグルは出さず、画像の上にもラベルを被せない
+    // ※ 20thラベル削除、画像の上に文字被せゼロ
     function renderPromotion(size = 'large') {
       const container = document.getElementById('promo-container');
       if (!container || !appData || !appData.promotions) return;
@@ -595,7 +680,7 @@
               <img src="${promo.image_url}" alt="${promo.title}" class="w-full h-full object-cover object-center">
             </div>
 
-            <!-- 画像の下に全情報を集約配置 -->
+            <!-- 画像の下に全情報を集約配置 (20th削除) -->
             <div class="p-3.5 space-y-2.5 bg-stone-900">
               <div class="flex items-center justify-between">
                 <span class="px-2.5 py-0.5 rounded-md text-xs font-black bg-red-600 text-white shadow">🎂 生誕祭クラファン</span>
@@ -603,9 +688,8 @@
               </div>
 
               <div class="space-y-1">
-                <h3 class="text-base font-extrabold text-white flex items-center gap-1.5">
+                <h3 class="text-base font-extrabold text-white">
                   <span class="text-rose-400 font-bold">神楽あゆ 生誕祭2026 ❤️</span>
-                  <span class="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">20th</span>
                 </h3>
                 <p class="text-xs text-stone-300 leading-relaxed">初めての生誕祭＆20歳の大切な節目🎀 皆さまと素敵な1日をつくるためのクラファン開催中！</p>
               </div>
@@ -650,8 +734,6 @@
     }
 
     // 5. Navigation & History Helpers
-    let previousTab = 'week';
-
     function openSessionDetail(id, fromTab = 'week') {
       previousTab = fromTab;
       renderCockpit(id);
