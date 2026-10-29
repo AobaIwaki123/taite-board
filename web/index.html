@@ -33,7 +33,14 @@
   </script>
   <style>
     html {
-      font-size: 16.5px; /* 全体フォントサイズをしっかり拡大 */
+      font-size: 17.5px; /* 全体フォントサイズをさらに一段階拡大して屋外視認性を最大化 */
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
     html, body {
       touch-action: manipulation; /* ダブルタップによる意図しない画面拡大を完全に抑制 */
@@ -106,24 +113,17 @@
 
     </header>
 
-    <!-- 戻るナビゲーションバー（他日程のライブ詳細を閲覧中のみ表示） -->
-    <div id="subpage-nav-bar" class="hidden flex items-center justify-between py-1 px-1 bg-stone-900/90 rounded-xl border border-white/10 shadow-md">
-      <button onclick="goBackToList()" class="flex items-center gap-1.5 text-xs font-bold text-stone-300 hover:text-white py-1 px-2.5 rounded-lg bg-stone-800 hover:bg-stone-700 transition-colors">
-        <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-        <span>一覧に戻る</span>
-      </button>
-      <button onclick="goToNextLive()" class="flex items-center gap-1.5 text-xs font-bold text-rose-300 hover:text-white py-1 px-2.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 transition-colors">
-        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-400"></i>
-        <span>直近ライブに戻る</span>
-      </button>
-    </div>
+
 
     <!-- ======================================================== -->
-    <!-- VIEW CONTAINER: [NEXT / WEEK / MONTH] -->
+    <!-- VIEW CONTAINER: [SMOOTH TOUCH-SWIPE CAROUSEL CONTAINER] -->
     <!-- ======================================================== -->
     
-    <!-- 1. [NEXT LIVE COCKPIT VIEW] -->
-    <main id="tab-content-next" class="space-y-3">
+    <!-- カルーセルスライダー (指の動きに完全追従する滑らかなスワイプ ＆ スナップ吸着) -->
+    <div id="views-carousel" class="flex overflow-x-auto snap-x snap-mandatory no-scrollbar w-full scroll-smooth">
+      
+      <!-- 1. [NEXT LIVE COCKPIT VIEW SLIDE] -->
+      <main id="tab-content-next" class="w-full shrink-0 snap-start space-y-3 px-0.5">
 
       <!-- 同日2回し切り替えピル (1部 / 2部) - コックピット内のみ表示 -->
       <div id="session-pills-bar" class="hidden flex gap-1.5 overflow-x-auto pb-0.5">
@@ -284,8 +284,8 @@
 
     </main>
 
-    <!-- 2. [UPCOMING LIVE SCHEDULE LIST] (目が滑らないカレンダーバッジ付きリスト) -->
-    <section id="tab-content-week" class="hidden space-y-3">
+      <!-- 2. [UPCOMING LIVE SCHEDULE LIST SLIDE] -->
+      <section id="tab-content-week" class="w-full shrink-0 snap-start space-y-3 px-0.5">
       <div class="flex items-center justify-between px-1">
         <span class="text-sm font-extrabold text-white">ライブ日程一覧</span>
         <span id="upcoming-count-badge" class="text-xs font-bold text-rose-300 bg-rose-500/20 px-2.5 py-0.5 rounded-full border border-rose-500/30">--公演</span>
@@ -297,8 +297,8 @@
       </div>
     </section>
 
-    <!-- 3. [MONTHLY CALENDAR VIEW] (月送りで過去・未来を自在に閲覧) -->
-    <section id="tab-content-month" class="hidden space-y-3">
+      <!-- 3. [MONTHLY CALENDAR VIEW SLIDE] -->
+      <section id="tab-content-month" class="w-full shrink-0 snap-start space-y-3 px-0.5">
       <div class="flex items-center justify-between px-1">
         <button onclick="changeCalendarMonth(-1)" class="py-1 px-2 rounded-lg bg-stone-900 border border-white/10 text-xs font-bold text-stone-300 hover:text-white flex items-center gap-1 transition-colors">
           <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
@@ -330,7 +330,9 @@
       <div id="calendar-day-detail" class="space-y-2">
         <div class="text-xs text-stone-400 text-center py-2">日付をタップすると詳細が表示されます</div>
       </div>
-    </section>
+      </section>
+
+    </div> <!-- End views-carousel -->
 
     <!-- [FLOATING BOTTOM NAVIGATION] (親指でワンタップ切り替え) -->
     <nav class="fixed bottom-3 left-0 right-0 max-w-sm mx-auto px-3.5 z-40">
@@ -410,6 +412,7 @@
       renderUpcomingList();
       renderCalendar(currentCalYear, currentCalMonth);
       renderPromotion('large');
+      initCarouselSync();
       lucide.createIcons();
     }
 
@@ -590,17 +593,7 @@
         ticketLink.className = 'flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all';
       }
 
-      // Subpage Nav Bar (直近以外の公演を閲覧中のみ表示)
-      const nextId = appData.current_next_id || appData.sessions[0].id;
-      const isNextLive = id === nextId;
-      const subpageNav = document.getElementById('subpage-nav-bar');
-      if (subpageNav) {
-        if (isNextLive) {
-          subpageNav.classList.add('hidden');
-        } else {
-          subpageNav.classList.remove('hidden');
-        }
-      }
+
 
       lucide.createIcons();
     }
@@ -930,21 +923,54 @@
     let currentTabName = 'next';
     const tabCycle = ['next', 'week', 'month'];
 
-    // Tab Switching
+    // Tab Switching via Bottom Nav (Smooth Scroll to Slide)
     function setTab(tab) {
       currentTabName = tab;
+      const carousel = document.getElementById('views-carousel');
+      const idx = tabCycle.indexOf(tab);
+      if (carousel && idx !== -1) {
+        const slideWidth = carousel.clientWidth;
+        carousel.scrollTo({
+          left: idx * slideWidth,
+          behavior: 'smooth'
+        });
+      }
+      updateNavHighlight(tab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateNavHighlight(activeTab) {
       tabCycle.forEach(t => {
-        const view = document.getElementById(`tab-content-${t}`);
         const nav = document.getElementById(`nav-${t}`);
-        if (t === tab) {
-          view.classList.remove('hidden');
+        if (!nav) return;
+        if (t === activeTab) {
           nav.className = 'flex-1 py-2 rounded-xl text-center font-bold active-nav-tab transition-all flex items-center justify-center gap-1.5';
         } else {
-          view.classList.add('hidden');
           nav.className = 'flex-1 py-2 rounded-xl text-center text-stone-400 hover:text-stone-200 transition-all flex items-center justify-center gap-1.5';
         }
       });
-      lucide.createIcons();
+    }
+
+    // Carousel Scroll Listener: 指スワイプ中の滑らかな追従とタブハイライト自動同期
+    function initCarouselSync() {
+      const carousel = document.getElementById('views-carousel');
+      if (!carousel) return;
+
+      let scrollTimeout;
+      carousel.addEventListener('scroll', () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          const slideWidth = carousel.clientWidth;
+          const currentIdx = Math.round(carousel.scrollLeft / slideWidth);
+          if (currentIdx >= 0 && currentIdx < tabCycle.length) {
+            const detectedTab = tabCycle[currentIdx];
+            if (currentTabName !== detectedTab) {
+              currentTabName = detectedTab;
+              updateNavHighlight(detectedTab);
+            }
+          }
+        }, 50);
+      }, { passive: true });
     }
 
     // Lightbox
