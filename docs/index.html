@@ -209,7 +209,7 @@
           </a>
           <a id="ticket-link" href="#" target="_blank" rel="noopener" class="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all">
             <i data-lucide="ticket" class="w-3.5 h-3.5"></i>
-            <span>チケット</span>
+            <span id="ticket-btn-text">チケット</span>
           </a>
         </div>
 
@@ -406,7 +406,16 @@
 
       // Action Links
       document.getElementById('venue-map-link').href = s.venue.map_url;
-      document.getElementById('ticket-link').href = s.ticket.url;
+      const ticketLink = document.getElementById('ticket-link');
+      const ticketBtnText = document.getElementById('ticket-btn-text');
+      ticketLink.href = s.ticket.url;
+      if (s.ticket.platform === '公式アナウンス待ち') {
+        ticketBtnText.textContent = 'チケット (告知待ち)';
+        ticketLink.className = 'flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-stone-800 text-stone-300 font-bold text-xs border border-white/10 transition-colors';
+      } else {
+        ticketBtnText.textContent = s.ticket.platform ? `チケット (${s.ticket.platform})` : 'チケット';
+        ticketLink.className = 'flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-bold text-xs shadow-md transition-all';
+      }
 
       // Same-Day Switcher
       renderSameDaySwitcher(s.date);
