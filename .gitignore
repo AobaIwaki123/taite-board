@@ -2,3 +2,6 @@ bin/
 *.exe
 *.test
 data/sample_images/
+node_modules/
+apps/web/dist/
+.DS_Store
