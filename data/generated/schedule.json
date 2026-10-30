@@ -27,7 +27,7 @@
       "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
       "deadline": "2026-11-22",
       "priority": 100,
-      "active": true
+      "active": false
     },
     {
       "id": "promo-ayyu-birthday-live",
@@ -39,7 +39,7 @@
       "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
       "deadline": "2026-12-06",
       "priority": 90,
-      "active": true
+      "active": false
     },
     {
       "id": "promo-tiktok-latest",
