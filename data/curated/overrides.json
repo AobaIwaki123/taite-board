@@ -2,17 +2,43 @@
   "schema_version": 1,
   "description": "Manual overrides and verified metadata that cannot be derived solely from tweet text",
   "sessions": {
+    "20261103-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5.jpg?name=large",
+      "timetable_image_override": "https://pbs.twimg.com/media/HVxASJ9aQAAb4i-.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284",
+      "status": "確定"
+    },
     "20261107-1": {
-      "local_image_override": "images/20261107_marquee_mini.png"
+      "flyer_image_override": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113186093717745808",
+      "status": "確定"
+    },
+    "20261108-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T.jpg?name=large",
+      "live_start_override": "--:--",
+      "live_end_override": "--:--",
+      "status": "タイテ告知待ち"
     },
     "20261109-1": {
-      "flyer_image_override": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg",
+      "flyer_image_override": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=large",
+      "live_start_override": "--:--",
+      "live_end_override": "--:--",
+      "status": "タイテ告知待ち"
+    },
+    "20261112-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL.jpg?name=large",
+      "live_start_override": "--:--",
+      "live_end_override": "--:--",
+      "status": "タイテ告知待ち"
+    },
+    "20261123-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=large",
       "live_start_override": "--:--",
       "live_end_override": "--:--",
       "status": "タイテ告知待ち"
     },
     "20261125-1": {
-      "flyer_image_override": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg",
+      "flyer_image_override": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=large",
       "live_start_override": "--:--",
       "live_end_override": "--:--",
       "status": "タイテ告知待ち"
