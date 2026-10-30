@@ -6,7 +6,7 @@
 
 | 項目 | 値 |
 |---|---|
-| 表示名 | リボンクロック |
+| 表示名 | リボカレ |
 | Bundle ID | `net.iorin.ribonclock` |
 | Version | `1.0` |
 | Build | `1` |
@@ -24,7 +24,7 @@ Bundle IDはApp Store ConnectのアプリレコードとXcodeの値を一致さ�
 
 | 項目 | 候補 / 状態 |
 |---|---|
-| App Name | リボンクロック |
+| App Name | リボカレ |
 | Primary Language | 日本語 |
 | SKU | `taite-board-ios` |
 | Primary Category | エンターテインメント候補。App Store Connectで決定 |
@@ -47,7 +47,7 @@ Bundle IDはApp Store ConnectのアプリレコードとXcodeの値を一致さ�
 ### App Review notes案
 
 ```text
-リボンクロックは、公開されているライブ出演情報を表示するアプリです。
+リボカレは、公開されているライブ出演情報を表示するアプリです。
 アカウント登録やログインは必要ありません。
 審査時は起動後に直近ライブ、全日程、カレンダーを確認できます。
 スケジュール取得に失敗した場合は、同梱または端末に保存された最後の正常データを表示します。
