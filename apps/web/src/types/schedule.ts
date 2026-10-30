@@ -30,9 +30,9 @@ export interface Promotion {
   cta_label?: string;
   image_url?: string;
   cta_url: string;
-  deadline?: string;
   priority?: number;
   active?: boolean;
+  deadline?: string;
 }
 
 export interface Venue {
@@ -84,7 +84,15 @@ export interface SourceRef {
   type: string;
   source_id?: string;
   url: string;
+  observed_at?: string;
 }
+
+export type SessionStatus =
+  | 'scheduled'
+  | 'timetable_pending'
+  | 'postponed'
+  | 'cancelled'
+  | 'unconfirmed';
 
 export interface Session {
   id: string;
@@ -92,6 +100,8 @@ export interface Session {
   date: string; // YYYY-MM-DD
   day_of_week?: string;
   session_name?: string;
+  status?: SessionStatus;
+  last_confirmed_at?: string;
   venue: Venue;
   live: LivePerformance;
   benefit: BenefitEvent;
