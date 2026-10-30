@@ -56,5 +56,5 @@ enum PreviewData {
 }
 
 #Preview("Data Status") {
-    DataStatusView(model: PreviewData.model(), snapshot: PreviewData.snapshot)
+    DataStatusView(model: PreviewData.model())
 }

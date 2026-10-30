@@ -2,6 +2,19 @@
 
 `TaiteBoardCore` を利用するSwiftUIアプリです。Web版の主要導線に合わせ、直近公演、公演一覧、カレンダーの3画面を横スワイプと下部ナビゲーションで切り替えます。
 
+## データ接続の設計
+
+Web側とiOS側は、同じ公開データ契約 `schedule.json` を読むクライアントです。現行の本番環境には、UI用の静的ファイルと `schedule.json` を配信するNginxがあり、iOS専用のAPIサーバーや認証エンドポイントはありません。
+
+- データ生成: Goのデータパイプラインが `data/generated/schedule.json` を生成する
+- Web配信: NginxがUIと `/schedule.json` を同一オリジンで配信する
+- iOS接続: `RemoteScheduleSource` が `https://ribonclock.iorin.net/schedule.json` を読み取る
+- 起動時: ディスクキャッシュまたはseedを先に表示し、表示後にリモート更新する
+- foreground復帰: 15分以内に成功済みなら再取得を抑制し、それ以上経過していれば更新する
+- 失敗時: 表示中の最後に検証済みデータを維持し、エラーと通信診断をデータ状態画面に表示する
+
+本番URLはSwiftコードへ固定せず、Xcodeの `SCHEDULE_FEED_URL` build settingを `Info.plist` の `ScheduleFeedURL` へ注入しています。
+
 ## ビルドとテスト
 
 ### Swift Coreのテスト
@@ -30,7 +43,7 @@ xcodebuild \
 
 生成されたアプリは `/private/tmp/taite-board-ios-derived/Build/Products/Debug-iphonesimulator/TaiteBoard.app` に出力されます。
 
-ビルド時に `data/generated/schedule.json` をアプリバンドルへ同期するため、起動直後からseedを表示できます。リモートfeed URLは `Info.plist` の `ScheduleFeedURL` に注入するまで未設定です。
+ビルド時に `data/generated/schedule.json` をアプリバンドルへ同期するため、通信前からseedを表示できます。Debug/Releaseともに `ScheduleFeedURL` は本番の公開JSONへ設定されています。
 
 ### Simulatorで起動
 
@@ -77,6 +90,9 @@ npm --prefix apps/web run build
 - iPhone Simulatorで、直近ライブ、公演一覧、カレンダーの各タブを確認する
 - `PreviewData.swift` の `#Preview` で固定データの画面を確認する
 - Simulator のダークモード、Dynamic Type、VoiceOver、長いタイトルを確認する
+- 起動直後にseedまたはキャッシュが表示され、バックグラウンドでリモート更新が行われることを確認する
+- 機内モード相当で最後の正常データが維持され、更新エラーが表示されることを確認する
+- 管理者向けの導線を有効にした場合は、データ状態画面でURL、HTTPステータス、ETag、取得時間を確認する
 - `Assets.xcassets` は `apps/web/public/icons/` のアイコン素材を利用している
 - AppIconは `AppIcon-1024.png` を正本とし、XcodeのAsset Catalogが各サイズを生成する
 - `review-assets/ios-brand-assets-simulator.png` にブランドアセット反映後のSimulator画面を保存している

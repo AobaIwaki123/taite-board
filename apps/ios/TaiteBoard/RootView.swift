@@ -30,6 +30,7 @@ enum MainTab: Int, CaseIterable, Hashable {
 
 struct RootView: View {
     @ObservedObject var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var activeTab: MainTab = .next
     @State private var selectedSessionID: String?
@@ -61,7 +62,6 @@ struct RootView: View {
             if let snapshot = model.snapshot {
                 VStack(spacing: 0) {
                     RibbonHeaderView(
-                        freshnessLabel: freshnessLabel(for: snapshot),
                         onLogoClick: resetToNextLive
                     )
 
@@ -143,6 +143,12 @@ struct RootView: View {
         .task {
             await model.bootstrapIfNeeded()
         }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, model.snapshot != nil else { return }
+            Task {
+                await model.refreshIfNeeded(reason: .foreground)
+            }
+        }
     }
 
     private func selectSession(_ id: String) {
@@ -158,18 +164,9 @@ struct RootView: View {
         activeTab = .next
     }
 
-    private func freshnessLabel(for snapshot: RepositorySnapshot) -> String? {
-        switch snapshot.origin {
-        case .remote:
-            return nil
-        case .diskCache, .seed:
-            return "オフライン保存版を表示中"
-        }
-    }
 }
 
 struct RibbonHeaderView: View {
-    let freshnessLabel: String?
     let onLogoClick: () -> Void
 
     @State private var isPopping = false
@@ -204,22 +201,6 @@ struct RibbonHeaderView: View {
             .buttonStyle(.plain)
 
             Spacer(minLength: 8)
-
-            if let freshnessLabel {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color(red: 0.984, green: 0.749, blue: 0.141))
-                        .frame(width: 6, height: 6)
-                    Text(freshnessLabel)
-                        .font(.caption2.weight(.bold))
-                        .lineLimit(1)
-                }
-                .foregroundStyle(Color(red: 1.0, green: 0.827, blue: 0.361))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.orange.opacity(0.15), in: Capsule())
-                .overlay(Capsule().stroke(Color.orange.opacity(0.30), lineWidth: 1))
-            }
         }
         .padding(.vertical, 4)
         .overlay(alignment: .bottom) {

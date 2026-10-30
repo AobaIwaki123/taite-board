@@ -48,6 +48,7 @@ public actor ScheduleRepository {
     private let cache: DiskScheduleCache?
     private let now: @Sendable () -> Date
     private var currentSnapshot: RepositorySnapshot?
+    private var lastRemoteRefreshAt: Date?
 
     public init(
         seed: any ScheduleSource,
@@ -109,7 +110,22 @@ public actor ScheduleRepository {
             diagnostics: payload.diagnostics
         )
         currentSnapshot = snapshot
+        lastRemoteRefreshAt = fetchedAt
         return snapshot
+    }
+
+    public func refreshIfNeeded(
+        reason: RefreshReason,
+        minimumInterval: TimeInterval = 15 * 60
+    ) async throws -> RepositorySnapshot {
+        if reason == .foreground,
+           let lastRemoteRefreshAt,
+           now().timeIntervalSince(lastRemoteRefreshAt) < minimumInterval,
+           let currentSnapshot {
+            return currentSnapshot
+        }
+
+        return try await refresh(reason: reason)
     }
 
     public func snapshot() -> RepositorySnapshot? {
