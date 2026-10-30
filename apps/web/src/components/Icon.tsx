@@ -1,7 +1,7 @@
-import { h, JSX } from 'preact';
+import { h, SVGAttributes } from 'preact';
 import type { IconNode } from 'lucide';
 
-interface IconProps extends JSX.HTMLAttributes<SVGSVGElement> {
+interface IconProps extends SVGAttributes<SVGSVGElement> {
   icon: IconNode;
   size?: number | string;
   class?: string;

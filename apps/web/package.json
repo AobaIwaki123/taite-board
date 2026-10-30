@@ -11,12 +11,12 @@
     "test": "node --experimental-strip-types --test src/utils/date.test.ts"
   },
   "dependencies": {
-    "lucide": "^1.16.0",
-    "preact": "^10.25.4"
+    "lucide": "^1.64.0",
+    "preact": "^11.1.0"
   },
   "devDependencies": {
-    "@preact/preset-vite": "^2.9.5",
-    "@types/node": "^22.13.0",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.6.6",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
