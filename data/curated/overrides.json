@@ -9,8 +9,8 @@
       "status": "確定"
     },
     "20261107-1": {
-      "flyer_image_override": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113186093717745808",
+      "flyer_image_override": "https://pbs.twimg.com/media/HT84ZRqbQAIR3dL.jpg?name=large",
+      "source_tweet_url": "https://x.com/ayu_rbcl/status/2107465164685730237",
       "status": "確定"
     },
     "20261108-1": {
@@ -30,6 +30,11 @@
       "live_start_override": "--:--",
       "live_end_override": "--:--",
       "status": "タイテ告知待ち"
+    },
+    "20261122-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HT84ZRnbgAA5fmv.jpg?name=large",
+      "source_tweet_url": "https://x.com/ayu_rbcl/status/2107465164685730237",
+      "status": "確定"
     },
     "20261123-1": {
       "flyer_image_override": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=large",

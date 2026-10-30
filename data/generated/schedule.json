@@ -412,20 +412,20 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113186093717745808",
+      "image_url": "https://pbs.twimg.com/media/HT84ZRqbQAIR3dL.jpg?name=large",
+      "source_tweet_url": "https://x.com/ayu_rbcl/status/2107465164685730237",
       "images": [
         {
           "type": "flyer",
-          "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large"
+          "label": "フライヤー・タイテ (1/1)",
+          "url": "https://pbs.twimg.com/media/HT84ZRqbQAIR3dL.jpg?name=large"
         }
       ],
       "source_refs": [
         {
           "type": "x_post",
-          "source_id": "2113186093717745808",
-          "url": "https://x.com/Ribbon_Clock/status/2113186093717745808"
+          "source_id": "2107465164685730237",
+          "url": "https://x.com/ayu_rbcl/status/2107465164685730237"
         }
       ]
     },
@@ -567,6 +567,63 @@
           "type": "x_post",
           "source_id": "2114295917075460118",
           "url": "https://x.com/Ribbon_Clock/status/2114295917075460118"
+        }
+      ]
+    },
+    {
+      "id": "20261122-1",
+      "title": "MONTHLY NAVIGATOR GIRLS LiNE",
+      "date": "2026-11-22",
+      "day_of_week": "土",
+      "session_name": "昼帯",
+      "venue": {
+        "canonical_id": "venue:j-square-shinagawa",
+        "name": "J-SQUARE品川",
+        "map_query": "J-SQUARE SHINAGAWA",
+        "map_url": "https://maps.google.com/?q=J-SQUARE+SHINAGAWA"
+      },
+      "live": {
+        "start_time": "12:30",
+        "end_time": "13:00",
+        "stage": "メイン"
+      },
+      "benefit": {
+        "type": "終演後",
+        "start_time": "15:00",
+        "end_time": "16:00",
+        "booth": "フロア内"
+      },
+      "photo": null,
+      "special_notes": "動員重要ライブ！トップバッター30分枠！友達招待キャンペーン実施（OPEN 12:00 / START 12:30）",
+      "admission_bonus": "動員重要ライブ特典・招待特典（1人招待毎にサインありチェキ券等）",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/2CKWET0p56CMkyy3SGDn",
+        "prices": [
+          {
+            "tier": "一般",
+            "price": "¥3,500"
+          },
+          {
+            "tier": "当日券",
+            "price": "¥4,000 (+1D)"
+          }
+        ]
+      },
+      "image_url": "https://pbs.twimg.com/media/HT84ZRnbgAA5fmv.jpg?name=large",
+      "source_tweet_url": "https://x.com/ayu_rbcl/status/2107465164685730237",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー・タイテ (1/1)",
+          "url": "https://pbs.twimg.com/media/HT84ZRnbgAA5fmv.jpg?name=large"
+        }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2107465164685730237",
+          "url": "https://x.com/ayu_rbcl/status/2107465164685730237"
         }
       ]
     },
@@ -747,6 +804,6 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-10-30T08:10:38.885Z",
+  "generated_at": "2026-10-30T09:37:53.506Z",
   "timezone": "Asia/Tokyo"
 }
