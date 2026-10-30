@@ -176,22 +176,22 @@ export function CockpitView({
 
         <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
 
-        <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs text-stone-300">
+        <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-stone-300 min-w-0">
           <a
             href={session.venue.map_url || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-1 hover:text-rose-300 transition-colors"
+            class="flex items-center gap-1 hover:text-rose-300 transition-colors min-w-0 truncate"
           >
-            <Icon icon={MapPin} class="w-3.5 h-3.5 text-rose-400" />
-            <span class="font-semibold underline underline-offset-2">{session.venue.name}</span>
+            <Icon icon={MapPin} class="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span class="font-semibold underline underline-offset-2 truncate">{session.venue.name}</span>
           </a>
           {session.source_tweet_url && (
             <a
               href={session.source_tweet_url}
               target="_blank"
               rel="noreferrer noopener"
-              class="flex items-center gap-1 text-stone-400 hover:text-rose-300 transition-colors"
+              class="flex items-center gap-1 text-stone-400 hover:text-rose-300 transition-colors shrink-0"
             >
               <span>公式告知 ↗</span>
             </a>
@@ -211,7 +211,14 @@ export function CockpitView({
             {session.live.start_time}〜{session.live.end_time || ''}
           </div>
           {session.live.stage && (
-            <div class="text-xs text-stone-300 font-medium">ステージ: {session.live.stage}</div>
+            <div class="pt-0.5">
+              <span
+                class="inline-block px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 text-xs font-semibold truncate max-w-full align-bottom"
+                title={session.live.stage}
+              >
+                {session.live.stage}
+              </span>
+            </div>
           )}
         </div>
 
@@ -225,7 +232,14 @@ export function CockpitView({
             {session.benefit.start_time}〜{session.benefit.end_time || ''}
           </div>
           {session.benefit.booth && (
-            <div class="text-xs text-stone-300 font-medium">ブース: {session.benefit.booth}</div>
+            <div class="pt-0.5">
+              <span
+                class="inline-block px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 text-xs font-semibold truncate max-w-full align-bottom"
+                title={session.benefit.booth}
+              >
+                {session.benefit.booth}
+              </span>
+            </div>
           )}
         </div>
       </div>
