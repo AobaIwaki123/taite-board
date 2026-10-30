@@ -111,6 +111,18 @@ struct NextView: View {
             ScheduleRemoteImage(source: selectedImage.url, contentMode: .fill)
                 .frame(maxWidth: .infinity)
                 .frame(height: 176)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 25)
+                        .onEnded { value in
+                            guard images.count > 1 else { return }
+                            if value.translation.width < -30 && selectedImageIndex < images.count - 1 {
+                                onSelectImageIndex(selectedImageIndex + 1)
+                            } else if value.translation.width > 30 && selectedImageIndex > 0 {
+                                onSelectImageIndex(selectedImageIndex - 1)
+                            }
+                        }
+                )
 
             LinearGradient(
                 colors: [.clear, Color.black.opacity(0.25)],
