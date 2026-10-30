@@ -54,7 +54,7 @@ metadata:
   labels:
     app.kubernetes.io/name: ribonclock-access-report
 spec:
-  # Temporary five-minute cadence for operational verification.
+  # Temporary five-minute cadence with a six-hour lookback for operational verification.
   schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 120
@@ -87,7 +87,7 @@ spec:
               imagePullPolicy: IfNotPresent
               args:
                 - --last-minutes
-                - "5"
+                - "360"
                 - --kubernetes-api
               env:
                 - name: DISCORD_WEBHOOK_URL
