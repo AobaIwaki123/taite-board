@@ -26,21 +26,44 @@ export function LightboxModal({
   const [dragDeltaX, setDragDeltaX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  // ズーム・パン状態
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
+  const panStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const singleTapTimer = useRef<number | null>(null);
+
+  // 画像切り替え時にズームをリセット
+  useEffect(() => {
+    setScale(1);
+    setPan({ x: 0, y: 0 });
+  }, [currentIndex]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
-        onSelectIndex(currentIndex + 1);
+      if (e.key === 'Escape') {
+        if (scale > 1) {
+          setScale(1);
+          setPan({ x: 0, y: 0 });
+        } else {
+          onClose();
+        }
       }
-      if (e.key === 'ArrowLeft' && currentIndex > 0) {
-        onSelectIndex(currentIndex - 1);
+      if (scale === 1) {
+        if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
+          onSelectIndex(currentIndex + 1);
+        }
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+          onSelectIndex(currentIndex - 1);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, currentIndex, images.length, onSelectIndex]);
+  }, [isOpen, onClose, currentIndex, images.length, onSelectIndex, scale]);
 
   if (!isOpen) return null;
 
@@ -48,27 +71,50 @@ export function LightboxModal({
 
   const handleTouchStart = (e: TouchEvent) => {
     if (e.touches.length !== 1) return;
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
+    const touch = e.touches[0];
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
     touchStartTime.current = Date.now();
     isSwiping.current = false;
-    setIsDragging(true);
-    setDragDeltaX(0);
+
+    if (scale > 1) {
+      // 拡大中のパン移動開始
+      setIsPanning(true);
+      panStartRef.current = {
+        x: touch.clientX - pan.x,
+        y: touch.clientY - pan.y,
+      };
+    } else {
+      setIsDragging(true);
+      setDragDeltaX(0);
+    }
   };
 
   const handleTouchMove = (e: TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const currentX = e.touches[0].clientX;
-    const diffX = currentX - touchStartX.current;
-    setDragDeltaX(diffX);
+    if (touchStartX.current === null || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - touchStartX.current;
+
+    if (scale > 1) {
+      // 拡大中のパン移動
+      const newX = touch.clientX - panStartRef.current.x;
+      const newY = touch.clientY - panStartRef.current.y;
+      const maxPanX = (window.innerWidth * (scale - 1)) / 1.6;
+      const maxPanY = (window.innerHeight * (scale - 1)) / 1.6;
+      setPan({
+        x: Math.max(-maxPanX, Math.min(maxPanX, newX)),
+        y: Math.max(-maxPanY, Math.min(maxPanY, newY)),
+      });
+    } else {
+      setDragDeltaX(diffX);
+    }
   };
 
   const handleTouchEnd = (e: TouchEvent) => {
     if (touchStartX.current === null || touchStartY.current === null) return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const diffX = endX - touchStartX.current;
-    const diffY = endY - touchStartY.current;
+    const touch = e.changedTouches[0];
+    const diffX = touch.clientX - touchStartX.current;
+    const diffY = touch.clientY - touchStartY.current;
     const absX = Math.abs(diffX);
     const absY = Math.abs(diffY);
     const duration = Date.now() - touchStartTime.current;
@@ -76,7 +122,51 @@ export function LightboxModal({
     touchStartX.current = null;
     touchStartY.current = null;
     setIsDragging(false);
+    setIsPanning(false);
     setDragDeltaX(0);
+
+    // ダブルタップ判定 (前回のタップから320ms以内かつ移動が小さい)
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current.time;
+    const distFromLastTap = Math.hypot(
+      touch.clientX - lastTapRef.current.x,
+      touch.clientY - lastTapRef.current.y
+    );
+
+    if (timeSinceLastTap < 320 && distFromLastTap < 30) {
+      // ダブルタップ成立
+      if (singleTapTimer.current) {
+        clearTimeout(singleTapTimer.current);
+        singleTapTimer.current = null;
+      }
+      lastTapRef.current = { time: 0, x: 0, y: 0 };
+      isSwiping.current = true;
+      setTimeout(() => {
+        isSwiping.current = false;
+      }, 300);
+
+      if (scale > 1) {
+        setScale(1);
+        setPan({ x: 0, y: 0 });
+      } else {
+        setScale(2.5);
+        const tapOffsetX = (window.innerWidth / 2 - touch.clientX) * 0.7;
+        const tapOffsetY = (window.innerHeight / 2 - touch.clientY) * 0.7;
+        setPan({ x: tapOffsetX, y: tapOffsetY });
+      }
+      return;
+    }
+
+    lastTapRef.current = {
+      time: now,
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+
+    // 拡大中なら画像切り替えやクローズは行わない
+    if (scale > 1) {
+      return;
+    }
 
     // 水平スワイプで画像切替 (40px以上かつ水平方向が垂直方向より大きく600ms以内)
     if (absX > 40 && absX > absY && duration < 600) {
@@ -103,15 +193,38 @@ export function LightboxModal({
       return;
     }
 
-    // タップ操作判定 (移動がほぼない場合)
+    // タップ操作判定 (ダブルタップ猶予を待ってクローズ)
     if (absX < 10 && absY < 10) {
+      if (singleTapTimer.current) clearTimeout(singleTapTimer.current);
+      singleTapTimer.current = window.setTimeout(() => {
+        onClose();
+      }, 280);
+    }
+  };
+
+  const handleBackdropClick = () => {
+    if (isSwiping.current) return;
+    if (singleTapTimer.current) {
+      clearTimeout(singleTapTimer.current);
+      singleTapTimer.current = null;
+    }
+    if (scale > 1) {
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+    } else {
       onClose();
     }
   };
 
-  const handleClick = () => {
-    if (isSwiping.current) return;
-    onClose();
+  const handleDoubleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (scale > 1) {
+      setScale(1);
+      setPan({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+      setPan({ x: 0, y: 0 });
+    }
   };
 
   // ドラッグ量に応じた進行度 (0.0〜1.0)
@@ -123,7 +236,7 @@ export function LightboxModal({
 
   return (
     <div
-      onClick={handleClick}
+      onClick={handleBackdropClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -165,20 +278,33 @@ export function LightboxModal({
       )}
 
       {/* 画像プレビュー本体 */}
-      <div class="flex-1 flex items-center justify-center w-full min-h-0 p-2">
+      <div class="flex-1 flex items-center justify-center w-full min-h-0 p-2 overflow-hidden">
         {currentImage?.url && (
           <img
             src={currentImage.url}
             referrerPolicy="no-referrer"
             alt={currentImage.label || '拡大画像'}
-            class="max-w-[94vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10"
+            onDblClick={handleDoubleClick}
+            class="max-w-[94vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 select-none"
             style={{
-              transform: `translateX(${isDragging ? dragDeltaX * 0.7 : 0}px)`,
-              transition: isDragging ? 'none' : 'transform 200ms ease-out',
+              transform: `translate(${pan.x + (isDragging ? dragDeltaX * 0.7 : 0)}px, ${pan.y}px) scale(${scale})`,
+              transition:
+                isDragging || isPanning
+                  ? 'none'
+                  : 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+              cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'pointer',
+              touchAction: 'none',
             }}
           />
         )}
       </div>
+
+      {/* 拡大中インジケーター */}
+      {scale > 1 && (
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-stone-900/90 border border-white/20 text-xs font-mono text-rose-300 backdrop-blur shadow-lg pointer-events-none select-none animate-fade-in">
+          拡大中 ({scale.toFixed(1)}x) ・ ダブルタップで戻る
+        </div>
+      )}
     </div>
   );
 }

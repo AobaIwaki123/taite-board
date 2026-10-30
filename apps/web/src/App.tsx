@@ -17,6 +17,9 @@ export function App() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [isProgrammatic, setIsProgrammatic] = useState(false);
+  const isProgrammaticRef = useRef(false);
+  const programmaticTimerRef = useRef<number | null>(null);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const tabNames: TabName[] = ['next', 'week', 'month'];
@@ -42,10 +45,20 @@ export function App() {
   const scrollToTab = (tab: TabName) => {
     setActiveTab(tab);
     const index = tabNames.indexOf(tab);
-    if (index !== -1) {
-      setScrollProgress(index);
-    }
-    if (carouselRef.current && index !== -1) {
+    if (index === -1) return;
+
+    // クリックによるプログラム移動中はスクロールイベント競合を遮断
+    isProgrammaticRef.current = true;
+    setIsProgrammatic(true);
+    setScrollProgress(index);
+
+    if (programmaticTimerRef.current) clearTimeout(programmaticTimerRef.current);
+    programmaticTimerRef.current = window.setTimeout(() => {
+      isProgrammaticRef.current = false;
+      setIsProgrammatic(false);
+    }, 400);
+
+    if (carouselRef.current) {
       const width = carouselRef.current.clientWidth;
       carouselRef.current.scrollTo({
         left: index * width,
@@ -56,7 +69,7 @@ export function App() {
 
   // カルーセルのスクロールイベント監視
   const handleCarouselScroll = () => {
-    if (!carouselRef.current) return;
+    if (!carouselRef.current || isProgrammaticRef.current) return;
     const { scrollLeft, clientWidth } = carouselRef.current;
     if (!clientWidth) return;
     const progress = scrollLeft / clientWidth;
@@ -160,6 +173,7 @@ export function App() {
         <Navigation
           activeTab={activeTab}
           scrollProgress={scrollProgress}
+          isProgrammatic={isProgrammatic}
           onSelectTab={scrollToTab}
           isViewingSelectedLive={!isNextLive}
         />
