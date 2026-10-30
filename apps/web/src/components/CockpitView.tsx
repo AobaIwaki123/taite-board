@@ -1,3 +1,4 @@
+import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
 import { Icon } from './Icon';
 import { PromotionBanner } from './PromotionBanner';
@@ -46,6 +47,52 @@ export function CockpitView({
       : [{ type: 'flyer' as const, label: 'フライヤー', url: session.image_url || '' }];
   const currentImage = images[selectedImageIndex] || images[0];
 
+  const previewTouchStartX = useRef<number | null>(null);
+  const previewTouchStartY = useRef<number | null>(null);
+  const previewIsSwiping = useRef(false);
+
+  const handlePreviewTouchStart = (e: TouchEvent) => {
+    if (e.touches.length !== 1 || images.length <= 1) return;
+    previewTouchStartX.current = e.touches[0].clientX;
+    previewTouchStartY.current = e.touches[0].clientY;
+    previewIsSwiping.current = false;
+  };
+
+  const handlePreviewTouchEnd = (e: TouchEvent) => {
+    if (
+      previewTouchStartX.current === null ||
+      previewTouchStartY.current === null ||
+      images.length <= 1
+    ) {
+      return;
+    }
+    const diffX = e.changedTouches[0].clientX - previewTouchStartX.current;
+    const diffY = e.changedTouches[0].clientY - previewTouchStartY.current;
+    const absX = Math.abs(diffX);
+    const absY = Math.abs(diffY);
+
+    previewTouchStartX.current = null;
+    previewTouchStartY.current = null;
+
+    if (absX > 35 && absX > absY) {
+      previewIsSwiping.current = true;
+      setTimeout(() => {
+        previewIsSwiping.current = false;
+      }, 300);
+
+      if (diffX < 0 && selectedImageIndex < images.length - 1) {
+        onSelectImageIndex(selectedImageIndex + 1);
+      } else if (diffX > 0 && selectedImageIndex > 0) {
+        onSelectImageIndex(selectedImageIndex - 1);
+      }
+    }
+  };
+
+  const handleImageClick = () => {
+    if (previewIsSwiping.current) return;
+    onOpenLightbox();
+  };
+
   // 同日開催のセッション一覧（1部/2部などの同日2回し判定）
   const sameDaySessions = allSessions.filter((s) => s.date === session.date);
 
@@ -75,14 +122,19 @@ export function CockpitView({
       )}
 
       {/* フライヤー & タイムテーブル画像プレビュー */}
-      <div class="relative w-full rounded-2xl overflow-hidden soft-card bg-stone-900 shadow-lg group">
+      <div
+        class="relative w-full rounded-2xl overflow-hidden soft-card bg-stone-900 shadow-lg group select-none"
+        onTouchStart={handlePreviewTouchStart}
+        onTouchEnd={handlePreviewTouchEnd}
+        style={{ touchAction: 'pan-y' }}
+      >
         <div class="relative w-full h-44 overflow-hidden bg-stone-950 flex items-center justify-center">
           {currentImage.url ? (
             <img
               src={currentImage.url}
               referrerPolicy="no-referrer"
               alt={currentImage.label || session.title}
-              onClick={onOpenLightbox}
+              onClick={handleImageClick}
               class="w-full h-full object-cover object-top cursor-pointer transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

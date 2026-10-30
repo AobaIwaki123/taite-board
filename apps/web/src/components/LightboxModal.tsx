@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { SessionImage } from '../types/schedule';
 import { Icon } from './Icon';
 import { CalendarDays, Image as ImageIcon } from '../utils/icons';
@@ -18,24 +18,94 @@ export function LightboxModal({
   onSelectIndex,
   onClose,
 }: LightboxModalProps) {
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchStartTime = useRef<number>(0);
+  const isSwiping = useRef(false);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight' && currentIndex < images.length - 1) {
+        onSelectIndex(currentIndex + 1);
+      }
+      if (e.key === 'ArrowLeft' && currentIndex > 0) {
+        onSelectIndex(currentIndex - 1);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, currentIndex, images.length, onSelectIndex]);
 
   if (!isOpen) return null;
 
   const currentImage = images[currentIndex] || images[0];
 
+  const handleTouchStart = (e: TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+    isSwiping.current = false;
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = endX - touchStartX.current;
+    const diffY = endY - touchStartY.current;
+    const absX = Math.abs(diffX);
+    const absY = Math.abs(diffY);
+    const duration = Date.now() - touchStartTime.current;
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // 水平スワイプで画像切替 (40px以上かつ水平方向が垂直方向より大きく600ms以内)
+    if (absX > 40 && absX > absY && duration < 600) {
+      isSwiping.current = true;
+      setTimeout(() => {
+        isSwiping.current = false;
+      }, 300);
+
+      if (diffX < 0 && currentIndex < images.length - 1) {
+        onSelectIndex(currentIndex + 1);
+      } else if (diffX > 0 && currentIndex > 0) {
+        onSelectIndex(currentIndex - 1);
+      }
+      return;
+    }
+
+    // 下スワイプでモーダルを閉じる
+    if (diffY > 80 && absY > absX && duration < 600) {
+      isSwiping.current = true;
+      setTimeout(() => {
+        isSwiping.current = false;
+      }, 300);
+      onClose();
+      return;
+    }
+
+    // タップ操作判定 (移動がほぼない場合)
+    if (absX < 10 && absY < 10) {
+      onClose();
+    }
+  };
+
+  const handleClick = () => {
+    if (isSwiping.current) return;
+    onClose();
+  };
+
   return (
     <div
-      onClick={onClose}
-      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in cursor-pointer select-none"
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in cursor-pointer select-none touch-none"
     >
       {/* 複数画像切替ピル（中央配置） */}
       {images.length > 1 && (
