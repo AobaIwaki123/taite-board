@@ -23,8 +23,11 @@ export interface FeaturedMember {
 
 export interface Promotion {
   id: string;
+  type?: string;
+  badge?: string;
   title: string;
   subtitle?: string;
+  cta_label?: string;
   image_url: string;
   cta_url: string;
   deadline?: string;

@@ -1,5 +1,6 @@
-import { Session } from '../types/schedule';
+import { Session, Promotion } from '../types/schedule';
 import { Icon } from './Icon';
+import { PromotionBanner } from './PromotionBanner';
 import {
   Calendar,
   CalendarDays,
@@ -16,6 +17,7 @@ import {
 interface CockpitViewProps {
   session: Session;
   allSessions: Session[];
+  promotions?: Promotion[];
   isNextLive: boolean;
   selectedImageIndex: number;
   onSelectImageIndex: (idx: number) => void;
@@ -28,6 +30,7 @@ interface CockpitViewProps {
 export function CockpitView({
   session,
   allSessions,
+  promotions,
   isNextLive,
   selectedImageIndex,
   onSelectImageIndex,
@@ -279,6 +282,9 @@ export function CockpitView({
           </a>
         )}
       </div>
+
+      {/* 生誕祭クラファン・プロモーション枠 */}
+      <PromotionBanner promotions={promotions} />
     </div>
   );
 }

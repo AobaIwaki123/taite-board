@@ -7,7 +7,6 @@ import { CockpitView } from './components/CockpitView';
 import { ListView } from './components/ListView';
 import { CalendarView } from './components/CalendarView';
 import { LightboxModal } from './components/LightboxModal';
-import { PromotionBanner } from './components/PromotionBanner';
 
 export function App() {
   const [data, setData] = useState<ScheduleData | null>(null);
@@ -123,6 +122,7 @@ export function App() {
               <CockpitView
                 session={currentSession}
                 allSessions={data.sessions}
+                promotions={data.promotions}
                 isNextLive={isNextLive}
                 selectedImageIndex={selectedImageIndex}
                 onSelectImageIndex={setSelectedImageIndex}
@@ -148,7 +148,6 @@ export function App() {
               sessions={data.sessions}
               onSelectSession={handleSelectSession}
             />
-            <PromotionBanner promotions={data.promotions} />
           </section>
         </main>
 
