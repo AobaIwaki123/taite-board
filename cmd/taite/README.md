@@ -1,17 +1,32 @@
 # taite - Idol Timetable Data Pipeline CLI
 
-`taite` は、アイドルの公式X（旧Twitter）投稿やタイムテーブル告知からライブ情報を取得・検証・生成・ビルドするための統合コマンドラインツールです。
+`taite` は、アイドルの公式X（旧Twitter）投稿や告知からライブ情報を取得・検証・ビルドするための統合コマンドラインツールです。
 
 ---
 
-## インストール・ビルド
+## インストール
+
+Go の標準的なインストールプロトコルに準拠しています。
 
 ```bash
-# プロジェクトルートにて実行
-go build -o bin/taite ./cmd/taite
+# GOBIN ($GOPATH/bin) へのインストール
+make install
+
+# または直接実行
+go install ./cmd/taite
+
+# インストールスクリプト経由
+./scripts/install.sh
 ```
 
-実行バイナリは `bin/taite` に生成されます（`bin/` は `.gitignore` に指定されています）。
+インストール後、環境変数 `PATH` に `$GOBIN` が含まれていれば、任意のディレクトリから `taite` コマンドとして実行できます。
+
+### ローカルバイナリのビルド (リポジトリ直下の bin/taite)
+```bash
+make build
+# または
+go build -o bin/taite ./cmd/taite
+```
 
 ---
 
@@ -22,13 +37,13 @@ go build -o bin/taite ./cmd/taite
 
 ```bash
 # 単一または複数のURLを指定して取得
-./bin/taite fetch "https://x.com/Ribbon_Clock/status/2112891667640656194"
+taite fetch "https://x.com/Ribbon_Clock/status/2112891667640656194"
 
 # URLリストファイルを指定して一括取得 (行ごとにURLを記載)
-./bin/taite fetch -input data/input/urls.txt
+taite fetch -input data/input/input_urls.txt
 
 # オプション指定
-./bin/taite fetch -input data/input/urls.txt -out data/raw -timeout 15 -workers 5
+taite fetch -input data/input/input_urls.txt -out data/raw -timeout 15 -workers 5
 ```
 
 #### 主なオプション:
@@ -49,14 +64,14 @@ data/raw/runs/YYYYMMDDTHHMMSS+0900/
 ---
 
 ### 2. `taite validate`
-生成された `schedule.json` が [schema/schedule.schema.json](../../schema/schedule.schema.json) およびドメインルール（ADR-0001準拠）に適合しているかを厳格に検証します。
+生成されたスケジュールJSONが [schema/schedule.schema.json](../../schema/schedule.schema.json) およびドメインルール（ADR-0001準拠）に適合しているかを厳格に検証します。
 
 ```bash
 # デフォルトパス (data/generated/schedule.json) を検証
-./bin/taite validate
+taite validate
 
 # 任意のファイルを指定して検証
-./bin/taite validate docs/mock_schedule.json
+taite validate path/to/schedule.json
 ```
 
 #### 主な検証項目:
@@ -69,13 +84,13 @@ data/raw/runs/YYYYMMDDTHHMMSS+0900/
 ---
 
 ### 3. `taite build`
-`apps/web/` に配置された正本アセット（`index.html`, `app.js`, `styles.css`, `images/`）および `data/generated/schedule.json` を、配布先ディレクトリ（`docs/` および `web/`）へ安全に同期します（ADR-0007準拠）。
+フロントエンド（`apps/web/`）の TypeScript バンドルビルド（`scripts/build.sh` 経由で Vite ビルド）を実行します。
 
 ```bash
-./bin/taite build
+taite build
+# または
+make web-build
 ```
-
-内部的に `scripts/build.sh` を呼び出し、成果物の一貫性を保証します。
 
 ---
 
