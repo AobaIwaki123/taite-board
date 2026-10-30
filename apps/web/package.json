@@ -10,9 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "lucide": "^1.16.0"
+    "lucide": "^1.16.0",
+    "preact": "^10.25.4"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.9.5",
     "@types/node": "^22.13.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",

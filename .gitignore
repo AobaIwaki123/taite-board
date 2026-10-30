@@ -4,4 +4,5 @@ bin/
 data/sample_images/
 node_modules/
 apps/web/dist/
+.worktrees/
 .DS_Store

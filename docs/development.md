@@ -8,9 +8,8 @@
 
 - **macOS / Linux** (zsh または bash)
 - **Go**: `1.27` 以上
-- **Node.js**: `20.x` 以上 (npm または pnpm)
+- **Node.js**: `20.x` 以上 (npm)
 - **Docker**: 最新版 (マルチステージコンテナビルド検証用)
-- **Python 3**: ローカルHTTPプレビュー用 (`python3 -m http.server`)
 
 ---
 
@@ -18,7 +17,7 @@
 
 | ディレクトリ | 役割 | 編集方針 |
 |---|---|---|
-| `apps/web/` | Webフロントエンド正本 (TypeScript + Vite) | **UI・ロジックの改修は必ずここを編集する**。`docs/` を直接編集しない。 |
+| `apps/web/` | Webフロントエンド正本 (Preact + TypeScript) | **UI・ロジックの改修は必ずここを編集する**。`docs/` にビルド成果物をコミットしない。 |
 | `cmd/taite/` | 統合Go CLIのエントリポイント | サブコマンドの受付と引数パースのみを記述。 |
 | `internal/` | コアビジネスロジック・アダプター | 外部I/O、生取得、名寄せ、バリデータをパッケージごとに分離。 |
 | `data/` | 5層データパイプライン | 詳細は `data/README.md` を参照。 |
@@ -26,51 +25,33 @@
 | `data/generated/` | クライアント公開用の確定JSON | 手動編集せず、生成・ビルドパイプラインを通じて更新。 |
 | `schema/` | JSON Schema 定義 | スキーマ拡張時のみ更新（破壊的変更はメジャーバージョン更新）。 |
 | `adr/` | アーキテクチャ意思決定記録 | 新たな技術選定や方針変更時に `000X-xxx.md` を追加。 |
+| `docs/` | 開発者・アーキテクチャドキュメント | ドキュメント Markdown のみを配置。 |
 
 ---
 
 ## 3. 日常の開発サイクル
 
-### ステップ1: フロントエンド（TypeScript + Vite）の開発
-
-フロントエンドは TypeScript Strict Mode とモジュール分割（ADR-0010）を採用しています。
-
-- `apps/web/src/types/schedule.ts`: `schema/schedule.schema.json` 準拠の厳格な型定義
-- `apps/web/src/state.ts`: 状態管理、オフラインキャッシュ、更新鮮度判定
-- `apps/web/src/components/cockpit.ts`: 直近ライブコックピット表示、画像切替、チケットボタン
-- `apps/web/src/components/scheduleList.ts`: 全日程リスト、アコーディオン
-- `apps/web/src/components/calendar.ts`: 月間カレンダーグリッド、月送り、日付タップ詳細
-- `apps/web/src/components/promotion.ts`: 生誕クラファン等の告知枠
-- `apps/web/src/components/carousel.ts`: 3画面スワイプとナビゲーションバーの1:1連動
-- `apps/web/src/components/lightbox.ts`: 画像拡大モーダル
-- `apps/web/src/main.ts`: エントリーポイント、初期化
-
-#### 開発コマンド (apps/web/)
+### ステップ1: CLI のインストールと検証
 ```bash
-cd apps/web
+# taite バイナリを $GOBIN にインストール
+make install
 
-# 高速開発サーバー起動 (HMR)
-npm run dev
-
-# 型検査のみ実行
-npm run typecheck
-
-# TypeScript型チェック ＋ 最適化バンドルビルド
-npm run build
+# スケジュールデータの検証
+make validate
 ```
 
-#### 配布成果物の同期
-```bash
-# プロジェクトルートから実行: apps/web をビルドし docs/ (GitHub Pages用) へ同期
-./scripts/build.sh
-```
-
-### ステップ2: データの更新と自己検証
-新規公演の追加やスケジュール更新を行った際は、必ずスキーマ検証を実行します。
+### ステップ2: フロントエンド（Preact + TSX）の開発
+フロントエンド設計規約の詳細は [`docs/frontend-guidelines.md`](frontend-guidelines.md) を参照してください。
 
 ```bash
-# Goネイティブスキーマバリデータ
-./bin/taite validate --file data/generated/schedule.json
+# 開発サーバー起動 (HMR)
+make web-dev
+
+# TypeScript 型検査
+npm --prefix apps/web run typecheck
+
+# 最適化バンドルビルド
+make web-build
 ```
 
 ### ステップ3: Dockerマルチステージビルドの検証
@@ -98,9 +79,9 @@ docker stop taite-test
 
 本リポジトリは、保護された `main` ブランチへの直接Pushを禁止し、**PR-Only Workflow** を適用しています。
 
-1. **ブランチ作成**: `feat/<feature-name>` または `fix/<bug-name>`
-2. **変更・ビルド**: `apps/web/` を編集し `./scripts/build.sh` で同期。
-3. **コミット**: Conventional Commits（`feat:`, `fix:`, `docs:`, `refactor:`）に準拠。絵文字は使用しない。
+1. **ブランチ作成**: `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `docs/<topic>`
+2. **事前検証**: `make test`, `make validate`, `make web-build` がパスすることを確認。
+3. **コミット**: Conventional Commits に準拠。絵文字は使用しない。
 4. **PR起票とマージ**:
    ```bash
    git push -u origin <branch-name>
@@ -113,4 +94,3 @@ docker stop taite-test
 ## 5. 本番環境リンク
 
 - **本番環境 (Kubernetes GitOps)**: `https://ribonclock.iorin.net/`
-- **GitHub Pages フォールバック**: `https://aobaiwaki123.github.io/taite-board/`

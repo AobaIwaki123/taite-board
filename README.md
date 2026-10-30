@@ -1,54 +1,51 @@
-# Ribbon Clock taite-board
+# Ribbon Clock (taite-board)
 
-アイドルグループ「リボンクロック」および神楽あゆ（赤色担当）のライブ告知・タイムテーブル情報を即時把握するための超低摩擦計器盤Webアプリケーションです。
-
-混雑したライブハウスや移動中などの過酷な環境下でも、スマートフォンを開いた瞬間に「出番・特典会・会場・チケット・フライヤー・タイテ表」が0.5秒で把握できる体験を提供します。
+アイドルグループ「リボンクロック」のライブ出演情報およびタイムテーブルを集約・表示するWebアプリケーションです。
+外部SNSや告知画像から抽出・名寄せされた確定スケジュールデータを静的JSONとして配信し、モバイルブラウザ向けに表示します。
 
 - **本番URL**: [https://ribonclock.iorin.net/](https://ribonclock.iorin.net/)
 - **ローカル開発URL**: `http://localhost:8089/index.html`
 
 ---
 
-## 主な特徴
+## 主な機能と技術的特徴
 
-1. **App-Shell 計器盤 UI**:
-   - 画面上部に重要情報（出番・特典会・会場・チケット）を集約したコックピットデザイン。
-   - スムーズな横スワイプカルーセルと、スワイプ移動量に1:1で完全追従するリアルタイム・スライディングタブインジケーター。
-   - 各タブ（直近ライブ・全日程・カレンダー）が完全に独立した縦スクロールコンテナを持ち、長い一覧をスクロールした後でもカレンダーが空白にならず常に最上部から表示。
-2. **マルチ画像プレビュー & 高視認性 Lightbox**:
-   - 告知ポストの複数画像（フライヤー画像とタイムテーブル画像）をアプリ内でワンタップ切り替え。
-   - ピンチズーム対応、背景タップ即座終了のフローティングLightbox。
-3. **オフライン・ファースト & 鮮度インジケーター**:
-   - 電波が届かない地下ライブハウスでも、ローカルキャッシュから即座に前回のスケジュールを表示。
-   - `generated_at` に基づき、データが24時間以上経過している場合やオフライン動作時に控えめなインジケーター（`#freshness-indicator`）でデータ鮮度を明示。
-4. **プライバシー & ガバナンス（Zero Telemetry）**:
-   - クライアント側での非合意な訪問者追跡、UUID生成、外部テレメトリ収集を完全排除。
+1. **モバイル最適化UI (Preact + TSX + Tailwind CSS)**:
+   - 直近公演・全日程一覧・月間カレンダーの3画面を横スワイプカルーセルで切り替え。
+   - 画面ごとに独立した縦スクロールコンテナを保持し、画面遷移時のスクロール位置の干渉を防止。
+2. **フライヤー・タイムテーブル画像のプレビュー**:
+   - 告知ポストに含まれる複数画像（フライヤー画像・タイテ表画像）の切り替え表示および拡大モーダル表示。
+3. **オフラインキャッシュとデータ鮮度表示**:
+   - 取得済みスケジュールデータを `localStorage` に保持し、オフライン環境でも直前のデータを表示。
+   - スケジュール生成日時（`generated_at`）から24時間以上経過している場合、ヘッダーに更新通知バッジを表示。
+4. **プライバシー保護 (Zero Telemetry)**:
+   - 訪問者追跡、Cookie、外部トラッキングタグ、識別用UUIDの発行を行わない設計。
 
 ---
 
-## アーキテクチャの概要
+## アーキテクチャ概要
 
-本リポジトリは、外部サービス（Xやチケットサイト）からの生データ取得、決定論的名寄せ・キュレーション、スキーマ検証済みJSONの生成、そして静的クライアント配信を完全に分離した単一方向パイプラインで構成されています。
+外部サービスからのデータ取得、名寄せ・キュレーション、スキーマ検証済みJSONの生成、Webクライアント配信を単一方向パイプラインとして分離しています。
 
 ```text
-URL単体 / URLリスト / 標準入力
+外部ソース (X, Web等)
         ↓
 Go CLI: taite fetch
         ↓
-data/raw/runs/<run-id>/ (取得した不変の事実)
+data/raw/runs/<run-id>/ (一次データスナップショット)
         ↓
-taite extract (本文抽出 + 画像解析)
+taite extract (本文抽出・画像解析)
         ↓
-data/candidate/ (機械抽出候補)
+data/candidate/ (抽出候補データ)
         ↓
-taite publish ← data/curated/ (entities.json, overrides.json)
+taite publish ← data/curated/ (entities.json, overrides.json による名寄せ・補正)
         ↓
 data/generated/schedule.json (schema/schedule.schema.json 準拠)
         ↓
-apps/web/ (Nginxコンテナ / Cloudflare Tunnel / k8s)
+Web クライアント (apps/web: Docker マルチステージビルド / Nginx)
 ```
 
-詳細な設計思想と意思決定は [docs/architecture.md](docs/architecture.md) および [adr/](adr/) を参照してください。
+詳細な設計方針は [docs/architecture.md](docs/architecture.md) および [adr/](adr/) を参照してください。
 
 ---
 
@@ -57,47 +54,48 @@ apps/web/ (Nginxコンテナ / Cloudflare Tunnel / k8s)
 ```text
 taite-board/
 ├── apps/
-│   └── web/                   # Webクライアント正本 (TypeScript + Vite + Tailwind CSS)
-│       ├── src/               # TypeScript モジュール (state, cockpit, calendar, etc.)
-│       ├── public/            # 静的アセット (images, schedule.json)
+│   └── web/                   # Webクライアント正本 (Preact + TypeScript + Tailwind CSS)
+│       ├── src/               # コンポーネントおよびロジック
+│       ├── public/            # 静的アセット (画像、ローカルモックJSON)
 │       ├── index.html         # SPA エントリーポイント
-│       ├── package.json       # パッケージ定義とスクリプト (dev, build, typecheck)
+│       ├── package.json       # 依存パッケージ定義
 │       ├── tsconfig.json      # TypeScript 設定 (Strict Mode)
-│       └── vite.config.ts     # Vite バンドラ設定
+│       └── vite.config.ts     # Vite 設定
 ├── cmd/
 │   └── taite/                 # 統合Go CLI (fetch, validate, build)
 │       ├── main.go
 │       └── README.md
-├── internal/                  # パイプライン内部パッケージ (非公開)
-│   ├── source/x/              # X (Twitter) 外部通信アダプター
-│   ├── raw/                   # 生スナップショット・マニフェスト定義
-│   ├── fetch/                 # 並列取得・不変保存オーケストレータ
-│   └── validate/              # JSON Schema ドメイン整合性バリデータ
-├── data/
-│   ├── input/                 # クローラー入力 (urls.txt)
-│   ├── raw/                   # 実行別・投稿別の不変生JSONスナップショット
-│   ├── candidate/             # 自動抽出候補データ
-│   ├── curated/               # 人間確認済みの名寄せ辞書と手動上書き
-│   │   ├── entities.json      # グループ・メンバー・会場・チケット別名辞書
-│   │   └── overrides.json     # 画像内タイテ・確定値の上書き設定
-│   └── generated/
-│       └── schedule.json      # クライアント共通の確定公開データ
+├── internal/                  # Go CLI 内部パッケージ
+│   ├── source/x/              # 外部通信アダプター
+│   ├── raw/                   # 生スナップショット定義
+│   ├── fetch/                 # 取得オーケストレーター
+│   └── validate/              # JSON Schema・ドメイン整合性検証
+├── data/                      # 5層データパイプライン (詳細は data/README.md)
+│   ├── input/                 # クローラー巡回対象
+│   ├── raw/                   # 実行別スナップショット
+│   ├── candidate/             # 自動抽出候補
+│   ├── curated/               # 名寄せ辞書・手動上書き設定
+│   └── generated/             # クライアント配信確定データ (schedule.json)
 ├── schema/
-│   └── schedule.schema.json   # 公開データ契約のJSON Schema (Draft-07)
-├── k8s/                       # Kubernetesマニフェスト & ArgoCD設定
+│   └── schedule.schema.json   # データ契約 JSON Schema (Draft-07)
+├── k8s/                       # Kubernetes マニフェスト & ArgoCD 設定
 │   ├── manifests/             # deployment, service, ingress, namespace
 │   └── argocd/                # application.yaml (GitOps自動同期)
 ├── deploy/
-│   └── nginx.conf             # 本番コンテナ用Nginx設定 (ポート8080, /healthz)
-├── docs/                      # ドキュメント & GitHub Pages公開成果物
-│   ├── architecture.md        # 全体アーキテクチャ設計書
-│   ├── development.md         # 開発者向けセットアップ・コマンドガイド
-│   └── deployment.md          # デプロイ・Kubernetesインフラ解説
-├── adr/                       # アーキテクチャ意思決定記録 (0001〜0010)
+│   └── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz)
+├── docs/                      # 開発・アーキテクチャドキュメント
+│   ├── architecture.md        # アーキテクチャ設計書
+│   ├── development.md         # 開発者ガイド
+│   ├── deployment.md          # デプロイ・Kubernetesガイド
+│   └── frontend-guidelines.md # フロントエンド設計・TypeScript規約
+├── adr/                       # アーキテクチャ決定記録 (0001〜0010)
+│   └── README.md              # ADR 作成ガイドライン
 ├── scripts/
-│   ├── build.sh               # アセットおよび確定JSONの配布同期スクリプト
-│   └── validate_schedule.js   # 画像HTTP 200疎通および整合性検証スクリプト
-└── Dockerfile                 # 本番ホスティング用Alpine Nginxイメージ
+│   ├── install.sh             # taite CLI インストールスクリプト
+│   ├── build.sh               # フロントエンドビルドスクリプト
+│   └── validate_schedule.js   # スケジュール整合性検証スクリプト
+├── Makefile                   # 開発タスク実行定義
+└── Dockerfile                 # マルチステージコンテナビルド定義
 ```
 
 ---
@@ -106,60 +104,53 @@ taite-board/
 
 ### 必要なツール
 - Go 1.27以上
-- Node.js 18以上
+- Node.js 20以上
 - Docker（コンテナビルド・検証時）
 
-### 1. CLIのビルド
+### 1. CLI のインストール
 ```bash
-go build -o bin/taite ./cmd/taite
+make install
+# または
+go install ./cmd/taite
 ```
 
 ### 2. スケジュールデータの検証
 ```bash
-./bin/taite validate data/generated/schedule.json
-node scripts/validate_schedule.js
+make validate
+# または
+taite validate --file data/generated/schedule.json
 ```
 
 ### 3. フロントエンドの開発とビルド
 ```bash
-# apps/web/ での開発サーバー起動 (HMR)
-cd apps/web && npm run dev
+# 開発サーバー起動 (HMR)
+make web-dev
 
-# TypeScript型チェック ＋ 最適化バンドルビルド
-cd apps/web && npm run build
-
-# 成果物の同期 (docs/ への反映)
-./scripts/build.sh
-```
-
-### 4. ローカル確認用Webサーバーの起動
-```bash
-python3 -m http.server 8089 --directory docs/
-# ブラウザで http://localhost:8089/index.html を開く
+# 本番用バンドルビルド
+make web-build
 ```
 
 ---
 
 ## デプロイ & GitOps
 
-本プロジェクトは、保護された `main` ブランチへのプルリクエストマージをトリガーにして、自動的にコンテナイメージビルドとKubernetesへの反映が行われます。
+本プロジェクトは、`main` ブランチへのプルリクエストマージをトリガーにして、自動的にコンテナイメージビルドと Kubernetes への反映が行われます。
 
 1. **GitHub Actions (`.github/workflows/deploy.yml`)**:
-   - `main` ブランチへのプッシュを検知し、Dockerイメージをビルド。
-   - `ghcr.io/aobaiwaki123/taite-board:sha-<commit_sha>` としてGHCRへプッシュ。
+   - `main` へのプッシュを検知し、マルチステージ Dockerfile からコンテナイメージをビルド。
+   - `ghcr.io/aobaiwaki123/taite-board:sha-<commit_sha>` として GHCR へプッシュ。
    - `k8s/manifests/deployment.yaml` のイメージタグを自動更新してコミット。
 2. **ArgoCD GitOps**:
-   - リポジトリの最新マニフェストを検知し、自宅Kubernetesクラスタへ自動同期（Auto-Sync / Self-Heal）。
+   - 最新マニフェストを検知し、Kubernetes クラスタへ自動同期。
 3. **Cloudflare Tunnel**:
-   - `ribonclock.iorin.net` 宛のトラフィックを安全にKubernetes Ingressへ転送。
+   - `ribonclock.iorin.net` 宛のトラフィックを安全に Kubernetes Ingress へ転送。
 
 詳細は [docs/deployment.md](docs/deployment.md) を参照してください。
 
 ---
 
-## 規約とポリシー
+## 開発・運用規約
 
-- **PR-Only Workflow**: `main` への直接Pushは行わず、必ずフィーチャーブランチからPRを作成して検証後にマージします。
-- **Zero Telemetry**: 個人を特定するCookieやトラッキングは使用しません。
-- **No Hallucination**: ツイート本文や画像で確認できない時刻は推測で埋めず、告知待ち（`--:--`）として扱います。
-- **絵文字不使用**: ドキュメントおよびコミットメッセージには原則として絵文字を使用しません。
+- **PR-Only Workflow**: `main` への直接Pushは禁止し、必ず feature ブランチから PR を作成して CI 検証後にマージします。
+- **ドキュメント・コミットにおける客観的事実の重視**: 余計な比喩、誇張表現、絵文字を排除し、技術的事実・仕様のみを記述します。
+- **Zero Telemetry**: ユーザーの行動追跡や外部テレメトリ送信を行いません。
