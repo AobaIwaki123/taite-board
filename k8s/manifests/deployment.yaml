@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/aobaiwaki123/taite-board:sha-b40aed6
+          image: ghcr.io/aobaiwaki123/taite-board:sha-82069db
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
