@@ -10,6 +10,8 @@ Ribbon Clock の利用状況を、個人を識別せずに運用上把握する�
 
 初期実装では、ブラウザや iOS アプリに計測コードを追加せず、Nginx のサーバーアクセスログを端末上のスクリプトで必要なときだけ集計し、結果を Discord へ通知する。
 
+Pod交換後も時間帯別集計を保持する必要が生じた場合の次期案は、[`access-metrics-prometheus-like-design.md`](access-metrics-prometheus-like-design.md) に分離して整理する。現行の `pods/log` 直接取得と、次期の内部metrics scrape + 専用PVC保存は別段階の設計として扱う。
+
 ## 1. 要求と非要求
 
 ### 要求
@@ -226,5 +228,5 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 | ブラウザから計測 API を呼ぶ | クライアント計測、識別子、失敗時の再送制御が必要になり、Zero Telemetry 方針と運用負担に反する |
 | IP のハッシュを保存する | ユニーク数は得られるが、再識別・辞書攻撃・保持期間の管理が必要になる |
 | Cloudflare の詳細ログを常時取り込む | origin 外のアクセスは見えるが、取得情報・外部依存・保管責任が増える |
-| Prometheus / Grafana を導入する | 現在の「必要なときだけ Discord へ出す」という目的に対して常時稼働コンポーネントが過剰 |
+| Prometheus / Grafana を導入する | 現行の初期手動通知には過剰なため不採用。永続化が必要になった場合のPrometheus型案は [`access-metrics-prometheus-like-design.md`](access-metrics-prometheus-like-design.md) で別途検討する。 |
 | リクエスト単位の SQLite 保存 | 集計目的に不要なデータを永続化し、削除・アクセス制御の負担が増える |
