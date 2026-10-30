@@ -12,7 +12,7 @@
     "color_code": "#ef4444",
     "birthday_title": "神楽あゆ生誕祭 2026（20th Anniversary）",
     "crowdfunding_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
-    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
+    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
     "canonical_id": "member:ribbon-clock:ayu-kagura"
   },
   "promotions": [
@@ -24,7 +24,7 @@
       "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
       "cta_label": "CAMPFIREで支援する ↗",
       "cta_url": "https://camp-fire.jp/projects/983246/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
-      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
       "deadline": "2026-11-22",
       "priority": 100,
       "active": true
@@ -99,18 +99,18 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/2)",
-          "url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9.jpg?name=large"
         },
         {
           "type": "timetable",
           "label": "タイムテーブル (2/2)",
-          "url": "https://pbs.twimg.com/media/HVIjWzDbwAE3HCU.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVIjWzDbwAE3HCU.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -165,18 +165,18 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114341213147205692",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/2)",
-          "url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q.jpg?name=large"
         },
         {
           "type": "timetable",
           "label": "タイムテーブル (2/2)",
-          "url": "https://pbs.twimg.com/media/HVYs_ptbcAESY9P.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVYs_ptbcAESY9P.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -227,18 +227,18 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114597900827115847",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/2)",
-          "url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5.jpg?name=large"
         },
         {
           "type": "timetable",
           "label": "タイムテーブル (2/2)",
-          "url": "https://pbs.twimg.com/media/HVeSDfIbAAAOaN2.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVeSDfIbAAAOaN2.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -293,13 +293,13 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー",
-          "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig"
+          "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=large"
         }
       ],
       "source_refs": [
@@ -350,13 +350,13 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig",
+      "image_url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2109237575764656308",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -453,13 +453,13 @@
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/alamodepetite_142"
       },
-      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113918424439296285",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -500,13 +500,13 @@
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/261109_PF"
       },
-      "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig",
+      "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111808264258089266",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -547,13 +547,13 @@
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y"
       },
-      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114295917075460118",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -608,13 +608,13 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=orig",
+      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113948622446571638",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -665,13 +665,13 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig",
+      "image_url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111809522243117188",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig"
+          "url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=large"
         }
       ],
       "source_refs": [
