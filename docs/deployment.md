@@ -165,7 +165,7 @@ scripts/report-access-counts.sh \
   --dry-run
 ```
 
-`--dry-run` で集計結果を確認した後、`DISCORD_WEBHOOK_URL` を環境変数から注入して Discord へ送信します。Webhook へは分類別・時間帯別の件数だけを送信し、raw log は送信しません。詳細な保持期間、二重計上防止、将来の管理ダッシュボード拡張は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) を参照してください。
+`--dry-run` で集計結果を確認した後、`DISCORD_WEBHOOK_URL` を環境変数から注入して Discord へ送信します。通知は時間帯別・分類別・ステータス別の件数を ASCII の `#` 棒グラフで表示し、Webhook へ raw log は送信しません。詳細な保持期間、二重計上防止、将来の管理ダッシュボード拡張は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) を参照してください。
 
 ## 7. トラブルシューティング
 

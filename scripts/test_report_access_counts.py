@@ -47,10 +47,36 @@ class ReportAccessCountsTest(unittest.TestCase):
             0,
         )
 
-        self.assertIn("document: 2", message)
+        self.assertIn("```text", message)
+        self.assertIn("時間帯別リクエスト数", message)
+        self.assertIn("document", message)
+        self.assertIn("#", message)
+        self.assertIn("00:00", message)
         self.assertNotIn("https://", message)
         self.assertNotIn("User-Agent", message)
         self.assertNotIn("192.0.2.1", message)
+
+    def test_message_shows_zero_hour_buckets(self) -> None:
+        start = report.parse_datetime("2026-10-30T00:00:00+09:00")
+        end = report.parse_datetime("2026-10-30T03:00:00+09:00")
+        message = report.build_message(
+            start,
+            end,
+            Counter(),
+            Counter(),
+            Counter({datetime(2026, 10, 30, 1, tzinfo=report.LOCAL_ZONE): 2}),
+            0,
+        )
+
+        self.assertIn("00:00", message)
+        self.assertIn("01:00", message)
+        self.assertIn("02:00", message)
+        self.assertEqual(message.count("|"), 11)
+
+    def test_render_bar_scales_to_maximum(self) -> None:
+        self.assertEqual(report.render_bar(0, 10), "")
+        self.assertEqual(report.render_bar(10, 10), "#" * report.BAR_WIDTH)
+        self.assertEqual(len(report.render_bar(1, 10)), 2)
 
     def test_invalid_range_is_rejected(self) -> None:
         start = report.parse_datetime("2026-10-30T01:00:00+09:00")
