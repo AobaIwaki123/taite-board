@@ -18,10 +18,12 @@
 		A1B2C3D4E5F6000000000019 /* DataStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000029 /* DataStatusView.swift */; };
 		A1B2C3D4E5F600000000001A /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000002A /* PreviewData.swift */; };
 		A1B2C3D4E5F600000000001B /* TaiteBoardCore in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000032 /* TaiteBoardCore */; };
+		A1B2C3D4E5F600000000001C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000033 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6000000000006 /* TaiteBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TaiteBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000000000033 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000021 /* TaiteBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaiteBoardApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000022 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000023 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -65,6 +67,7 @@
 		A1B2C3D4E5F6000000000005 /* TaiteBoard */ = {
 			isa = PBXGroup;
 			children = (
+				A1B2C3D4E5F6000000000033 /* Assets.xcassets */,
 				A1B2C3D4E5F6000000000021 /* TaiteBoardApp.swift */,
 				A1B2C3D4E5F6000000000022 /* AppEnvironment.swift */,
 				A1B2C3D4E5F6000000000023 /* AppModel.swift */,
@@ -142,6 +145,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F600000000001C /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -210,11 +214,12 @@
 		A1B2C3D4E5F6000000000053 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = TaiteBoard;
+				INFOPLIST_KEY_CFBundleDisplayName = "リボンクロック";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -234,11 +239,12 @@
 		A1B2C3D4E5F6000000000054 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = TaiteBoard;
+				INFOPLIST_KEY_CFBundleDisplayName = "リボンクロック";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

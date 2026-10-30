@@ -36,6 +36,17 @@ final class ScheduleDocumentTests: XCTestCase {
         }
     }
 
+    func testRejectsDuplicatePromotionIds() {
+        let data = TestSupport.validJSONString.replacingOccurrences(
+            of: "\"id\": \"promotion-2\"",
+            with: "\"id\": \"promotion-1\""
+        ).data(using: .utf8)!
+
+        XCTAssertThrowsError(try TestSupport.decoder.decode(data)) { error in
+            XCTAssertEqual(error as? ScheduleValidationError, .duplicatePromotionId("promotion-1"))
+        }
+    }
+
     func testRejectsInvalidDate() {
         let data = TestSupport.validJSONString.replacingOccurrences(
             of: "\"date\": \"2026-10-31\"",
