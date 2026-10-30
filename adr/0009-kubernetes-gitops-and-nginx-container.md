@@ -20,7 +20,7 @@ Accepted
 2. **Nginx設定（`deploy/nginx.conf`）の必要性**:
    - 公式の `nginx:alpine` デフォルト設定は80番ポートでリッスンするが、Kubernetesのコンテナセキュリティ方針として非特権ポート8080番でのリッスンが求められる。
    - Kubernetesの `livenessProbe`（生存監視）および `readinessProbe`（準備監視）は、アクセスログを汚さない軽量な `/healthz` エンドポイントを必要とする。デフォルトのNginxでは `/healthz` が存在せず404エラーとなり、Podが再起動ループ（CrashLoopBackOff）に陥る。
-   - 将来のルーティングやSPA構成に備え、存在しない静的パスに対して `try_files $uri $uri/ /index.html;` によるフォールバックが必要である。
+   - Webアプリはクライアントサイドルーティングを使用していないため、存在しない静的パスに対して `index.html` を返すフォールバックは、入力ミスやリンク切れを隠してしまう。実在する静的ファイル以外は404を返す必要がある。
 
 ## 決定事項
 1. **Nginxコンテナによる静的ホスティング**:
@@ -29,7 +29,7 @@ Accepted
    - 以下の責務を持つ `deploy/nginx.conf` をコンテナ内にコピーして使用する。
      - ポート `8080` でのリッスン。
      - `/healthz` に対する200 OK（ログ無効化）の即時応答。
-     - `try_files $uri $uri/ /index.html` によるリソース解決。
+     - `try_files $uri $uri/ =404` による静的リソース解決。
 3. **GitOps自動デプロイパイプライン（ArgoCD + GitHub Actions）**:
    - GitHub Actions（`.github/workflows/deploy.yml`）にて、コミットごとに不変な Git short SHA（`sha-<sha>`）タグを付与したDockerイメージをビルドし、GHCR（GitHub Container Registry）へプッシュする。
    - ビルド完了後、CIが `k8s/manifests/deployment.yaml` のイメージタグを自動更新してコミット。
@@ -40,6 +40,7 @@ Accepted
 ## 採用理由と設計根拠
 - **高可用性と自動復旧**: ArgoCDによる宣言的管理とKubernetesのセルフヒーリングにより、人手によるSSHログインや手動デプロイ作業を一切排除できる。
 - **ヘルスチェックの信頼性**: `deploy/nginx.conf` に `/healthz` を明示的に設けることで、KubernetesがPodの正常稼働を正確に判定できる。
+- **公開URLの正確性**: 静的ページ以外を404にすることで、App Store Connectに登録するURLや公開リンクの存在確認をHTTPステータスで検証できる。
 - **完全なプライバシー保護**: 個人アカウントURLから完全に切り離された独自ドメインでの運用が確立される。
 
 ## 検討した代替案と却下理由
