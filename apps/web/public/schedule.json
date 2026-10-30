@@ -17,16 +17,28 @@
   },
   "promotions": [
     {
-      "id": "promo-ayyu-birthday",
+      "id": "promo-ayyu-birthday-cf",
       "type": "hero",
       "badge": "20TH BIRTHDAY",
       "title": "神楽あゆ 生誕祭クラウドファンディング",
       "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
-      "cta_label": "生誕詳細・支援 ↗",
-      "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
+      "cta_label": "CAMPFIREで支援する ↗",
+      "cta_url": "https://camp-fire.jp/projects/983246/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
       "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
       "deadline": "2026-11-22",
       "priority": 100,
+      "active": true
+    },
+    {
+      "id": "promo-ayyu-birthday-live",
+      "type": "medium",
+      "badge": "生誕祭2026",
+      "title": "神楽あゆ生誕祭2026 開催カウントダウン",
+      "subtitle": "2026年12月6日(日) 開催予定！20歳メモリアル生誕公演",
+      "cta_label": "公式告知を見る ↗",
+      "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
+      "deadline": "2026-12-06",
+      "priority": 90,
       "active": true
     },
     {
@@ -38,7 +50,7 @@
       "cta_label": "TikTokを開く ↗",
       "cta_url": "https://www.tiktok.com/@ribbon_clock",
       "priority": 50,
-      "active": true
+      "active": false
     }
   ],
   "current_next_id": "20261031-1",

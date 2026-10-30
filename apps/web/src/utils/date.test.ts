@@ -62,6 +62,26 @@ test('getDeadlineInfo handles expired deadline', () => {
   assert.equal(info.isExpired, true);
 });
 
+test('getDeadlineInfo supports event suffix mode (開催)', () => {
+  const mockNow = new Date(2026, 9, 30); // 2026-10-30
+  const info = getDeadlineInfo('2026-12-06', mockNow, { suffix: '開催' });
+  assert.ok(info);
+  assert.equal(info.daysLeft, 37);
+  assert.equal(info.formattedDeadline, '12/6(日)開催');
+  assert.equal(info.countdownText, 'あと37日');
+  assert.equal(info.isUrgent, false);
+  assert.equal(info.isExpired, false);
+});
+
+test('getDeadlineInfo handles event day (本日開催！)', () => {
+  const mockNow = new Date(2026, 11, 6); // 2026-12-06
+  const info = getDeadlineInfo('2026-12-06', mockNow, { suffix: '開催' });
+  assert.ok(info);
+  assert.equal(info.daysLeft, 0);
+  assert.equal(info.countdownText, '本日開催！');
+  assert.equal(info.isUrgent, true);
+});
+
 test('getDeadlineInfo returns null when deadline is omitted', () => {
   assert.equal(getDeadlineInfo(undefined), null);
 });

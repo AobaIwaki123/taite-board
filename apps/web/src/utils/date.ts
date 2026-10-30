@@ -127,10 +127,18 @@ export function parseDeadlineDate(deadlineStr: string): { year: number; month: n
   return null;
 }
 
+export interface DeadlineOptions {
+  suffix?: 'まで' | '開催';
+}
+
 /**
- * 締め切り文字列（YYYY-MM-DD 等）から残日数を計算する
+ * 締め切りまたは開催日文字列（YYYY-MM-DD 等）から残日数を計算する
  */
-export function getDeadlineInfo(deadlineStr?: string, nowDate = new Date()): DeadlineInfo | null {
+export function getDeadlineInfo(
+  deadlineStr?: string,
+  nowDate = new Date(),
+  options: DeadlineOptions = {}
+): DeadlineInfo | null {
   if (!deadlineStr) return null;
   const parsed = parseDeadlineDate(deadlineStr);
   if (!parsed) {
@@ -151,20 +159,22 @@ export function getDeadlineInfo(deadlineStr?: string, nowDate = new Date()): Dea
 
   const targetDateObj = new Date(year, month - 1, day);
   const dayOfWeek = DAY_NAMES[targetDateObj.getDay()];
-  const formattedDeadline = `${month}/${day}(${dayOfWeek})まで`;
+  const isEvent = options.suffix === '開催';
+  const suffix = options.suffix || 'まで';
+  const formattedDeadline = `${month}/${day}(${dayOfWeek})${suffix}`;
 
   let countdownText = '';
   let isExpired = false;
   let isUrgent = false;
 
   if (daysLeft < 0) {
-    countdownText = '受付終了';
+    countdownText = isEvent ? '終了' : '受付終了';
     isExpired = true;
   } else if (daysLeft === 0) {
-    countdownText = '本日締切';
+    countdownText = isEvent ? '本日開催！' : '本日締切';
     isUrgent = true;
   } else if (daysLeft === 1) {
-    countdownText = 'あと1日 (明日締切)';
+    countdownText = isEvent ? '明日開催！' : 'あと1日 (明日締切)';
     isUrgent = true;
   } else {
     countdownText = `あと${daysLeft}日`;
