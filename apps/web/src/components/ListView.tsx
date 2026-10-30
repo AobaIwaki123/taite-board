@@ -1,5 +1,5 @@
 import { Session } from '../types/schedule';
-import { TODAY_STR } from '../utils/date';
+import { getTodayStr } from '../utils/date';
 import { Icon } from './Icon';
 import { MapPin } from '../utils/icons';
 
@@ -9,8 +9,9 @@ interface ListViewProps {
 }
 
 export function ListView({ sessions, onSelectSession }: ListViewProps) {
+  const todayStr = getTodayStr();
   // 本日以降の公演のみ抽出
-  const upcomingSessions = sessions.filter((s) => s.date >= TODAY_STR);
+  const upcomingSessions = sessions.filter((s) => s.date >= todayStr);
 
   return (
     <div class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3 pb-6">
