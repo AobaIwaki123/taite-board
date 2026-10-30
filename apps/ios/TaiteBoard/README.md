@@ -26,4 +26,5 @@ xcodebuild \
 - iPhone Simulatorで、直近ライブ、公演一覧、カレンダーの各タブを確認する
 - `PreviewData.swift` の `#Preview` で固定データの画面を確認する
 - Simulator のダークモード、Dynamic Type、VoiceOver、長いタイトルを確認する
-- `review-assets/ios-ui-alignment-simulator.png` にSimulatorで取得した初期画面を保存している
+- `Assets.xcassets` は `apps/web/public/icons/` のアイコン素材を利用している
+- `review-assets/ios-brand-assets-simulator.png` にブランドアセット反映後のSimulator画面を保存している

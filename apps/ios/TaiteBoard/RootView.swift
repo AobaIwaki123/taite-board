@@ -185,10 +185,14 @@ struct RibbonHeaderView: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Text("🎀")
-                        .font(.title2)
+                    Image("RibbonClockIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 30, height: 30)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .scaleEffect(isPopping ? 1.18 : 1)
                         .rotationEffect(.degrees(isPopping ? -8 : 0))
+                        .accessibilityLabel("リボンクロック")
                     Text("リボンクロック")
                         .font(.headline.weight(.heavy))
                         .tracking(0.4)
