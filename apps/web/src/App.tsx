@@ -178,10 +178,10 @@ export function App() {
           isViewingSelectedLive={!isNextLive}
         />
 
-        <footer class="flex-shrink-0 pb-1 text-center text-[11px] text-stone-500">
+        <footer class="flex-shrink-0 pb-1 text-center">
           <a
             href="/support.html"
-            class="transition-colors hover:text-stone-300 focus:outline-none focus-visible:text-stone-200"
+            class="inline-flex min-h-10 items-center rounded-lg px-3 text-xs font-semibold text-stone-400 underline decoration-stone-700 underline-offset-4 transition-colors hover:bg-white/5 hover:text-stone-200 hover:decoration-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
           >
             サイトについて
           </a>
