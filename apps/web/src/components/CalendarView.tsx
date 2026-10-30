@@ -69,7 +69,7 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
       </div>
 
       {/* 曜日ヘッダー */}
-      <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-stone-400 py-1 border-b border-white/5">
+      <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-stone-400 py-1.5 border-b border-white/5">
         <span class="text-rose-400">日</span>
         <span>月</span>
         <span>火</span>

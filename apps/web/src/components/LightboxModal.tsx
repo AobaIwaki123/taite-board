@@ -90,7 +90,7 @@ export function LightboxModal({
         )}
       </div>
 
-      <div class="text-center text-[11px] text-stone-500 pb-2 pointer-events-none">
+      <div class="text-center text-xs text-stone-400 pb-2 pointer-events-none">
         周囲をタップすると閉じます
       </div>
     </div>

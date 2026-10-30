@@ -100,7 +100,7 @@ export function CockpitView({
 
           {/* 枚数バッジ */}
           {images.length > 1 && (
-            <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-stone-950/80 text-stone-300 border border-white/10">
+            <span class="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-stone-950/80 text-stone-300 border border-white/10">
               {selectedImageIndex + 1}/{images.length}
             </span>
           )}
@@ -151,7 +151,7 @@ export function CockpitView({
                 }`}
               >
                 <span>{label}</span>
-                <span class="text-[10px] font-mono opacity-80">{s.live.start_time}~</span>
+                <span class="text-xs font-mono opacity-80">{s.live.start_time}~</span>
               </button>
             );
           })}
@@ -193,7 +193,7 @@ export function CockpitView({
       <div class="grid grid-cols-2 gap-2.5">
         {/* 出番枠 */}
         <div class="soft-card rounded-2xl p-3.5 space-y-1 border-l-4 border-l-rose-500">
-          <div class="flex items-center gap-1 text-[11px] font-bold text-rose-300">
+          <div class="flex items-center gap-1 text-xs font-bold text-rose-300">
             <Icon icon={Mic} class="w-3.5 h-3.5" />
             <span>出番 ({session.live.stage || 'ステージ'})</span>
           </div>
@@ -204,7 +204,7 @@ export function CockpitView({
 
         {/* 特典会枠 */}
         <div class="soft-card rounded-2xl p-3.5 space-y-1 border-l-4 border-l-purple-500">
-          <div class="flex items-center gap-1 text-[11px] font-bold text-purple-300">
+          <div class="flex items-center gap-1 text-xs font-bold text-purple-300">
             <Icon icon={Gift} class="w-3.5 h-3.5" />
             <span>特典会 ({session.benefit.type || '終演後'})</span>
           </div>
@@ -212,7 +212,7 @@ export function CockpitView({
             {session.benefit.start_time}〜{session.benefit.end_time || ''}
           </div>
           {session.benefit.booth && (
-            <div class="text-[10px] text-stone-400 font-medium">ブース: {session.benefit.booth}</div>
+            <div class="text-xs text-stone-300 font-medium">ブース: {session.benefit.booth}</div>
           )}
         </div>
       </div>
@@ -252,7 +252,7 @@ export function CockpitView({
               {ticket.prices.map((p, idx) => (
                 <span
                   key={idx}
-                  class="px-2 py-0.5 rounded-lg bg-stone-950 border border-white/10 text-[11px]"
+                  class="px-2 py-0.5 rounded-lg bg-stone-950 border border-white/10 text-xs"
                 >
                   <span class="text-stone-400 mr-1">{p.tier}:</span>
                   <strong class="text-rose-300 font-bold">{p.price}</strong>
@@ -266,7 +266,7 @@ export function CockpitView({
       {/* チケット購入ボタン */}
       <div class="pt-1">
         {isTicketPending ? (
-          <div class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-stone-800 text-stone-400 font-bold text-xs border border-white/10 select-none">
+          <div class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-stone-800 text-stone-400 font-bold text-sm border border-white/10 select-none">
             <Icon icon={Ticket} class="w-4 h-4" />
             <span>チケット告知待ち</span>
           </div>
@@ -275,7 +275,7 @@ export function CockpitView({
             href={ticket.url || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-black text-xs shadow-md transition-all"
+            class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-black text-sm shadow-md transition-all"
           >
             <Icon icon={Ticket} class="w-4 h-4" />
             <span>チケット購入 ({ticket.platform || '外部サイト'})</span>

@@ -51,12 +51,12 @@ export function ListView({ sessions, onSelectSession }: ListViewProps) {
               class="soft-card rounded-2xl p-3 flex items-center gap-3.5 cursor-pointer hover:border-rose-400/40 transition-all shadow-md active:scale-[0.99]"
             >
               {/* カレンダー風・日付アンカーブロック */}
-              <div class="w-[52px] h-[56px] rounded-xl bg-stone-950 border border-white/10 flex flex-col items-center justify-center shrink-0 shadow-inner">
-                <span class="text-[10px] font-bold text-stone-400 leading-none">{monthNum}月</span>
+              <div class="w-[56px] h-[60px] rounded-xl bg-stone-950 border border-white/10 flex flex-col items-center justify-center shrink-0 shadow-inner">
+                <span class="text-xs font-bold text-stone-400 leading-none">{monthNum}月</span>
                 <span class="text-xl font-display font-black text-white leading-tight my-0.5">
                   {dayNum}
                 </span>
-                <span class={`text-[10px] font-bold leading-none ${dayColor}`}>
+                <span class={`text-xs font-bold leading-none ${dayColor}`}>
                   {session.day_of_week || ''}
                 </span>
               </div>
@@ -69,7 +69,7 @@ export function ListView({ sessions, onSelectSession }: ListViewProps) {
                     <span class="truncate">{session.venue.name}</span>
                   </span>
                   {sessionTag && (
-                    <span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-bold text-[10px] shrink-0">
+                    <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-xs shrink-0">
                       {sessionTag}
                     </span>
                   )}
