@@ -10,3 +10,5 @@ note
 scripts
 discussion.md
 k8s
+apps/web/node_modules
+apps/web/dist

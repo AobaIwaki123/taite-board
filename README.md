@@ -57,11 +57,13 @@ apps/web/ (Nginxコンテナ / Cloudflare Tunnel / k8s)
 ```text
 taite-board/
 ├── apps/
-│   └── web/                   # Webクライアント正本ソース (HTML, JS, CSS)
-│       ├── index.html         # 静的HTMLマークアップ
-│       ├── app.js             # アプリケーションロジック・レンダリング
-│       ├── styles.css         # アニメーション・スタイル定義
-│       └── images/            # 静的アセット
+│   └── web/                   # Webクライアント正本 (TypeScript + Vite + Tailwind CSS)
+│       ├── src/               # TypeScript モジュール (state, cockpit, calendar, etc.)
+│       ├── public/            # 静的アセット (images, schedule.json)
+│       ├── index.html         # SPA エントリーポイント
+│       ├── package.json       # パッケージ定義とスクリプト (dev, build, typecheck)
+│       ├── tsconfig.json      # TypeScript 設定 (Strict Mode)
+│       └── vite.config.ts     # Vite バンドラ設定
 ├── cmd/
 │   └── taite/                 # 統合Go CLI (fetch, validate, build)
 │       ├── main.go
@@ -91,7 +93,7 @@ taite-board/
 │   ├── architecture.md        # 全体アーキテクチャ設計書
 │   ├── development.md         # 開発者向けセットアップ・コマンドガイド
 │   └── deployment.md          # デプロイ・Kubernetesインフラ解説
-├── adr/                       # アーキテクチャ意思決定記録 (0001〜0009)
+├── adr/                       # アーキテクチャ意思決定記録 (0001〜0010)
 ├── scripts/
 │   ├── build.sh               # アセットおよび確定JSONの配布同期スクリプト
 │   └── validate_schedule.js   # 画像HTTP 200疎通および整合性検証スクリプト
@@ -118,11 +120,15 @@ go build -o bin/taite ./cmd/taite
 node scripts/validate_schedule.js
 ```
 
-### 3. アセットの同期ビルド
-`apps/web/` の変更や `data/generated/schedule.json` の変更を配信ディレクトリへ反映します。
+### 3. フロントエンドの開発とビルド
 ```bash
-./bin/taite build
-# または
+# apps/web/ での開発サーバー起動 (HMR)
+cd apps/web && npm run dev
+
+# TypeScript型チェック ＋ 最適化バンドルビルド
+cd apps/web && npm run build
+
+# 成果物の同期 (docs/ への反映)
 ./scripts/build.sh
 ```
 
