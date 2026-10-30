@@ -687,9 +687,66 @@
           "url": "https://x.com/Ribbon_Clock/status/2111809522243117188"
         }
       ]
+    },
+    {
+      "id": "20261213-1",
+      "title": "MARQUEE祭 mini Vol.362",
+      "date": "2026-12-13",
+      "day_of_week": "日",
+      "session_name": "昼帯",
+      "venue": {
+        "canonical_id": "venue:spotify-o-nest",
+        "name": "渋谷 Spotify O-nest",
+        "map_query": "Spotify O-nest",
+        "map_url": "https://maps.google.com/?q=Spotify+O-nest"
+      },
+      "live": {
+        "start_time": "12:05",
+        "end_time": "12:25",
+        "stage": "O-nest"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "12:35",
+        "end_time": "13:35",
+        "booth": "ブースA"
+      },
+      "photo": null,
+      "special_notes": "動員重要ライブ！雑誌MARQUEE主催「MARQUEE祭 mini」出演！（OPEN 10:30 / START 11:00）",
+      "admission_bonus": "お目当て特典：決まり次第お知らせ / 新規特典：写真+30秒トーク(×6人)",
+      "ticket": {
+        "platform": "イープラス",
+        "url": "http://eplus.jp/marquee-matsuri/",
+        "prices": [
+          {
+            "tier": "前売",
+            "price": "¥3,000"
+          },
+          {
+            "tier": "当日券",
+            "price": "¥3,500 (+1D)"
+          }
+        ]
+      },
+      "image_url": "https://pbs.twimg.com/media/HVxnfJUbcAAolxm.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116002151944401001",
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー・タイテ (1/1)",
+          "url": "https://pbs.twimg.com/media/HVxnfJUbcAAolxm.jpg?name=large"
+        }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2116002151944401001",
+          "url": "https://x.com/Ribbon_Clock/status/2116002151944401001"
+        }
+      ]
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-10-30T07:53:21.324Z",
+  "generated_at": "2026-10-30T08:10:38.885Z",
   "timezone": "Asia/Tokyo"
 }

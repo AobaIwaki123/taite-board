@@ -2,6 +2,7 @@ bin/
 *.exe
 *.test
 data/sample_images/
+data/raw/runs/
 node_modules/
 apps/web/dist/
 .worktrees/
