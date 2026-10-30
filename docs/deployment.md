@@ -168,7 +168,7 @@ scripts/report-access-counts.sh \
 
 `--dry-run` で集計結果を確認した後、`DISCORD_WEBHOOK_URL` を環境変数から注入して Discord へ送信します。通知は時間帯別アクセス数の合計だけを ASCII の `#` 棒グラフで表示し、Webhook へ raw log は送信しません。詳細な保持期間、二重計上防止、将来の管理ダッシュボード拡張は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) を参照してください。
 
-動作確認期間だけ、`access-report-cronjob.yaml` の CronJob が5分ごとに直近5分のログを再集計し、同じ形式で Discord へ送信します。CronJob は Kubernetes API の `pods` / `pods/log` だけを読む最小権限 ServiceAccount を使用し、`kubectl` や公開 HTTP API は使用しません。通知先は次のようにクラスタの Secret へ事前に登録します。Webhook URL はリポジトリやマニフェストへ書き込みません。
+動作確認期間だけ、`access-report-cronjob.yaml` の CronJob が5分ごとに直近6時間のログを再集計し、1時間単位のアクセス数を同じ形式で Discord へ送信します。CronJob は Kubernetes API の `pods` / `pods/log` だけを読む最小権限 ServiceAccount を使用し、`kubectl` や公開 HTTP API は使用しません。通知先は次のようにクラスタの Secret へ事前に登録します。Webhook URL はリポジトリやマニフェストへ書き込みません。
 
 ```bash
 read -r -s DISCORD_WEBHOOK_URL
