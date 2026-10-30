@@ -90,9 +90,9 @@ npm --prefix apps/web run build
 - iPhone Simulatorで、直近ライブ、公演一覧、カレンダーの各タブを確認する
 - `PreviewData.swift` の `#Preview` で固定データの画面を確認する
 - Simulator のダークモード、Dynamic Type、VoiceOver、長いタイトルを確認する
-- 起動直後にseedまたはキャッシュが表示され、その後「オンライン」へ切り替わることを確認する
-- ヘッダーの情報ボタンからデータ状態を開き、URL、HTTPステータス、ETag、取得時間を確認する
+- 起動直後にseedまたはキャッシュが表示され、バックグラウンドでリモート更新が行われることを確認する
 - 機内モード相当で最後の正常データが維持され、更新エラーが表示されることを確認する
+- 管理者向けの導線を有効にした場合は、データ状態画面でURL、HTTPステータス、ETag、取得時間を確認する
 - `Assets.xcassets` は `apps/web/public/icons/` のアイコン素材を利用している
 - AppIconは `AppIcon-1024.png` を正本とし、XcodeのAsset Catalogが各サイズを生成する
 - `review-assets/ios-brand-assets-simulator.png` にブランドアセット反映後のSimulator画面を保存している
