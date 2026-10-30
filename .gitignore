@@ -6,3 +6,6 @@ node_modules/
 apps/web/dist/
 .worktrees/
 .DS_Store
+*.xcworkspace/
+xcuserdata/
+.swiftpm/
