@@ -9,7 +9,7 @@
 ```bash
 cd apps/ios/TaiteBoardCore
 swift test
-cd ../..
+cd ../../..
 ```
 
 ### iOS Simulator向けビルド
