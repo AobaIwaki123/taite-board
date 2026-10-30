@@ -156,6 +156,32 @@ def validate(
                 if value is not None and not TIME_RE.fullmatch(str(value)):
                     errors.append(f"{prefix}.{section_name}.{field} must be HH:MM or --:--")
 
+        # Discrepancy warning: live is pending but benefit has time
+        live_start = session.get("live", {}).get("start_time")
+        benefit_start = session.get("benefit", {}).get("start_time")
+        if live_start == "--:--" and benefit_start and benefit_start != "--:--":
+            warnings.append(f"{prefix}: live.start_time is --:-- but benefit.start_time is {benefit_start}")
+
+        # Check source_tweet_url if present
+        source_tweet = session.get("source_tweet_url")
+        if source_tweet and not re.match(r"^https?://(x\.com|twitter\.com)/[^/]+/status/\d+", str(source_tweet)):
+            errors.append(f"{prefix}.source_tweet_url must be an X/Twitter status URL: {source_tweet}")
+
+        # Check images
+        images = session.get("images")
+        if isinstance(images, list):
+            for img_index, img in enumerate(images, 1):
+                img_prefix = f"{prefix}.images[{img_index - 1}]"
+                if not isinstance(img, dict):
+                    continue
+                img_url = img.get("url")
+                if img_url:
+                    if not is_http_url(img_url):
+                        errors.append(f"{img_prefix}.url must be an absolute http(s) URL (relative path forbidden): {img_url}")
+                img_type = img.get("type")
+                if img_type and img_type not in {"flyer", "timetable"}:
+                    warnings.append(f"{img_prefix}.type '{img_type}' is unusual (expected 'flyer' or 'timetable')")
+
         refs = session.get("source_refs")
         if not isinstance(refs, list) or not refs:
             errors.append(f"{prefix}.source_refs must contain at least one source")
