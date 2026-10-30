@@ -1,0 +1,3 @@
+interface:
+  display_name: "Taite-board JSON ingest"
+  short_description: "Turn links and images into reviewed candidate JSON"

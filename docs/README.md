@@ -35,3 +35,7 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 - OGP画像はサービス全体を表す静的画像とし、イベント固有の画像や日付を含めない。
 
 画像の検討経緯と未確認事項は [`note/06_web-share-asset-decision-log.md`](../note/06_web-share-asset-decision-log.md) を参照してください。
+
+## データ intake とリリース
+
+端末から URL・画像を候補 JSON に変換する skill と、名寄せ・検証・PR・GitOps デプロイまでの初期手順は [`manual-ingest-release.md`](manual-ingest-release.md) にまとめています。候補は公開用 JSON へ自動昇格せず、人間レビューを通してから反映します。
