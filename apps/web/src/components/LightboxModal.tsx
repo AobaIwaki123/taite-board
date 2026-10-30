@@ -68,13 +68,26 @@ export function LightboxModal({
           <div />
         )}
 
-        {/* 閉じるボタン */}
-        <button
-          onClick={onClose}
-          class="px-3 py-1.5 rounded-full bg-stone-800 border border-white/20 text-white font-bold text-xs hover:bg-stone-700 transition-colors"
-        >
-          ✕ 閉じる
-        </button>
+        {/* アクションボタン */}
+        <div class="flex items-center gap-2">
+          {currentImage?.url && (
+            <a
+              href={currentImage.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              onClick={(e) => e.stopPropagation()}
+              class="px-3 py-1.5 rounded-full bg-stone-800 border border-white/20 text-stone-200 font-bold text-xs hover:bg-stone-700 hover:text-white transition-colors"
+            >
+              元画像 ↗
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            class="px-3 py-1.5 rounded-full bg-stone-800 border border-white/20 text-white font-bold text-xs hover:bg-stone-700 transition-colors"
+          >
+            ✕ 閉じる
+          </button>
+        </div>
       </div>
 
       {/* 画像プレビュー本体 */}
@@ -82,7 +95,7 @@ export function LightboxModal({
         {currentImage?.url && (
           <img
             src={currentImage.url}
-            referrerpolicy="no-referrer"
+            referrerPolicy="no-referrer"
             alt={currentImage.label || '拡大画像'}
             onClick={(e) => e.stopPropagation()}
             class="max-w-[94vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/20 cursor-default"

@@ -394,13 +394,13 @@
           }
         ]
       },
-      "image_url": "images/20261107_marquee_mini.png",
+      "image_url": "/images/20261107_marquee_mini.png",
       "source_tweet_url": "https://eplus.jp/marquee-matsuri/",
       "images": [
         {
           "type": "flyer",
           "label": "フライヤー",
-          "url": "images/20261107_marquee_mini.png"
+          "url": "/images/20261107_marquee_mini.png"
         }
       ],
       "source_refs": [
