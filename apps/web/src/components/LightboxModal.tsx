@@ -236,16 +236,16 @@ export function LightboxModal({
   return (
     <div
       onClick={handleBackdropClick}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in cursor-pointer select-none touch-none"
+      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in cursor-pointer select-none"
     >
       {/* 複数画像切替ピル（中央配置・スワイプにリアルタイム追従） */}
       {images.length > 1 && (
         <div
           class="flex items-center justify-center pt-2 pb-1 shrink-0 z-10"
           onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
         >
           <div class="relative flex items-center p-1 rounded-full bg-stone-900/90 border border-white/10 backdrop-blur shadow-lg">
             {/* スライディング・ピルインジケーター */}
@@ -262,7 +262,10 @@ export function LightboxModal({
               return (
                 <button
                   key={idx}
-                  onClick={() => onSelectIndex(idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectIndex(idx);
+                  }}
                   class={`relative z-10 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors duration-150 cursor-pointer ${
                     isActive ? 'text-stone-950' : 'text-stone-300 hover:text-white'
                   }`}
@@ -277,7 +280,12 @@ export function LightboxModal({
       )}
 
       {/* 画像カルーセル本体（左右の画像を連続トラックで配置） */}
-      <div class="flex-1 w-full min-h-0 overflow-hidden relative flex items-center">
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        class="flex-1 w-full min-h-0 overflow-hidden relative flex items-center touch-none"
+      >
         <div
           class="flex w-full h-full items-center"
           style={{
