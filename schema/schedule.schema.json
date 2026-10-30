@@ -88,6 +88,14 @@
           },
           "day_of_week": { "type": "string" },
           "session_name": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["scheduled", "timetable_pending", "postponed", "cancelled", "unconfirmed"]
+          },
+          "last_confirmed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
           "venue": {
             "type": "object",
             "required": ["name"],
@@ -168,7 +176,8 @@
               "properties": {
                 "type": { "type": "string" },
                 "source_id": { "type": "string" },
-                "url": { "type": "string" }
+              "url": { "type": "string" },
+              "observed_at": { "type": "string", "format": "date-time" }
               }
             }
           }

@@ -50,7 +50,9 @@
       "day_of_week": "土",
       "session_name": "昼帯SP",
       "venue": {
+        "canonical_id": "venue:shibuya-ring",
         "name": "渋谷RING",
+        "map_query": "渋谷RING",
         "map_url": "https://maps.google.com/?q=渋谷RING"
       },
       "live": {
@@ -98,6 +100,13 @@
           "label": "タイムテーブル (2/2)",
           "url": "https://pbs.twimg.com/media/HVIjWzDbwAE3HCU.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2112891667640656194",
+          "url": "https://x.com/Ribbon_Clock/status/2112891667640656194"
+        }
       ]
     },
     {
@@ -107,7 +116,9 @@
       "day_of_week": "日",
       "session_name": "1部（昼）",
       "venue": {
+        "canonical_id": "venue:shinjuku-zirco-tokyo",
         "name": "新宿ZircoTokyo",
+        "map_query": "Zirco Tokyo",
         "map_url": "https://maps.google.com/?q=新宿ZircoTokyo"
       },
       "live": {
@@ -155,6 +166,13 @@
           "label": "タイムテーブル (2/2)",
           "url": "https://pbs.twimg.com/media/HVYs_ptbcAESY9P.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2114341213147205692",
+          "url": "https://x.com/Ribbon_Clock/status/2114341213147205692"
+        }
       ]
     },
     {
@@ -164,7 +182,9 @@
       "day_of_week": "日",
       "session_name": "2部（夜）",
       "venue": {
+        "canonical_id": "venue:batur-tokyo",
         "name": "BATUR TOKYO（バトゥール東京）",
+        "map_query": "バトゥール東京",
         "map_url": "https://maps.google.com/?q=バトゥール東京"
       },
       "live": {
@@ -208,6 +228,13 @@
           "label": "タイムテーブル (2/2)",
           "url": "https://pbs.twimg.com/media/HVeSDfIbAAAOaN2.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2114597900827115847",
+          "url": "https://x.com/Ribbon_Clock/status/2114597900827115847"
+        }
       ]
     },
     {
@@ -217,7 +244,9 @@
       "day_of_week": "火祝",
       "session_name": "祝日昼帯",
       "venue": {
+        "canonical_id": "venue:bellesalle-toranomon",
         "name": "ベルサール虎ノ門",
+        "map_query": "ベルサール虎ノ門",
         "map_url": "https://maps.google.com/?q=ベルサール虎ノ門"
       },
       "live": {
@@ -260,6 +289,13 @@
           "label": "フライヤー",
           "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2115639776422625284",
+          "url": "https://x.com/Ribbon_Clock/status/2115639776422625284"
+        }
       ]
     },
     {
@@ -269,7 +305,9 @@
       "day_of_week": "木",
       "session_name": "夕方無銭",
       "venue": {
+        "canonical_id": "venue:harajuku-ruido",
         "name": "原宿RUIDO",
+        "map_query": "原宿RUIDO",
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
@@ -308,6 +346,13 @@
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2109237575764656308",
+          "url": "https://x.com/Ribbon_Clock/status/2109237575764656308"
+        }
       ]
     },
     {
@@ -317,7 +362,9 @@
       "day_of_week": "土",
       "session_name": "夕方帯",
       "venue": {
+        "canonical_id": "venue:spotify-o-nest",
         "name": "渋谷 Spotify O-nest",
+        "map_query": "Spotify O-nest",
         "map_url": "https://maps.google.com/?q=Spotify+O-nest"
       },
       "live": {
@@ -356,6 +403,12 @@
           "label": "フライヤー",
           "url": "images/20261107_marquee_mini.png"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "ticket_page",
+          "url": "https://eplus.jp/marquee-matsuri/"
+        }
       ]
     },
     {
@@ -365,7 +418,9 @@
       "day_of_week": "日",
       "session_name": "昼帯",
       "venue": {
+        "canonical_id": "venue:yokohama-landmark-hall",
         "name": "横浜ランドマークホール",
+        "map_query": "横浜ランドマークホール",
         "map_url": "https://maps.google.com/?q=横浜ランドマークホール"
       },
       "live": {
@@ -394,6 +449,13 @@
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2113918424439296285",
+          "url": "https://x.com/Ribbon_Clock/status/2113918424439296285"
+        }
       ]
     },
     {
@@ -403,7 +465,9 @@
       "day_of_week": "月",
       "session_name": "夕方無銭",
       "venue": {
+        "canonical_id": "venue:harajuku-ruido",
         "name": "原宿RUIDO",
+        "map_query": "原宿RUIDO",
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
@@ -432,6 +496,13 @@
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2111808264258089266",
+          "url": "https://x.com/Ribbon_Clock/status/2111808264258089266"
+        }
       ]
     },
     {
@@ -441,7 +512,9 @@
       "day_of_week": "木",
       "session_name": "夕方帯",
       "venue": {
+        "canonical_id": "venue:nippori-neko-theater",
         "name": "日暮里ネコシアター",
+        "map_query": "日暮里ネコシアター",
         "map_url": "https://maps.google.com/?q=日暮里ネコシアター"
       },
       "live": {
@@ -470,6 +543,13 @@
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2114295917075460118",
+          "url": "https://x.com/Ribbon_Clock/status/2114295917075460118"
+        }
       ]
     },
     {
@@ -479,7 +559,9 @@
       "day_of_week": "月祝",
       "session_name": "昼帯",
       "venue": {
+        "canonical_id": "venue:zeal-theater-shimbashi",
         "name": "ZEAL THEATER 新橋",
+        "map_query": "ZEAL THEATER 新橋",
         "map_url": "https://maps.google.com/?q=ZEAL+THEATER+新橋"
       },
       "live": {
@@ -522,6 +604,13 @@
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ.jpg?name=orig"
         }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2113948622446571638",
+          "url": "https://x.com/Ribbon_Clock/status/2113948622446571638"
+        }
       ]
     },
     {
@@ -531,7 +620,9 @@
       "day_of_week": "水",
       "session_name": "夕方無銭",
       "venue": {
+        "canonical_id": "venue:harajuku-ruido",
         "name": "原宿RUIDO",
+        "map_query": "原宿RUIDO",
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
@@ -569,6 +660,13 @@
           "type": "flyer",
           "label": "フライヤー (1/1)",
           "url": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg?name=orig"
+        }
+      ],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2111809522243117188",
+          "url": "https://x.com/Ribbon_Clock/status/2111809522243117188"
         }
       ]
     }
