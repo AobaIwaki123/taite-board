@@ -134,6 +134,8 @@ public enum ScheduleValidationError: Error, Equatable, LocalizedError, Sendable 
     case invalidGeneratedAt(String)
     case invalidTimezone(String)
     case emptyTargetGroupName
+    case invalidPromotionId
+    case duplicatePromotionId(String)
     case invalidSessionId
     case duplicateSessionId(String)
     case invalidSessionDate(String)
@@ -148,6 +150,10 @@ public enum ScheduleValidationError: Error, Equatable, LocalizedError, Sendable 
             return "Invalid timezone: \(value)"
         case .emptyTargetGroupName:
             return "target_group.name must not be empty"
+        case .invalidPromotionId:
+            return "Promotion id must not be empty"
+        case let .duplicatePromotionId(id):
+            return "Duplicate promotion id: \(id)"
         case .invalidSessionId:
             return "Session id must not be empty"
         case let .duplicateSessionId(id):
@@ -174,6 +180,16 @@ extension ScheduleDocument {
 
         guard !targetGroup.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ScheduleValidationError.emptyTargetGroupName
+        }
+
+        var promotionIDs = Set<String>()
+        for promotion in promotions ?? [] {
+            guard !promotion.id.isEmpty else {
+                throw ScheduleValidationError.invalidPromotionId
+            }
+            guard promotionIDs.insert(promotion.id).inserted else {
+                throw ScheduleValidationError.duplicatePromotionId(promotion.id)
+            }
         }
 
         var ids = Set<String>()
