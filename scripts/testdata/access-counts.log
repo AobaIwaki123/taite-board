@@ -1,0 +1,5 @@
+{"ts":"2026-10-29T15:05:00Z","route":"document","status":200}
+{"ts":"2026-10-29T15:20:00Z","route":"schedule","status":304}
+{"ts":"2026-10-29T16:00:00Z","route":"asset","status":404}
+{"ts":"2026-10-29T18:00:00Z","route":"document","status":200}
+192.0.2.1 - - [29/Oct/2026:15:30:00 +0000] "GET /?token=fixture-secret HTTP/1.1" 200 10 "https://example.com" "fixture-user-agent"
