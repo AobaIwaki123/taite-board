@@ -12,14 +12,16 @@ export function PromotionBanner({ promotions }: PromotionBannerProps) {
 
   return (
     <div class="rounded-2xl overflow-hidden soft-card border border-rose-500/40 bg-stone-900 shadow-xl my-2">
-      <div class="w-full h-36 overflow-hidden bg-stone-950">
-        <img
-          src={promo.image_url}
-          referrerpolicy="no-referrer"
-          alt={promo.title}
-          class="w-full h-full object-cover object-center"
-        />
-      </div>
+      {promo.image_url && (
+        <div class="w-full h-36 overflow-hidden bg-stone-950">
+          <img
+            src={promo.image_url}
+            referrerpolicy="no-referrer"
+            alt={promo.title}
+            class="w-full h-full object-cover object-center"
+          />
+        </div>
+      )}
 
       <div class="p-3.5 space-y-2 bg-stone-900">
         <div class="flex items-center justify-between text-xs">
