@@ -1,0 +1,296 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F6000000000011 /* TaiteBoardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000021 /* TaiteBoardApp.swift */; };
+		A1B2C3D4E5F6000000000012 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000022 /* AppEnvironment.swift */; };
+		A1B2C3D4E5F6000000000013 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000023 /* AppModel.swift */; };
+		A1B2C3D4E5F6000000000014 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000024 /* RootView.swift */; };
+		A1B2C3D4E5F6000000000015 /* NextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000025 /* NextView.swift */; };
+		A1B2C3D4E5F6000000000016 /* ScheduleListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000026 /* ScheduleListView.swift */; };
+		A1B2C3D4E5F6000000000017 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000027 /* CalendarView.swift */; };
+		A1B2C3D4E5F6000000000018 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000028 /* SessionDetailView.swift */; };
+		A1B2C3D4E5F6000000000019 /* DataStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000029 /* DataStatusView.swift */; };
+		A1B2C3D4E5F600000000001A /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000002A /* PreviewData.swift */; };
+		A1B2C3D4E5F600000000001B /* TaiteBoardCore in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F6000000000032 /* TaiteBoardCore */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A1B2C3D4E5F6000000000006 /* TaiteBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TaiteBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F6000000000021 /* TaiteBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaiteBoardApp.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000022 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000023 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000024 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000025 /* NextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000026 /* ScheduleListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleListView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000027 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000028 /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000029 /* DataStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStatusView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000002A /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F6000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F600000000001B /* TaiteBoardCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B2C3D4E5F6000000000003 = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000005 /* TaiteBoard */,
+				A1B2C3D4E5F6000000000004 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000004 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000006 /* TaiteBoard.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A1B2C3D4E5F6000000000005 /* TaiteBoard */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6000000000021 /* TaiteBoardApp.swift */,
+				A1B2C3D4E5F6000000000022 /* AppEnvironment.swift */,
+				A1B2C3D4E5F6000000000023 /* AppModel.swift */,
+				A1B2C3D4E5F6000000000024 /* RootView.swift */,
+				A1B2C3D4E5F6000000000025 /* NextView.swift */,
+				A1B2C3D4E5F6000000000026 /* ScheduleListView.swift */,
+				A1B2C3D4E5F6000000000027 /* CalendarView.swift */,
+				A1B2C3D4E5F6000000000028 /* SessionDetailView.swift */,
+				A1B2C3D4E5F6000000000029 /* DataStatusView.swift */,
+				A1B2C3D4E5F600000000002A /* PreviewData.swift */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B2C3D4E5F6000000000002 /* TaiteBoard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F6000000000042 /* Build configuration list for PBXNativeTarget "TaiteBoard" */;
+			buildPhases = (
+				A1B2C3D4E5F6000000000007 /* Sources */,
+				A1B2C3D4E5F6000000000009 /* Frameworks */,
+				A1B2C3D4E5F6000000000008 /* Resources */,
+				A1B2C3D4E5F600000000000A /* Sync schedule seed */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TaiteBoard;
+			packageProductDependencies = (
+				A1B2C3D4E5F6000000000032 /* TaiteBoardCore */,
+			);
+			productName = TaiteBoard;
+			productReference = A1B2C3D4E5F6000000000006 /* TaiteBoard.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 2710;
+				LastUpgradeCheck = 2710;
+				TargetAttributes = {
+					A1B2C3D4E5F6000000000002 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+				};
+			};
+			buildConfigurationList = A1B2C3D4E5F6000000000041 /* Build configuration list for PBXProject "TaiteBoard" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A1B2C3D4E5F6000000000003;
+			packageReferences = (
+				A1B2C3D4E5F6000000000031 /* TaiteBoardCore */,
+			);
+			productRefGroup = A1B2C3D4E5F6000000000004 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A1B2C3D4E5F6000000000002 /* TaiteBoard */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4E5F6000000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A1B2C3D4E5F600000000000A /* Sync schedule seed */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../../data/generated/schedule.json",
+			);
+			name = "Sync schedule seed";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/schedule.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\nmkdir -p \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\ncp \"${SRCROOT}/../../../data/generated/schedule.json\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/schedule.json\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F6000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F6000000000011 /* TaiteBoardApp.swift in Sources */,
+				A1B2C3D4E5F6000000000012 /* AppEnvironment.swift in Sources */,
+				A1B2C3D4E5F6000000000013 /* AppModel.swift in Sources */,
+				A1B2C3D4E5F6000000000014 /* RootView.swift in Sources */,
+				A1B2C3D4E5F6000000000015 /* NextView.swift in Sources */,
+				A1B2C3D4E5F6000000000016 /* ScheduleListView.swift in Sources */,
+				A1B2C3D4E5F6000000000017 /* CalendarView.swift in Sources */,
+				A1B2C3D4E5F6000000000018 /* SessionDetailView.swift in Sources */,
+				A1B2C3D4E5F6000000000019 /* DataStatusView.swift in Sources */,
+				A1B2C3D4E5F600000000001A /* PreviewData.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F6000000000051 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000052 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F6000000000053 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = TaiteBoard;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.aooba.taiteboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000054 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = TaiteBoard;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = net.aooba.taiteboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F6000000000041 /* Build configuration list for PBXProject "TaiteBoard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000051 /* Debug */,
+				A1B2C3D4E5F6000000000052 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F6000000000042 /* Build configuration list for PBXNativeTarget "TaiteBoard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6000000000053 /* Debug */,
+				A1B2C3D4E5F6000000000054 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A1B2C3D4E5F6000000000031 /* TaiteBoardCore */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../TaiteBoardCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A1B2C3D4E5F6000000000032 /* TaiteBoardCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1B2C3D4E5F6000000000031 /* TaiteBoardCore */;
+			productName = TaiteBoardCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A1B2C3D4E5F6000000000001 /* Project object */;
+}
