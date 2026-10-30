@@ -8,6 +8,11 @@ struct CalendarView: View {
     @State private var displayedMonth = Date()
     @State private var selectedDate: String?
 
+    private enum CalendarGridCell: Hashable {
+        case placeholder(Int)
+        case day(Int)
+    }
+
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "ja_JP")
@@ -50,6 +55,12 @@ struct CalendarView: View {
         return snapshot.document.sessions.filter { $0.date == selectedDate }
     }
 
+    private var calendarGridCells: [CalendarGridCell] {
+        let placeholders = (0..<firstDayOffset).map { CalendarGridCell.placeholder($0) }
+        let days = (1...max(daysInMonth, 1)).map { CalendarGridCell.day($0) }
+        return placeholders + days
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
@@ -79,13 +90,14 @@ struct CalendarView: View {
                 }
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7), spacing: 6) {
-                    ForEach(0..<firstDayOffset, id: \.self) { _ in
-                        Color.clear
-                            .frame(height: 46)
-                    }
-
-                    ForEach(1...max(daysInMonth, 1), id: \.self) { day in
-                        dayCell(day)
+                    ForEach(calendarGridCells, id: \.self) { cell in
+                        switch cell {
+                        case .placeholder:
+                            Color.clear
+                                .frame(height: 46)
+                        case let .day(day):
+                            dayCell(day)
+                        }
                     }
                 }
 
