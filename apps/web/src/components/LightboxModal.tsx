@@ -35,24 +35,23 @@ export function LightboxModal({
   return (
     <div
       onClick={onClose}
-      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in"
+      class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col p-4 animate-fade-in cursor-pointer select-none"
     >
-      {/* 上部コントロールバー */}
-      <div class="flex items-center justify-between py-2 shrink-0">
-        {/* 画像切替ピル */}
-        {images.length > 1 ? (
-          <div class="flex items-center gap-1.5 p-1 rounded-full bg-stone-900 border border-white/10">
+      {/* 複数画像切替ピル（中央配置） */}
+      {images.length > 1 && (
+        <div
+          class="flex items-center justify-center pt-2 pb-1 shrink-0 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div class="flex items-center gap-1 p-1 rounded-full bg-stone-900/90 border border-white/10 backdrop-blur shadow-lg">
             {images.map((img, idx) => {
               const isActive = idx === currentIndex;
               const isTimetable = img.type === 'timetable';
               return (
                 <button
                   key={idx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectIndex(idx);
-                  }}
-                  class={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  onClick={() => onSelectIndex(idx)}
+                  class={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-rose-500 text-stone-950 shadow'
                       : 'text-stone-300 hover:text-white'
@@ -64,47 +63,19 @@ export function LightboxModal({
               );
             })}
           </div>
-        ) : (
-          <div />
-        )}
-
-        {/* アクションボタン */}
-        <div class="flex items-center gap-2">
-          {currentImage?.url && (
-            <a
-              href={currentImage.url}
-              target="_blank"
-              rel="noreferrer noopener"
-              onClick={(e) => e.stopPropagation()}
-              class="px-3 py-1.5 rounded-full bg-stone-800 border border-white/20 text-stone-200 font-bold text-xs hover:bg-stone-700 hover:text-white transition-colors"
-            >
-              元画像 ↗
-            </a>
-          )}
-          <button
-            onClick={onClose}
-            class="px-3 py-1.5 rounded-full bg-stone-800 border border-white/20 text-white font-bold text-xs hover:bg-stone-700 transition-colors"
-          >
-            ✕ 閉じる
-          </button>
         </div>
-      </div>
+      )}
 
       {/* 画像プレビュー本体 */}
-      <div class="flex-1 flex items-center justify-center p-2 cursor-pointer">
+      <div class="flex-1 flex items-center justify-center w-full min-h-0 p-2">
         {currentImage?.url && (
           <img
             src={currentImage.url}
             referrerPolicy="no-referrer"
             alt={currentImage.label || '拡大画像'}
-            onClick={(e) => e.stopPropagation()}
-            class="max-w-[94vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/20 cursor-default"
+            class="max-w-[94vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10"
           />
         )}
-      </div>
-
-      <div class="text-center text-xs text-stone-400 pb-2 pointer-events-none">
-        周囲をタップすると閉じます
       </div>
     </div>
   );
