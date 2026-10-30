@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "description": "Manual overrides and verified metadata that cannot be derived solely from tweet text",
+  "sessions": {
+    "20261107-1": {
+      "local_image_override": "images/20261107_marquee_mini.png"
+    },
+    "20261109-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg",
+      "live_start_override": "--:--",
+      "live_end_override": "--:--",
+      "status": "タイテ告知待ち"
+    },
+    "20261125-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HU6lt88bIAAGXKa.jpg",
+      "live_start_override": "--:--",
+      "live_end_override": "--:--",
+      "status": "タイテ告知待ち"
+    }
+  }
+}
