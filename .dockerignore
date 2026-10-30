@@ -3,9 +3,10 @@
 .worktrees
 AGENTS.md
 cmd
-data
+data/raw
+data/candidate
+data/input
 note
 scripts
 discussion.md
 k8s
-
