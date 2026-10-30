@@ -29,7 +29,7 @@ Ribbon Clock の初期プロトタイプは迅速な立ち上げを重視し、v
    - Tailwind CSS を PostCSS 経由でローカルビルドし、外部 CDN スクリプトを完全撤廃した。
    - `lucide` は全件インポート（約800kB）を避け、実際に使用する16個のアイコンのみを個別インポートすることで、JS バンドルサイズをわずか 30kB（gzip 後 8.7kB）に圧縮した。
 3. **Docker マルチステージビルドの採用**:
-   - `Dockerfile` を 2 ステージ（Stage 1: `node:22-alpine` で TypeScript/Vite ビルド、Stage 2: `nginx:alpine` で静的配信）に改修した。
+   - `Dockerfile` を 2 ステージ（Stage 1: `node:26-alpine` で TypeScript/Vite ビルド、Stage 2: `nginx:alpine` で静的配信）に改修した。
    - これにより、リポジトリに `dist/` をコミットすることなく、Docker ビルド（および GitHub Actions CI）単独で常に再現性のある最新バイナリが生成される。
 4. **レガシー `web/` ディレクトリの完全削除**:
    - 重複していた旧 `web/` ディレクトリを削除し、`scripts/build.sh` の同期処理を `apps/web/dist` から `docs/`（GitHub Pages 用）への片方向同期に簡素化した。
