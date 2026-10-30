@@ -110,7 +110,7 @@ iOS の Web Clip 用アイコンは通常の `rel="icon"` だけではなく `ap
 
 `display: standalone` はホーム画面から起動したときの表示を変えるため、実機でヘッダー・safe area・戻る操作を確認してから確定する。Manifest を追加することと、完全オフライン PWA にすることは別であり、Service Worker の導入は今回のメタデータ修正に含めない。
 
-今回の先行実装では、Manifest の `display: standalone` とブランドアイコンを追加した。ブランドアイコンはカレンダーを主役にし、上部に蝶々型のリボンを置く構成とした。主色にはデータ上の `#ef4444`、補助色には既存 UI の `#fb7185` を使用している。一方、`apple-mobile-web-app-capable` と status bar の専用設定は、iOS 実機で safe area を確認するまで追加していない。
+今回の先行実装では、Manifest の `display: standalone` とブランドアイコンを追加した。ブランドアイコンはカレンダーを主役にし、上部に蝶々型のリボンを置く構成とした。黒背景を避けるため背景を `#3a1320` の濃いローズに変更し、主色に `#d4546b`、補助色に `#ee9aaa`、深いアクセントに `#a93d56` を使用している。一方、`apple-mobile-web-app-capable` と status bar の専用設定は、iOS 実機で safe area を確認するまで追加していない。
 
 ## 4. 変更を分離する単位
 
@@ -148,7 +148,7 @@ iOS の Web Clip 用アイコンは通常の `rel="icon"` だけではなく `ap
 ## 6. 未決定事項
 
 - OGP 画像を PNG のまま配信するか JPEG に変換するか。一般共有向けの容量と文字の鮮明さで決める。
-- favicon の意匠は、カレンダーを主役にして上部に蝶々型のリボンを置く構成で確定した。配色は `#ef4444` と `#fb7185` を基準とする。
+- favicon の意匠は、カレンダーを主役にして上部に蝶々型のリボンを置く構成で確定した。黒背景は採用せず、濃いローズと muted rose の配色を基準とする。
 - Manifest の `display: standalone` を採用するか、まず `browser` のままアイコンだけ提供するか。
 - `apple-mobile-web-app-capable` を追加するか。追加する場合は standalone 起動時の safe area を実機確認する。
 - OGP 画像を将来の iOS ネイティブアプリのストア用素材と共用するか。
