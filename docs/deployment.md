@@ -72,20 +72,31 @@ server {
 ## 3. Dockerfile の設計
 
 ```dockerfile
+# Stage 1: Build Modern TypeScript Frontend
+FROM node:26-alpine AS builder
+
+WORKDIR /app/apps/web
+COPY apps/web/package*.json ./
+RUN npm ci
+
+COPY apps/web/ ./
+RUN npm run build
+
+# Stage 2: Production Nginx Server
 FROM nginx:alpine
 
 LABEL org.opencontainers.image.source="https://github.com/AobaIwaki123/taite-board"
 
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
-COPY apps/web/ /usr/share/nginx/html/
+COPY --from=builder /app/apps/web/dist/ /usr/share/nginx/html/
 COPY data/generated/schedule.json /usr/share/nginx/html/schedule.json
 COPY data/generated/schedule.json /usr/share/nginx/html/mock_schedule.json
 
 EXPOSE 8080
 ```
 
-- **最小フットプリント**: Alpine Linuxをベースに採用し、イメージサイズを数十MBに抑えています。
-- **正本ソースの直接コピー**: `apps/web/` の正本アセットと、パイプラインで検証済みの `data/generated/schedule.json` を配置。
+- **マルチステージビルド**: Node 26 Alpine で Vite による TypeScript 最適化バンドル（`apps/web/dist/`）を生成し、最小構成の Nginx Alpine コンテナへ成果物のみを配置しています。
+- **再現性と独立性**: ローカルの `dist/` や `node_modules` に依存せず、コンテナビルド単独で決定論的な最新静的成果物が生成されます。
 - **後方互換性**: 既存クライアントや古いキャッシュへの配慮として、`mock_schedule.json` も同等に配置しています。
 - **.dockerignore**: `data/raw`, `data/candidate`, `data/input` などの不要な大容量生データやGitログを除外し、ビルドコンテキストを軽量に維持しています。
 

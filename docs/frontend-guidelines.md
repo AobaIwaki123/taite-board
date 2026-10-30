@@ -25,6 +25,11 @@ Google TypeScript Style Guide および React / Preact 公式ベストプラク�
 - モバイルや低速通信環境での高速描画（LCP 最小化）を達成するため、ランタイムライブラリは最小構成（Preact: ~3kB）を維持します。
 - アイコンライブラリ（Lucide）は一括インポートを禁止し、使用するシンボルのみを個別インポートしてツリーシェイキングを最大化します。
 
+### 1.5 屋外視認性とタイポグラフィ基準（Outdoor Readability Floor）
+- 日中の野外フェスや移動中など、直射日光下のモバイル環境でも瞬時にタイテを確認できるよう、極小文字（12px未満）を完全に排除します。
+- ルート HTML に `font-size: 17.5px` を適用し、アプリ内の最小文字サイズは `text-xs`（実測 13.1px）を下回らない設計基準を義務付けます。
+- 会場名、出演時間、特典会時間などの最重要情報は `text-2xl`（約26px）以上の太字（Bold）で即座に視認できるようにします。
+
 ---
 
 ## 2. ディレクトリ構成規約 (`apps/web/`)
@@ -44,14 +49,14 @@ apps/web/
 │   │   ├── LightboxModal.tsx# 画像拡大モーダル
 │   │   └── PromotionBanner.tsx # 生誕クラファン告知枠
 │   ├── utils/               # 日付計算・アイコンローダー等の純粋関数
-│   ├── styles/              # Tailwind CSS エントリーポイント
+│   ├── styles/              # Tailwind CSS v4 エントリーポイント (@import "tailwindcss", @theme)
 │   ├── App.tsx              # ルートコンポーネント (タブ・画面切り替え管理)
 │   └── main.tsx             # アプリケーション初期化・マウント
 ├── public/                  # 静的アセット (画像、ローカルモックJSON)
 ├── index.html               # SPA マウント用最小 HTML
 ├── package.json
 ├── tsconfig.json            # Strict Mode 有効化
-└── vite.config.ts           # Preact プラグイン設定
+└── vite.config.ts           # Preact & @tailwindcss/vite 設定
 ```
 
 ---

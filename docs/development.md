@@ -8,7 +8,7 @@
 
 - **macOS / Linux** (zsh または bash)
 - **Go**: `1.27` 以上
-- **Node.js**: `20.x` 以上 (npm)
+- **Node.js**: `26.x` (LTS)
 - **Docker**: 最新版 (マルチステージコンテナビルド検証用)
 
 ---

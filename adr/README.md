@@ -69,3 +69,18 @@ YYYY-MM-DD
 
 - ファイル名は `0001-<kebab-case-title>.md` の4桁連番形式とします。
 - 破壊的変更やアーキテクチャ再編が発生した際は、必ず PR 起票時に ADR を作成または更新提案に含めます。
+
+| 番号 | タイトル | ステータス | 決定日 |
+|---|---|---|---|
+| [ADR-0001](0001-schedule-json-data-contract.md) | Web・ネイティブ共通のschedule.jsonデータ契約とスキーマ管理 | Accepted | 2026-10-30 |
+| [ADR-0002](0002-raw-snapshot-storage.md) | 生データ（Raw Snapshot）の保存構造と不変性の保証 | Accepted | 2026-10-30 |
+| [ADR-0003](0003-canonical-entities-and-alias-dictionary.md) | canonical_id とエンティティ名寄せ辞書の設計 | Accepted | 2026-10-30 |
+| [ADR-0004](0004-curation-boundary-and-overrides.md) | 自動抽出・名寄せと手動キュレーション（Overrides）の境界 | Accepted | 2026-10-30 |
+| [ADR-0005](0005-static-json-distribution.md) | 静的JSON配信の継続方針とAPIサーバー化の条件 | Accepted | 2026-10-30 |
+| [ADR-0006](0006-source-adapter-boundary.md) | 外部取得アダプター（Source Adapter）の責務分離 | Accepted | 2026-10-30 |
+| [ADR-0007](0007-source-and-artifact-layout.md) | ソースコード・ビルド生成物のディレクトリ配置再編 | Accepted | 2026-10-30 |
+| [ADR-0008](0008-client-offline-cache-and-freshness.md) | クライアント側のキャッシュとデータ鮮度（Freshness）の表示 | Accepted | 2026-10-30 |
+| [ADR-0009](0009-kubernetes-gitops-and-nginx-container.md) | Kubernetes GitOps デプロイと Nginx コンテナ基盤 | Accepted | 2026-10-30 |
+| [ADR-0010](0010-modern-typescript-frontend-and-multistage-docker.md) | フロントエンドのVite・モダンTypeScript刷新とマルチステージビルド化 | Accepted | 2026-10-30 |
+| [ADR-0011](0011-multi-slot-promotions-and-deadline-countdown.md) | 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ | Accepted | 2026-10-30 |
+| [ADR-0012](0012-toolchain-modernization-vite8-ts7-tailwind4.md) | ツールチェーンの最新化とTailwind CSS v4移行 | Accepted | 2026-10-30 |
