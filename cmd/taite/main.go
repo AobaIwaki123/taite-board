@@ -47,7 +47,7 @@ Usage:
 
 The commands are:
   fetch     Fetch raw post snapshots from external URLs (ADR-0002)
-  validate  Validate a schedule JSON file against ADR-0001 schema rules
+  validate  Validate a schedule JSON file against ADR-0001 schema and source integrity rules
   build     Build web client bundle via Vite`)
 }
 
@@ -106,13 +106,25 @@ func runFetch(args []string) {
 }
 
 func runValidate(args []string) {
-	target := "data/generated/schedule.json"
-	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
-		target = args[0]
+	fs := flag.NewFlagSet("validate", flag.ExitOnError)
+	fileOpt := fs.String("file", "data/generated/schedule.json", "Path to schedule JSON file")
+	checkURLs := fs.Bool("check-urls", false, "Verify remote image URL reachability over HTTP")
+	timeoutSec := fs.Int("timeout", 5, "HTTP timeout in seconds for remote URL check")
+
+	_ = fs.Parse(args)
+
+	target := *fileOpt
+	// Also accept positional file argument if specified
+	if len(fs.Args()) > 0 && !strings.HasPrefix(fs.Args()[0], "-") {
+		target = fs.Args()[0]
 	}
 
-	fmt.Printf("Validating schedule file: %s\n", target)
-	report, err := validate.ValidateFile(target)
+	fmt.Printf("Validating schedule file: %s (check-urls=%v)\n", target, *checkURLs)
+	opts := validate.Options{
+		CheckRemoteURLs: *checkURLs,
+		HTTPTimeout:     time.Duration(*timeoutSec) * time.Second,
+	}
+	report, err := validate.ValidateFileWithOptions(target, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Validation error: %v\n", err)
 		os.Exit(1)
