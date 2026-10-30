@@ -45,7 +45,6 @@ export function CockpitView({
     session.images && session.images.length > 0
       ? session.images
       : [{ type: 'flyer' as const, label: 'フライヤー', url: session.image_url || '' }];
-  const currentImage = images[selectedImageIndex] || images[0];
 
   const previewTouchStartX = useRef<number | null>(null);
   const previewTouchStartY = useRef<number | null>(null);
@@ -129,17 +128,29 @@ export function CockpitView({
         style={{ touchAction: 'pan-y' }}
       >
         <div class="relative w-full h-44 overflow-hidden bg-stone-950 flex items-center justify-center">
-          {currentImage.url ? (
-            <img
-              src={currentImage.url}
-              referrerPolicy="no-referrer"
-              alt={currentImage.label || session.title}
-              onClick={handleImageClick}
-              class="w-full h-full object-cover object-top cursor-pointer transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div class="text-xs text-stone-600">画像なし</div>
-          )}
+          <div
+            class="flex w-full h-full transition-transform duration-250 ease-out"
+            style={{ transform: `translateX(${-selectedImageIndex * 100}%)` }}
+          >
+            {images.map((img, idx) => (
+              <div
+                key={idx}
+                class="w-full h-full shrink-0 relative bg-stone-950 flex items-center justify-center"
+              >
+                {img.url ? (
+                  <img
+                    src={img.url}
+                    referrerPolicy="no-referrer"
+                    alt={img.label || session.title}
+                    onClick={handleImageClick}
+                    class="w-full h-full object-cover object-top cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div class="text-xs text-stone-600">画像なし</div>
+                )}
+              </div>
+            ))}
+          </div>
 
           {/* 拡大タップヒント */}
           <button
