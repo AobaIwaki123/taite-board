@@ -9,7 +9,7 @@ import os
 import subprocess
 import sys
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 from urllib import error as urllib_error
@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 LOCAL_ZONE = ZoneInfo("Asia/Tokyo")
 ALLOWED_ROUTES = {"document", "schedule", "asset", "other"}
+BAR_WIDTH = 20
 MAX_DISCORD_MESSAGE_LENGTH = 1900
 
 
@@ -140,6 +141,28 @@ def parse_log_lines(
     return routes, statuses, buckets, malformed
 
 
+def iter_hour_buckets(start: datetime, end: datetime) -> Iterable[datetime]:
+    """Yield every local-hour bucket touched by the half-open report window."""
+    cursor = start.astimezone(LOCAL_ZONE).replace(minute=0, second=0, microsecond=0)
+    local_end = end.astimezone(LOCAL_ZONE)
+    while cursor < local_end:
+        yield cursor
+        cursor += timedelta(hours=1)
+
+
+def render_bar(value: int, maximum: int, width: int = BAR_WIDTH) -> str:
+    """Render a proportional ASCII bar without leaking any raw request data."""
+    if value <= 0 or maximum <= 0:
+        return ""
+    filled = max(1, min(width, value * width // maximum))
+    return "#" * filled
+
+
+def format_graph_line(label: str, value: int, maximum: int) -> str:
+    bar = render_bar(value, maximum)
+    return f"{label:<16} | {bar:<{BAR_WIDTH}} {value:>4}"
+
+
 def build_message(
     start: datetime,
     end: datetime,
@@ -149,27 +172,37 @@ def build_message(
     malformed: int,
 ) -> str:
     total = sum(routes.values())
+    hour_buckets = list(iter_hour_buckets(start, end))
+    hour_values = [buckets.get(bucket, 0) for bucket in hour_buckets]
+    hour_maximum = max(hour_values, default=0)
+    route_values = [routes.get(route, 0) for route in ("document", "schedule", "asset", "other")]
+    route_maximum = max(route_values, default=0)
+    status_values = [statuses.get(status, 0) for status in ("2xx", "3xx", "4xx", "5xx")]
+    status_maximum = max(status_values, default=0)
+    hour_label_format = "%H:%M" if (end - start).total_seconds() <= 24 * 60 * 60 else "%m-%d %H:%M"
+
     lines = [
         "Ribbon Clock アクセス集計",
         f"対象: {format_local_time(start)}〜{format_local_time(end)} JST",
         "種別: origin request count",
         "",
-        f"合計: {total}",
-        "",
-        "時間帯:",
+        "```text",
+        "時間帯別リクエスト数",
     ]
-    if buckets:
-        lines.extend(f"- {bucket.strftime('%H:%M')}: {buckets[bucket]}" for bucket in sorted(buckets))
-    else:
-        lines.append("- データなし")
+    lines.extend(
+        format_graph_line(bucket.strftime(hour_label_format), buckets.get(bucket, 0), hour_maximum)
+        for bucket in hour_buckets
+    )
 
-    lines.extend(["", "分類:"])
+    lines.extend(["", "分類別リクエスト数"])
     for route in ("document", "schedule", "asset", "other"):
-        lines.append(f"- {route}: {routes.get(route, 0)}")
+        lines.append(format_graph_line(route, routes.get(route, 0), route_maximum))
 
-    lines.extend(["", "status:"])
+    lines.extend(["", "ステータス別リクエスト数"])
     for status in ("2xx", "3xx", "4xx", "5xx"):
-        lines.append(f"- {status}: {statuses.get(status, 0)}")
+        lines.append(format_graph_line(status, statuses.get(status, 0), status_maximum))
+
+    lines.extend(["```", "", f"合計: {total}"])
 
     if malformed:
         lines.extend(["", f"解析対象外の行: {malformed}"])
