@@ -21,6 +21,18 @@ var (
 	statusIDRegex = regexp.MustCompile(`/status/(\d+)`)
 )
 
+func normalizeMediaURL(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host != "pbs.twimg.com" {
+		return raw
+	}
+
+	query := parsed.Query()
+	query.Set("name", "large")
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
+}
+
 type oembedResponse struct {
 	URL        string `json:"url"`
 	AuthorName string `json:"author_name"`
@@ -160,13 +172,13 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 	if err := json.Unmarshal(body, &result); err == nil {
 		for _, m := range result.MediaDetails {
 			if m.MediaURL != "" {
-				images = append(images, m.MediaURL)
+				images = append(images, normalizeMediaURL(m.MediaURL))
 			}
 		}
 		if len(images) == 0 {
 			for _, p := range result.Photos {
 				if p.URL != "" {
-					images = append(images, p.URL)
+					images = append(images, normalizeMediaURL(p.URL))
 				}
 			}
 		}
@@ -179,7 +191,7 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 		for _, m := range matches {
 			if !seen[m] {
 				seen[m] = true
-				images = append(images, m+".jpg")
+				images = append(images, normalizeMediaURL(m+".jpg"))
 			}
 		}
 	}
