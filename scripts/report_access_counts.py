@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import ssl
 import subprocess
 import sys
 from collections import Counter
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Iterable
 from urllib import error as urllib_error
 from urllib import request as urllib_request
+from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
 
@@ -21,6 +23,7 @@ LOCAL_ZONE = ZoneInfo("Asia/Tokyo")
 ALLOWED_ROUTES = {"document", "schedule", "asset", "other"}
 BAR_WIDTH = 20
 MAX_DISCORD_MESSAGE_LENGTH = 1900
+SERVICE_ACCOUNT_ROOT = Path("/var/run/secrets/kubernetes.io/serviceaccount")
 
 
 class ReportError(Exception):
@@ -31,8 +34,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Aggregate privacy-safe Nginx access logs and optionally notify Discord."
     )
-    parser.add_argument("--from", dest="from_time", required=True, help="Inclusive ISO 8601 start time")
-    parser.add_argument("--to", dest="to_time", required=True, help="Exclusive ISO 8601 end time")
+    time_group = parser.add_mutually_exclusive_group(required=True)
+    time_group.add_argument("--from", dest="from_time", help="Inclusive ISO 8601 start time")
+    time_group.add_argument(
+        "--last-minutes",
+        type=int,
+        help="Use the previous N minutes ending at the current time",
+    )
+    parser.add_argument("--to", dest="to_time", help="Exclusive ISO 8601 end time")
     parser.add_argument(
         "--input",
         type=Path,
@@ -45,6 +54,16 @@ def parse_args() -> argparse.Namespace:
         help="Kubernetes pod label selector",
     )
     parser.add_argument("--kubectl", default="kubectl", help="kubectl executable")
+    parser.add_argument(
+        "--kubernetes-api",
+        action="store_true",
+        help="Read pod logs through the in-cluster Kubernetes API instead of kubectl",
+    )
+    parser.add_argument(
+        "--container",
+        default="web",
+        help="Container name when reading logs through the Kubernetes API",
+    )
     parser.add_argument(
         "--webhook-env",
         default="DISCORD_WEBHOOK_URL",
@@ -69,6 +88,79 @@ def format_local_time(value: datetime) -> str:
     return value.astimezone(LOCAL_ZONE).strftime("%Y-%m-%d %H:%M")
 
 
+def kubernetes_api_request(
+    path: str, query: dict[str, str] | None = None
+) -> bytes:
+    token_path = Path(os.environ.get("KUBERNETES_TOKEN_FILE", SERVICE_ACCOUNT_ROOT / "token"))
+    ca_path = Path(os.environ.get("KUBERNETES_CA_FILE", SERVICE_ACCOUNT_ROOT / "ca.crt"))
+    try:
+        token = token_path.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        raise ReportError("Kubernetes service account token is unavailable") from exc
+    if not token:
+        raise ReportError("Kubernetes service account token is empty")
+
+    host = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
+    port = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
+    request_url = f"https://{host}:{port}{path}"
+    if query:
+        request_url = f"{request_url}?{urlencode(query)}"
+    request = urllib_request.Request(
+        request_url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "ribonclock-access-report/1.0",
+        },
+        method="GET",
+    )
+    try:
+        context = ssl.create_default_context(cafile=str(ca_path))
+        with urllib_request.urlopen(request, context=context, timeout=10) as response:
+            return response.read()
+    except urllib_error.HTTPError as exc:
+        raise ReportError(f"Kubernetes API returned HTTP {exc.code}") from exc
+    except (OSError, urllib_error.URLError) as exc:
+        raise ReportError("Kubernetes API request failed") from exc
+
+
+def read_in_cluster_log_lines(args: argparse.Namespace, start: datetime) -> Iterable[str]:
+    namespace = quote(args.namespace, safe="")
+    try:
+        payload = json.loads(
+            kubernetes_api_request(
+                f"/api/v1/namespaces/{namespace}/pods",
+                {"labelSelector": args.selector},
+            ).decode("utf-8")
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ReportError("Kubernetes API returned invalid pod data") from exc
+
+    pods = []
+    for item in payload.get("items", []):
+        metadata = item.get("metadata", {})
+        name = metadata.get("name")
+        if name and not metadata.get("deletionTimestamp"):
+            pods.append(name)
+    if not pods:
+        raise ReportError("no matching running pods found")
+
+    since_time = start.isoformat().replace("+00:00", "Z")
+    for pod_name in pods:
+        encoded_pod_name = quote(pod_name, safe="")
+        try:
+            log_data = kubernetes_api_request(
+                f"/api/v1/namespaces/{namespace}/pods/{encoded_pod_name}/log",
+                {
+                    "container": args.container,
+                    "sinceTime": since_time,
+                    "timestamps": "false",
+                },
+            ).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise ReportError("Kubernetes API returned invalid log data") from exc
+        yield from log_data.splitlines()
+
+
 def read_log_lines(args: argparse.Namespace, start: datetime) -> Iterable[str]:
     if args.input:
         if str(args.input) == "-":
@@ -79,6 +171,10 @@ def read_log_lines(args: argparse.Namespace, start: datetime) -> Iterable[str]:
                 yield from source
         except OSError as exc:
             raise ReportError(f"cannot read input log: {args.input}") from exc
+        return
+
+    if args.kubernetes_api:
+        yield from read_in_cluster_log_lines(args, start)
         return
 
     since_time = start.isoformat().replace("+00:00", "Z")
@@ -235,8 +331,20 @@ def post_to_discord(webhook_url: str, message: str) -> None:
 def main() -> int:
     args = parse_args()
     try:
-        start = parse_datetime(args.from_time)
-        end = parse_datetime(args.to_time)
+        if args.input and args.kubernetes_api:
+            raise ReportError("--input and --kubernetes-api cannot be used together")
+        if args.last_minutes is not None:
+            if args.to_time:
+                raise ReportError("--to cannot be used with --last-minutes")
+            if args.last_minutes <= 0:
+                raise ReportError("--last-minutes must be greater than zero")
+            end = datetime.now(timezone.utc)
+            start = end - timedelta(minutes=args.last_minutes)
+        else:
+            if not args.to_time:
+                raise ReportError("--to is required when --from is used")
+            start = parse_datetime(args.from_time)
+            end = parse_datetime(args.to_time)
         if start >= end:
             raise ReportError("--from must be earlier than --to")
 

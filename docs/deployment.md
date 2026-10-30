@@ -138,6 +138,7 @@ EXPOSE 8080
 - **`k8s/manifests/ingress.yaml`**:
   - `ingressClassName: cloudflare-tunnel`
   - ホスト名: `ribonclock.iorin.net`
+- **`k8s/manifests/access-report-cronjob.yaml`**: アクセスログ集計用の ServiceAccount、最小権限 RBAC、暫定 CronJob（5分間隔）。
 - **`k8s/argocd/application.yaml`**:
   - ArgoCD Application 定義。
   - `automated: { prune: true, selfHeal: true }` により、Gitへのコミット検知から数分以内に自動ローリングアップデートを実施。
@@ -148,9 +149,9 @@ EXPOSE 8080
 
 1. **トリガー**: `main` ブランチへのプッシュ（ただし `k8s/manifests/**` の更新時は再帰トリガーをスキップ）。
 2. **イメージビルド**: コミットハッシュ（`sha-${GITHUB_SHA:0:7}`）でタグ付け。
-3. **レジストリプッシュ**: GitHub Container Registry（GHCR）へプッシュ。
-4. **GitOps自動コミット**: `k8s/manifests/deployment.yaml` 内のイメージタグを更新し、`[skip ci]` を付けて `main` へコミット・プッシュ。
-5. **ArgoCD同期**: クラスタ内のArgoCDが変更を検知し、ゼロダウンタイムでPodを入れ替えます。
+3. **レジストリプッシュ**: Web 配信用イメージとアクセス集計用 Python イメージを GitHub Container Registry（GHCR）へプッシュ。
+4. **GitOps自動コミット**: `deployment.yaml` と `access-report-cronjob.yaml` のイメージタグを更新し、`[skip ci]` を付けて `main` へコミット・プッシュ。
+5. **ArgoCD同期**: クラスタ内のArgoCDが変更を検知し、Web Pod と CronJob 定義を反映します。
 
 ---
 
@@ -166,6 +167,20 @@ scripts/report-access-counts.sh \
 ```
 
 `--dry-run` で集計結果を確認した後、`DISCORD_WEBHOOK_URL` を環境変数から注入して Discord へ送信します。通知は時間帯別・分類別・ステータス別の件数を ASCII の `#` 棒グラフで表示し、Webhook へ raw log は送信しません。詳細な保持期間、二重計上防止、将来の管理ダッシュボード拡張は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) を参照してください。
+
+動作確認期間だけ、`access-report-cronjob.yaml` の CronJob が5分ごとに直近5分のログを再集計し、同じ形式で Discord へ送信します。CronJob は Kubernetes API の `pods` / `pods/log` だけを読む最小権限 ServiceAccount を使用し、`kubectl` や公開 HTTP API は使用しません。通知先は次のようにクラスタの Secret へ事前に登録します。Webhook URL はリポジトリやマニフェストへ書き込みません。
+
+```bash
+read -r -s DISCORD_WEBHOOK_URL
+export DISCORD_WEBHOOK_URL
+kubectl create secret generic ribonclock-access-report \
+  --namespace ribonclock \
+  --from-literal=DISCORD_WEBHOOK_URL="$DISCORD_WEBHOOK_URL" \
+  --dry-run=client -o yaml | kubectl apply -f -
+unset DISCORD_WEBHOOK_URL
+```
+
+検証後は CronJob を停止または削除し、必要性と通知頻度を確認してから常用のスケジュールを決めます。
 
 ## 7. トラブルシューティング
 

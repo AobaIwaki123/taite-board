@@ -173,9 +173,9 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 
 アプリ起動、PWA のバックグラウンド更新、iOS アプリの再取得は、同じ利用者でも複数リクエストとして数えられる。個人を推定するための補正や deduplication は行わず、数値の意味を「origin request count」と明記する。
 
-### 手動実行に限定する
+### 定期実行は検証用途に限定する
 
-常時稼働する集計サービスやダッシュボードを用意しないため、リアルタイム性と長期履歴は得られない。一方で、実装・監視・外部送信の頻度を最小限にできる。アクセス状況を定期観測したくなった段階で、まず集計済みバケットの保存だけを追加する。
+通常は必要な期間だけ手動実行し、常時稼働する集計サービスやダッシュボードは用意しない。動作確認のための暫定 CronJob だけは5分ごとに直近5分を再集計する。CronJob は Kubernetes API から対象 Pod のログを読み、Webhook へ集計結果を送る。CronJob の実行遅延や再実行により隣接する通知期間が重複する可能性があるため、これは運用確認用であり、長期運用の頻度とはしない。検証後は停止または削除し、必要性が確認された場合だけ常用スケジュールを別途決める。
 
 ## 7. 実装フェーズ
 
@@ -183,7 +183,7 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 
 1. `deploy/nginx.conf` に固定ルート分類と匿名 JSON log format を追加する。
 2. `/healthz` を除くリクエストが JSON Lines になることを確認する。
-3. `report-access-counts` は標準入力または `kubectl logs` の出力を受け取り、dry-run で集計結果を表示する。
+3. `report-access-counts` は標準入力、`kubectl logs`、またはクラスタ内 Kubernetes API の Pod log を受け取り、dry-run で集計結果を表示する。
 4. fixture に IP、User-Agent、クエリ文字列が含まれていても、出力へ伝播しないことをテストする。
 
 ### Phase 2: Discord Webhook
@@ -192,6 +192,13 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 2. Webhook URL が未設定の場合は送信せず、エラーを明示する。
 3. HTTP エラー時は raw log や Webhook URL を出力せず、再実行可能な終了コードを返す。
 4. 実際の Discord チャンネルへ送るのは、少量の fixture で payload を確認した後にする。
+
+### Phase 2.5: 動作確認用 CronJob
+
+1. `access-report-cronjob.yaml` に最小権限の ServiceAccount、Role、RoleBinding、5分間隔の CronJob を定義する。
+2. CronJob は直近5分を再集計し、Discord Webhook URL は Secret からのみ注入する。
+3. Webhook へ送信する内容は手動実行と同じ ASCII 棒グラフ形式に限定する。
+4. 動作確認後は CronJob を停止または削除し、5分間隔を常用設定として残さない。
 
 ### Phase 3: 必要になった場合だけ履歴保存
 
@@ -219,6 +226,7 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 - 同一期間の再集計で累積二重計上が起きない。
 - dry-run の出力に URL、IP、User-Agent、Webhook URL が含まれない。
 - Discord へ送るメッセージが時間帯・分類・件数だけで構成される。
+- CronJob が Kubernetes API の `pods` / `pods/log` だけを読み、公開サイトの経路や過剰な RBAC 権限に依存しない。
 - Cloudflare キャッシュを含まない origin request count であることが、運用手順と通知文に明記される。
 - 管理ダッシュボードを実装する場合、localhost または自宅 LAN からのみ到達でき、公開 Ingress や Cloudflare Tunnel に接続されていない。
 - [privacy-policy.html](../apps/web/public/privacy-policy.html) の「運用目的の匿名集計」への記載変更を、実装の公開前に行う。
