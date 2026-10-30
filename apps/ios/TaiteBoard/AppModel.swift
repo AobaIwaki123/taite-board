@@ -20,6 +20,8 @@ final class AppModel: ObservableObject {
         guard !hasBootstrapped else { return }
         hasBootstrapped = true
         await bootstrap()
+        guard snapshot != nil else { return }
+        await refresh(reason: .launch)
     }
 
     func bootstrap() async {
@@ -36,12 +38,29 @@ final class AppModel: ObservableObject {
     }
 
     func refresh() async {
+        await refresh(reason: .manual)
+    }
+
+    func refreshIfNeeded(reason: RefreshReason = .foreground) async {
         guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
         do {
-            snapshot = try await repository.refresh(reason: .manual)
+            snapshot = try await repository.refreshIfNeeded(reason: reason)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func refresh(reason: RefreshReason) async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            snapshot = try await repository.refresh(reason: reason)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription

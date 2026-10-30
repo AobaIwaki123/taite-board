@@ -30,11 +30,13 @@ enum MainTab: Int, CaseIterable, Hashable {
 
 struct RootView: View {
     @ObservedObject var model: AppModel
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var activeTab: MainTab = .next
     @State private var selectedSessionID: String?
     @State private var previousTab: MainTab = .list
     @State private var selectedImageIndex = 0
+    @State private var isDataStatusPresented = false
 
     private var nextSession: Session? {
         guard let snapshot = model.snapshot else { return nil }
@@ -62,7 +64,8 @@ struct RootView: View {
                 VStack(spacing: 0) {
                     RibbonHeaderView(
                         freshnessLabel: freshnessLabel(for: snapshot),
-                        onLogoClick: resetToNextLive
+                        onLogoClick: resetToNextLive,
+                        onDataStatusClick: { isDataStatusPresented = true }
                     )
 
                     TabView(selection: $activeTab) {
@@ -143,6 +146,17 @@ struct RootView: View {
         .task {
             await model.bootstrapIfNeeded()
         }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, model.snapshot != nil else { return }
+            Task {
+                await model.refreshIfNeeded(reason: .foreground)
+            }
+        }
+        .sheet(isPresented: $isDataStatusPresented) {
+            NavigationStack {
+                DataStatusView(model: model)
+            }
+        }
     }
 
     private func selectSession(_ id: String) {
@@ -161,7 +175,7 @@ struct RootView: View {
     private func freshnessLabel(for snapshot: RepositorySnapshot) -> String? {
         switch snapshot.origin {
         case .remote:
-            return nil
+            return "オンライン"
         case .diskCache, .seed:
             return "オフライン保存版を表示中"
         }
@@ -171,6 +185,7 @@ struct RootView: View {
 struct RibbonHeaderView: View {
     let freshnessLabel: String?
     let onLogoClick: () -> Void
+    let onDataStatusClick: () -> Void
 
     @State private var isPopping = false
 
@@ -220,6 +235,16 @@ struct RibbonHeaderView: View {
                 .background(Color.orange.opacity(0.15), in: Capsule())
                 .overlay(Capsule().stroke(Color.orange.opacity(0.30), lineWidth: 1))
             }
+
+            Button(action: onDataStatusClick) {
+                Image(systemName: "info.circle")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(RibbonTheme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("データ状態")
         }
         .padding(.vertical, 4)
         .overlay(alignment: .bottom) {
