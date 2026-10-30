@@ -7,7 +7,7 @@
 | 項目 | 値 |
 |---|---|
 | 表示名 | リボンクロック |
-| Bundle ID | `net.aooba.taiteboard` |
+| Bundle ID | `net.iorin.ribonclock` |
 | Version | `1.0` |
 | Build | `1` |
 | Deployment Target | iOS 17.0 |
@@ -105,7 +105,7 @@ CLIでexportする場合は、署名チームとプロビジョニング方式�
 ### App Store Connect
 
 - [ ] Account Holderが最新の契約に同意している
-- [ ] App recordを作成し、Bundle IDを `net.aooba.taiteboard` にする
+- [ ] App recordを作成し、Bundle IDを `net.iorin.ribonclock` にする
 - [ ] 名前、カテゴリ、年齢レーティング、権利者、価格、公開地域を確定する
 - [ ] プライバシーポリシーURLとSupport URLが実際にアクセスできる
 - [ ] App Privacyでデータ収集の有無を、配信基盤のログ運用を含めて回答する

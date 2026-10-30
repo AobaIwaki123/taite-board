@@ -52,7 +52,7 @@ xcodebuild \
 ```bash
 xcrun simctl list devices available
 xcrun simctl install booted /private/tmp/taite-board-ios-derived/Build/Products/Debug-iphonesimulator/TaiteBoard.app
-xcrun simctl launch booted net.aooba.taiteboard
+xcrun simctl launch booted net.iorin.ribonclock
 ```
 
 `booted` は起動済みのSimulatorを指します。未起動の場合は、Xcodeの実行先メニューからSimulatorを選んで起動してから実行します。
