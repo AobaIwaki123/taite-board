@@ -100,7 +100,7 @@ DISCORD_WEBHOOK_URL='環境変数から注入' \
 
 ### 3.4 Discord へ送るのは集計結果だけにする
 
-送信メッセージには対象期間、時間帯別・分類別・ステータス分類別の件数だけを含める。Discord 上で桁を揃えて確認できるよう、各件数は ASCII の `#` 棒グラフとしてコードブロック内に表示する。指定期間内にリクエストがない時間帯も `0` として表示する。
+送信メッセージには対象期間と、時間帯別のアクセス数の合計だけを含める。Discord 上で桁を揃えて確認できるよう、件数は ASCII の `#` 棒グラフとしてコードブロック内に表示する。指定期間内にリクエストがない時間帯も `0` として表示する。
 
 ````text
 Ribbon Clock アクセス集計
@@ -108,30 +108,18 @@ Ribbon Clock アクセス集計
 種別: origin request count
 
 ```text
-時間帯別リクエスト数
+時間帯別アクセス数
 00:00            | ####################  42
 01:00            | ########               17
 02:00            |                        0
 ...
 23:00            | ####                   9
-
-分類別リクエスト数
-document         | ####################  42
-schedule         | #################      37
-asset            | ####################  96
-other            | ####                    9
-
-ステータス別リクエスト数
-2xx              | #################### 180
-3xx              |                        0
-4xx              |                        3
-5xx              |                        1
 ```
 
 合計: 184
 ````
 
-Discord Webhook URL、raw log、元 URL、個別時刻、IP、User-Agent、リクエスト本文は送信しない。
+Discord Webhook URL、raw log、元 URL、個別時刻、IP、User-Agent、リクエスト本文、分類別・ステータス別の内訳は送信しない。
 
 ## 4. 二重計上を防ぐ方法
 
@@ -197,7 +185,7 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 
 1. `access-report-cronjob.yaml` に最小権限の ServiceAccount、Role、RoleBinding、5分間隔の CronJob を定義する。
 2. CronJob は直近5分を再集計し、Discord Webhook URL は Secret からのみ注入する。
-3. Webhook へ送信する内容は手動実行と同じ ASCII 棒グラフ形式に限定する。
+3. Webhook へ送信する内容は手動実行と同じ、時間帯別合計の ASCII 棒グラフ形式に限定する。
 4. 動作確認後は CronJob を停止または削除し、5分間隔を常用設定として残さない。
 
 ### Phase 3: 必要になった場合だけ履歴保存
@@ -225,7 +213,7 @@ Nginx で数えられるのは、Cloudflare のキャッシュや中間キャッ
 - `healthz` の probe が集計値を増やさない。
 - 同一期間の再集計で累積二重計上が起きない。
 - dry-run の出力に URL、IP、User-Agent、Webhook URL が含まれない。
-- Discord へ送るメッセージが時間帯・分類・件数だけで構成される。
+- Discord へ送るメッセージが時間帯別の合計件数だけで構成される。
 - CronJob が Kubernetes API の `pods` / `pods/log` だけを読み、公開サイトの経路や過剰な RBAC 権限に依存しない。
 - Cloudflare キャッシュを含まない origin request count であることが、運用手順と通知文に明記される。
 - 管理ダッシュボードを実装する場合、localhost または自宅 LAN からのみ到達でき、公開 Ingress や Cloudflare Tunnel に接続されていない。
