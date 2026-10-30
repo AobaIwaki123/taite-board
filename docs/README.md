@@ -35,3 +35,7 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 - OGP画像はサービス全体を表す静的画像とし、イベント固有の画像や日付を含めない。
 
 画像の検討経緯と未確認事項は [`note/06_web-share-asset-decision-log.md`](../note/06_web-share-asset-decision-log.md) を参照してください。
+
+## 設計資料
+
+- [自宅オーケストレーターと Cloud Run AI パーサー設計案](home-orchestrator-cloud-run-ai-parser.md)

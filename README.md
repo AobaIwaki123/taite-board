@@ -100,6 +100,7 @@ taite-board/
 │   └── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz)
 ├── docs/                      # 開発・アーキテクチャドキュメント
 │   ├── README.md              # ブランドアセット比較
+│   ├── home-orchestrator-cloud-run-ai-parser.md # 自宅処理とCloud Run AIパーサー設計
 │   ├── architecture.md        # アーキテクチャ設計書
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
