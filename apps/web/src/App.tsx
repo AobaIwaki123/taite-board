@@ -177,6 +177,15 @@ export function App() {
           onSelectTab={scrollToTab}
           isViewingSelectedLive={!isNextLive}
         />
+
+        <footer class="flex-shrink-0 pb-1 text-center text-[11px] text-stone-500">
+          <a
+            href="/support.html"
+            class="transition-colors hover:text-stone-300 focus:outline-none focus-visible:text-stone-200"
+          >
+            サイトについて
+          </a>
+        </footer>
       </div>
 
       {/* 画像拡大モーダル */}
