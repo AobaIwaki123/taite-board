@@ -1,4 +1,5 @@
 import { Promotion } from '../types/schedule';
+import { getDeadlineInfo } from '../utils/date';
 import { Icon } from './Icon';
 import { ExternalLink } from '../utils/icons';
 
@@ -17,6 +18,7 @@ export function PromotionBanner({ promotions }: PromotionBannerProps) {
   const badgeText =
     promo.badge || (promo.title.includes('生誕') ? '生誕祭クラファン' : 'お知らせ');
   const ctaText = promo.cta_label || '詳細・支援ページへ';
+  const deadlineInfo = getDeadlineInfo(promo.deadline);
 
   return (
     <div class="rounded-2xl overflow-hidden soft-card border-2 border-rose-500/50 bg-stone-900 shadow-xl my-3">
@@ -36,8 +38,23 @@ export function PromotionBanner({ promotions }: PromotionBannerProps) {
           <span class="px-2.5 py-0.5 rounded-md font-bold bg-red-600 text-white shadow text-xs">
             {badgeText}
           </span>
-          {promo.deadline ? (
-            <span class="text-rose-300 font-bold text-xs">{promo.deadline}</span>
+          {deadlineInfo ? (
+            <div class="flex items-center gap-1.5">
+              <span class="text-stone-300 font-medium text-xs">
+                {deadlineInfo.formattedDeadline}
+              </span>
+              <span
+                class={`px-2 py-0.5 rounded-md text-xs font-bold border ${
+                  deadlineInfo.isExpired
+                    ? 'bg-stone-800 text-stone-400 border-white/10'
+                    : deadlineInfo.isUrgent
+                    ? 'bg-rose-500 text-stone-950 border-rose-400 font-black animate-pulse'
+                    : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                }`}
+              >
+                {deadlineInfo.countdownText}
+              </span>
+            </div>
           ) : (
             <span class="text-rose-300 font-bold text-xs">受付中</span>
           )}
