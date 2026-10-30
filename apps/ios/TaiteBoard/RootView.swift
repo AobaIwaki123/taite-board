@@ -9,7 +9,7 @@ enum RibbonTheme {
     static let roseStrong = Color(red: 0.956, green: 0.247, blue: 0.369)
     static let purple = Color(red: 0.659, green: 0.333, blue: 0.969)
     static let textPrimary = Color(red: 0.980, green: 0.976, blue: 0.965)
-    static let textSecondary = Color(red: 0.690, green: 0.667, blue: 0.639)
+    static let textSecondary = Color(red: 0.760, green: 0.735, blue: 0.705)
     static let border = Color.white.opacity(0.08)
     static let shadow = Color.black.opacity(0.24)
 }
@@ -74,7 +74,7 @@ struct RootView: View {
                             onSelectImageIndex: { selectedImageIndex = $0 },
                             onSelectSession: selectSession,
                             onResetToNextLive: resetToNextLive,
-                            onBackToList: { activeTab = previousTab }
+                            onBackToList: returnToPreviousTab
                         )
                         .tag(MainTab.next)
 
@@ -159,9 +159,18 @@ struct RootView: View {
     }
 
     private func resetToNextLive() {
-        selectedSessionID = nil
-        selectedImageIndex = 0
+        selectNextLive()
         activeTab = .next
+    }
+
+    private func returnToPreviousTab() {
+        selectNextLive()
+        activeTab = previousTab
+    }
+
+    private func selectNextLive() {
+        selectedSessionID = nextSession?.id
+        selectedImageIndex = 0
     }
 
 }

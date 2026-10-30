@@ -65,11 +65,20 @@ export function App() {
 
   // 直近ライブへの復帰
   const handleResetToNextLive = () => {
-    if (!data?.sessions?.length) return;
-    const nextId = data.current_next_id || data.sessions[0].id;
+    const nextId = data?.current_next_id || data?.sessions[0]?.id;
+    if (!nextId) return;
     setSelectedSessionId(nextId);
     setSelectedImageIndex(0);
     scrollToTab('next');
+  };
+
+  // 一覧へ戻るときは、次に見る公演を直近ライブへ戻しておく。
+  // これにより一覧から「直近ライブ」へ戻る導線が選択中の過去公演に引っ張られない。
+  const handleBackToPreviousTab = () => {
+    const nextId = data?.current_next_id || data?.sessions[0]?.id;
+    setSelectedSessionId(nextId ?? null);
+    setSelectedImageIndex(0);
+    scrollToTab(previousTab);
   };
 
   // セッション詳細の表示
@@ -128,7 +137,7 @@ export function App() {
                 onSelectImageIndex={setSelectedImageIndex}
                 onSelectSession={handleSelectSession}
                 onResetToNextLive={handleResetToNextLive}
-                onBackToList={() => scrollToTab(previousTab)}
+                onBackToList={handleBackToPreviousTab}
                 onOpenLightbox={() => setIsLightboxOpen(true)}
               />
             )}

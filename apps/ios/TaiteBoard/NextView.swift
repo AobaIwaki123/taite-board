@@ -108,15 +108,22 @@ struct NextView: View {
         let selectedImage = images.indices.contains(selectedImageIndex) ? images[selectedImageIndex] : images[0]
 
         return ZStack(alignment: .bottomLeading) {
-            ScheduleRemoteImage(source: selectedImage.url, contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .frame(height: 176)
+            Button {
+                isImageViewerPresented = true
+            } label: {
+                ScheduleRemoteImage(source: selectedImage.url, contentMode: .fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 176)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             LinearGradient(
                 colors: [.clear, Color.black.opacity(0.25)],
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .allowsHitTesting(false)
 
             if images.count > 1 {
                 HStack(spacing: 6) {
@@ -477,7 +484,12 @@ private struct RibbonImageViewer: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.black
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismiss()
+                }
 
             if images.indices.contains(selectedIndex) {
                 ScheduleRemoteImage(source: images[selectedIndex].url, contentMode: .fit)
@@ -520,6 +532,10 @@ private struct RibbonImageViewer: View {
 private struct PromotionCard: View {
     let promotion: Promotion
 
+    private var isHero: Bool {
+        promotion.type == "hero"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let imageURL = promotion.imageUrl, !imageURL.isEmpty {
@@ -556,12 +572,21 @@ private struct PromotionCard: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(RibbonTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 10))
+                        .background(
+                            isHero
+                                ? AnyShapeStyle(LinearGradient(colors: [.red, RibbonTheme.roseStrong], startPoint: .leading, endPoint: .trailing))
+                                : AnyShapeStyle(RibbonTheme.surfaceElevated),
+                            in: RoundedRectangle(cornerRadius: 10)
+                        )
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(RibbonTheme.border, lineWidth: 1))
                 }
             }
         }
         .padding(14)
         .ribbonCard(cornerRadius: 16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isHero ? RibbonTheme.roseStrong.opacity(0.55) : .clear, lineWidth: isHero ? 2 : 0)
+        )
     }
 }

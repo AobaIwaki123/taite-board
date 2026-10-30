@@ -9,7 +9,7 @@
 | 表示名 | リボカレ |
 | Bundle ID | `net.iorin.ribonclock` |
 | Version | `1.0` |
-| Build | `1` |
+| Build | `2`（UI修正版のリリース候補。Build 1はTestFlight実機確認済み） |
 | Deployment Target | iOS 17.0 |
 | 対応デバイス | iPhone / iPad |
 | データ配信 | `https://ribonclock.iorin.net/schedule.json` |
@@ -60,6 +60,17 @@ Bundle IDはApp Store ConnectのアプリレコードとXcodeの値を一致さ�
 - `PrivacyInfo.xcprivacy` をアプリバンドルへ追加
 - 公開URLとして `privacy-policy.html` と `support.html` を追加
 - App Store用のアイコンは `Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` を使用
+
+### 作成済みスクリーンショット候補
+
+App Store Connectのスクリーンショット登録用に、修正版Build 2から次の画像を作成しています。
+
+| 対象 | サイズ | ファイル |
+|---|---:|---|
+| iPhone 6.3インチ相当 | 1206 × 2622 | `review-assets/app-store/iphone-17-home.png` |
+| iPad 13インチ | 2064 × 2752 | `review-assets/app-store/ipad-pro-13-home.png` |
+
+いずれもアプリの実画面をそのまま撮影した画像です。App Store Connectの表示枠と最終Buildが一致していることを確認してから登録します。
 
 Privacy Manifestは、現在のコードと依存関係において、ユーザーデータ収集・追跡・AppleのRequired Reason API利用を宣言していません。依存SDKや端末APIを追加する場合は、Privacy ManifestとApp Store Connectのプライバシー回答を再確認します。
 
