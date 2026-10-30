@@ -1,0 +1,174 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://taite.aooba.net/schema/schedule.schema.json",
+  "title": "TaiteBoardSchedule",
+  "description": "Unified data contract for Ribbon Clock live timetable schedule",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "timezone",
+    "target_group",
+    "sessions"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "description": "Schema version number, starting at 1",
+      "minimum": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 generation timestamp with timezone"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "Target timezone identifier",
+      "default": "Asia/Tokyo"
+    },
+    "current_next_id": {
+      "type": "string",
+      "description": "ID of the next upcoming session"
+    },
+    "target_group": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "canonical_id": { "type": "string" },
+        "name": { "type": "string" },
+        "short_name": { "type": "string" },
+        "official_x": { "type": "string", "format": "uri" },
+        "official_tiktok": { "type": "string", "format": "uri" }
+      }
+    },
+    "featured_member": {
+      "type": "object",
+      "properties": {
+        "canonical_id": { "type": "string" },
+        "name": { "type": "string" },
+        "member_color": { "type": "string" },
+        "color_code": { "type": "string" },
+        "birthday_title": { "type": "string" },
+        "crowdfunding_url": { "type": "string" },
+        "banner_image": { "type": "string" }
+      }
+    },
+    "promotions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "image_url", "cta_url"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "image_url": { "type": "string" },
+          "cta_url": { "type": "string" },
+          "deadline": { "type": "string" }
+        }
+      }
+    },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "date", "venue", "live", "benefit", "ticket"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "day_of_week": { "type": "string" },
+          "session_name": { "type": "string" },
+          "venue": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "canonical_id": { "type": "string" },
+              "name": { "type": "string" },
+              "map_url": { "type": "string" },
+              "map_query": { "type": "string" },
+              "official_url": { "type": "string" }
+            }
+          },
+          "live": {
+            "type": "object",
+            "required": ["start_time"],
+            "properties": {
+              "start_time": { "type": "string" },
+              "end_time": { "type": "string" },
+              "stage": { "type": "string" }
+            }
+          },
+          "benefit": {
+            "type": "object",
+            "required": ["start_time"],
+            "properties": {
+              "type": { "type": "string" },
+              "start_time": { "type": "string" },
+              "end_time": { "type": "string" },
+              "booth": { "type": "string" },
+              "note": { "type": "string" }
+            }
+          },
+          "photo": {
+            "type": ["object", "null"],
+            "properties": {
+              "available": { "type": "boolean" },
+              "rule": { "type": "string" },
+              "raw_text": { "type": "string" }
+            }
+          },
+          "special_notes": { "type": ["string", "null"] },
+          "admission_bonus": { "type": ["string", "null"] },
+          "ticket": {
+            "type": "object",
+            "properties": {
+              "platform": { "type": "string" },
+              "url": { "type": ["string", "null"] },
+              "prices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "tier": { "type": "string" },
+                    "price": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "image_url": { "type": "string" },
+          "source_tweet_url": { "type": "string" },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "url"],
+              "properties": {
+                "type": { "type": "string", "enum": ["flyer", "timetable"] },
+                "label": { "type": "string" },
+                "url": { "type": "string" }
+              }
+            }
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "url"],
+              "properties": {
+                "type": { "type": "string" },
+                "source_id": { "type": "string" },
+                "url": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

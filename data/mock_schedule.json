@@ -3,7 +3,8 @@
     "name": "リボンクロック",
     "short_name": "リボクロ",
     "official_x": "https://x.com/Ribbon_Clock",
-    "official_tiktok": "https://www.tiktok.com/@ribbon_clock"
+    "official_tiktok": "https://www.tiktok.com/@ribbon_clock",
+    "canonical_id": "group:ribbon-clock"
   },
   "featured_member": {
     "name": "神楽あゆ",
@@ -11,7 +12,8 @@
     "color_code": "#ef4444",
     "birthday_title": "神楽あゆ生誕祭 2026（20th Anniversary）",
     "crowdfunding_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
-    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig"
+    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=orig",
+    "canonical_id": "member:ribbon-clock:ayu-kagura"
   },
   "promotions": [
     {
@@ -569,5 +571,8 @@
         }
       ]
     }
-  ]
+  ],
+  "schema_version": 1,
+  "generated_at": "2026-10-30T03:00:00+09:00",
+  "timezone": "Asia/Tokyo"
 }

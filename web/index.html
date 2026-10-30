@@ -110,14 +110,18 @@
   <!-- Mobile Frame (Max width 420px for perfect one-handed mobile view) -->
   <div class="mx-auto max-w-sm w-full px-3.5 pt-3 flex flex-col h-full min-h-0 relative">
 
-    <!-- Top App Bar: Minimal & Clean Header (押し感付きロゴ ＆ 公式Xリンク) -->
+    <!-- Top App Bar: Minimal & Clean Header (押し感付きロゴ ＆ 鮮度インジケーター) -->
     <header class="flex-shrink-0 flex items-center justify-between py-1 border-b border-white/5 pb-2">
       <button onclick="handleLogoClick()" class="flex items-center gap-2 py-1 px-2 -ml-2 rounded-xl hover:bg-white/5 active:scale-90 transition-all duration-150 select-none group cursor-pointer focus:outline-none" title="直近ライブへジャンプ">
         <span id="logo-icon" class="text-xl inline-block transition-transform duration-200 group-hover:scale-110">🎀</span>
         <span class="text-base font-extrabold text-white tracking-wide group-hover:text-rose-300 transition-colors">リボンクロック</span>
       </button>
 
-
+      <!-- 鮮度・オフラインインジケーター (通常時は非表示、通信失敗または24h経過時のみ控えめに表示) -->
+      <div id="freshness-indicator" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <span id="freshness-text">キャッシュ表示中</span>
+      </div>
     </header>
 
 
@@ -431,13 +435,38 @@
       localStorage.removeItem('taite_telemetry_endpoint');
     } catch(e) {}
 
+      let isFallback = false;
       try {
-        const res = await fetch('mock_schedule.json?t=' + Date.now());
-        appData = await res.json();
+        // schedule.json を優先取得 (フォールバックとして mock_schedule.json も試行)
+        let res = await fetch('schedule.json?t=' + Date.now()).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch('mock_schedule.json?t=' + Date.now()).catch(() => null);
+        }
+        if (res && res.ok) {
+          appData = await res.json();
+          try {
+            localStorage.setItem('taite_cached_schedule', JSON.stringify(appData));
+          } catch(e) {}
+        } else {
+          throw new Error('Network response not ok');
+        }
       } catch (e) {
-        console.error('Data load error', e);
+        console.warn('Network load failed, falling back to local cache', e);
+        try {
+          const cached = localStorage.getItem('taite_cached_schedule');
+          if (cached) {
+            appData = JSON.parse(cached);
+            isFallback = true;
+          }
+        } catch(err) {}
       }
 
+      if (!appData) {
+        console.error('Fatal: No schedule data available');
+        return;
+      }
+
+      updateFreshnessStatus(isFallback);
       currentId = appData.current_next_id || appData.sessions[0].id;
       renderCockpit(currentId);
       renderUpcomingList();
@@ -445,6 +474,35 @@
       renderPromotion('large');
       initCarouselSync();
       lucide.createIcons();
+    }
+
+    // データ鮮度インジケーター (ADR-0008)
+    function updateFreshnessStatus(isFallback) {
+      const badge = document.getElementById('freshness-indicator');
+      const text = document.getElementById('freshness-text');
+      if (!badge || !text) return;
+
+      if (!appData.generated_at) {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+        return;
+      }
+
+      const genTime = new Date(appData.generated_at).getTime();
+      const now = Date.now();
+      const ageHours = (now - genTime) / (1000 * 60 * 60);
+
+      // キャッシュ使用時または24時間以上経過時に表示
+      if (isFallback || ageHours > 24) {
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+        const d = new Date(genTime);
+        const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        text.textContent = isFallback ? `キャッシュ表示 (${dateStr})` : `最終更新: ${dateStr}`;
+      } else {
+        badge.classList.add('hidden');
+        badge.classList.remove('flex');
+      }
     }
 
     // Multiple Images State
