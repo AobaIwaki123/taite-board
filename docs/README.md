@@ -39,3 +39,7 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 ## データ intake とリリース
 
 端末から URL・画像を候補 JSON に変換する skill と、名寄せ・検証・PR・GitOps デプロイまでの初期手順は [`manual-ingest-release.md`](manual-ingest-release.md) にまとめています。候補は公開用 JSON へ自動昇格せず、人間レビューを通してから反映します。
+
+## プライバシー配慮型アクセス集計
+
+クライアント計測を追加せず、Nginx の匿名ログを必要なときだけ集計して Discord へ通知する案は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) にまとめています。初期案では origin request count のみを扱い、個人単位の追跡や raw log の Discord 送信は行いません。

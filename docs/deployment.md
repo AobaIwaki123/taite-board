@@ -130,7 +130,20 @@ EXPOSE 8080
 
 ---
 
-## 6. トラブルシューティング
+## 6. プライバシー配慮型アクセス集計
+
+Nginx は `/healthz` を除くリクエストについて、IPアドレス、User-Agent、Referer、Cookie、クエリ文字列を記録せず、時刻・固定ルート分類・HTTPステータスだけを標準出力へ出します。既定の combined access log が併記されないよう、匿名 `access_log` は server コンテキストで設定します。Kubernetes のログは短期間保持し、必要なときだけ次のスクリプトで指定期間を再集計します。
+
+```bash
+scripts/report-access-counts.sh \
+  --from 2026-10-30T00:00:00+09:00 \
+  --to 2026-10-31T00:00:00+09:00 \
+  --dry-run
+```
+
+`--dry-run` で集計結果を確認した後、`DISCORD_WEBHOOK_URL` を環境変数から注入して Discord へ送信します。Webhook へは分類別・時間帯別の件数だけを送信し、raw log は送信しません。詳細な保持期間、二重計上防止、将来の管理ダッシュボード拡張は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) を参照してください。
+
+## 7. トラブルシューティング
 
 ### 画面で「オフライン表示中」が表示される場合
 - クライアント側で `schedule.json` の取得に失敗し、前回ロードした `localStorage` キャッシュで描画されています。
