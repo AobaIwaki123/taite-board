@@ -29,7 +29,7 @@ Bundle IDはApp Store ConnectのアプリレコードとXcodeの値を一致さ�
 | SKU | `taite-board-ios` |
 | Primary Category | エンターテインメント候補。App Store Connectで決定 |
 | Privacy Policy URL | `https://ribonclock.iorin.net/privacy-policy.html` |
-| Support URL | `https://ribonclock.iorin.net/support.html`。実際の連絡先として十分か確認 |
+| Support URL | `https://ribonclock.iorin.net/support.html`。公開用メールアドレス `support@iorin.net` を掲載 |
 | Marketing URL | `https://ribonclock.iorin.net/` |
 | Copyright | 権利者名と取得年を確定して入力 |
 | Age Rating | 実際の表示内容に合わせて回答 |
