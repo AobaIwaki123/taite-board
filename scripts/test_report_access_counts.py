@@ -43,17 +43,19 @@ class ReportAccessCountsTest(unittest.TestCase):
         message = report.build_message(
             start,
             end,
-            Counter({"document": 2}),
-            Counter({"2xx": 2}),
             Counter({datetime(2026, 10, 30, 0, tzinfo=report.LOCAL_ZONE): 2}),
             0,
         )
 
         self.assertIn("```text", message)
-        self.assertIn("時間帯別リクエスト数", message)
-        self.assertIn("document", message)
+        self.assertIn("時間帯別アクセス数", message)
         self.assertIn("#", message)
         self.assertIn("00:00", message)
+        self.assertIn("合計: 2", message)
+        self.assertNotIn("document", message)
+        self.assertNotIn("2xx", message)
+        self.assertNotIn("ステータス", message)
+        self.assertNotIn("分類", message)
         self.assertNotIn("https://", message)
         self.assertNotIn("User-Agent", message)
         self.assertNotIn("192.0.2.1", message)
@@ -64,8 +66,6 @@ class ReportAccessCountsTest(unittest.TestCase):
         message = report.build_message(
             start,
             end,
-            Counter(),
-            Counter(),
             Counter({datetime(2026, 10, 30, 1, tzinfo=report.LOCAL_ZONE): 2}),
             0,
         )
@@ -73,7 +73,7 @@ class ReportAccessCountsTest(unittest.TestCase):
         self.assertIn("00:00", message)
         self.assertIn("01:00", message)
         self.assertIn("02:00", message)
-        self.assertEqual(message.count("|"), 11)
+        self.assertEqual(message.count("|"), 3)
 
     def test_render_bar_scales_to_maximum(self) -> None:
         self.assertEqual(report.render_bar(0, 10), "")

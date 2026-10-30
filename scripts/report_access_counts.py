@@ -262,19 +262,13 @@ def format_graph_line(label: str, value: int, maximum: int) -> str:
 def build_message(
     start: datetime,
     end: datetime,
-    routes: Counter[str],
-    statuses: Counter[str],
     buckets: Counter[datetime],
     malformed: int,
 ) -> str:
-    total = sum(routes.values())
+    total = sum(buckets.values())
     hour_buckets = list(iter_hour_buckets(start, end))
     hour_values = [buckets.get(bucket, 0) for bucket in hour_buckets]
     hour_maximum = max(hour_values, default=0)
-    route_values = [routes.get(route, 0) for route in ("document", "schedule", "asset", "other")]
-    route_maximum = max(route_values, default=0)
-    status_values = [statuses.get(status, 0) for status in ("2xx", "3xx", "4xx", "5xx")]
-    status_maximum = max(status_values, default=0)
     hour_label_format = "%H:%M" if (end - start).total_seconds() <= 24 * 60 * 60 else "%m-%d %H:%M"
 
     lines = [
@@ -283,20 +277,12 @@ def build_message(
         "種別: origin request count",
         "",
         "```text",
-        "時間帯別リクエスト数",
+        "時間帯別アクセス数",
     ]
     lines.extend(
         format_graph_line(bucket.strftime(hour_label_format), buckets.get(bucket, 0), hour_maximum)
         for bucket in hour_buckets
     )
-
-    lines.extend(["", "分類別リクエスト数"])
-    for route in ("document", "schedule", "asset", "other"):
-        lines.append(format_graph_line(route, routes.get(route, 0), route_maximum))
-
-    lines.extend(["", "ステータス別リクエスト数"])
-    for status in ("2xx", "3xx", "4xx", "5xx"):
-        lines.append(format_graph_line(status, statuses.get(status, 0), status_maximum))
 
     lines.extend(["```", "", f"合計: {total}"])
 
@@ -351,7 +337,7 @@ def main() -> int:
         routes, statuses, buckets, malformed = parse_log_lines(
             read_log_lines(args, start), start, end
         )
-        message = build_message(start, end, routes, statuses, buckets, malformed)
+        message = build_message(start, end, buckets, malformed)
 
         if args.dry_run:
             print(message)
