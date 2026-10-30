@@ -28,9 +28,11 @@ export interface Promotion {
   title: string;
   subtitle?: string;
   cta_label?: string;
-  image_url: string;
+  image_url?: string;
   cta_url: string;
   deadline?: string;
+  priority?: number;
+  active?: boolean;
 }
 
 export interface Venue {

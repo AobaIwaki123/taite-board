@@ -58,14 +58,19 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "title", "image_url", "cta_url"],
+        "required": ["id", "title", "cta_url"],
         "properties": {
           "id": { "type": "string" },
+          "type": { "type": "string" },
+          "badge": { "type": "string" },
           "title": { "type": "string" },
           "subtitle": { "type": "string" },
+          "cta_label": { "type": "string" },
           "image_url": { "type": "string" },
           "cta_url": { "type": "string" },
-          "deadline": { "type": "string" }
+          "deadline": { "type": "string" },
+          "priority": { "type": "integer" },
+          "active": { "type": "boolean" }
         }
       }
     },
