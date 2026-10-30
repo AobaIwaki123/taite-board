@@ -24,16 +24,18 @@ export function PromotionBanner({ promotions }: PromotionBannerProps) {
       <div class="p-3.5 space-y-2 bg-stone-900">
         <div class="flex items-center justify-between text-xs">
           <span class="px-2 py-0.5 rounded-md font-bold bg-red-600 text-white shadow">
-            生誕祭クラファン
+            {promo.title.includes('クラファン') ? 'クラウドファンディング' : 'お知らせ'}
           </span>
-          <span class="text-rose-300 font-medium">受付期間：〜11/22まで</span>
+          {promo.deadline && (
+            <span class="text-rose-300 font-medium">受付：{promo.deadline}</span>
+          )}
         </div>
 
         <div class="space-y-0.5">
-          <h3 class="text-sm font-extrabold text-white">神楽あゆ 生誕祭2026</h3>
-          <p class="text-xs text-stone-300 leading-relaxed">
-            初めての生誕祭＆20歳の節目のクラファン開催中。
-          </p>
+          <h3 class="text-sm font-extrabold text-white">{promo.title}</h3>
+          {promo.subtitle && (
+            <p class="text-xs text-stone-300 leading-relaxed">{promo.subtitle}</p>
+          )}
         </div>
 
         <a
