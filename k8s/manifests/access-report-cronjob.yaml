@@ -56,6 +56,8 @@ metadata:
 spec:
   # Temporary five-minute cadence with a six-hour lookback for operational verification.
   schedule: "*/5 * * * *"
+  # Keep suspended until log persistence across Pod replacement is designed.
+  suspend: true
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 120
   successfulJobsHistoryLimit: 1
