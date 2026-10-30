@@ -67,8 +67,6 @@ export function LightboxModal({
 
   if (!isOpen) return null;
 
-  const currentImage = images[currentIndex] || images[0];
-
   const handleTouchStart = (e: TouchEvent) => {
     if (e.touches.length !== 1) return;
     const touch = e.touches[0];
@@ -228,7 +226,8 @@ export function LightboxModal({
   };
 
   // ドラッグ量に応じた進行度 (0.0〜1.0)
-  const dragFraction = isDragging ? dragDeltaX / 220 : 0;
+  const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 375;
+  const dragFraction = isDragging && scale === 1 ? dragDeltaX / containerWidth : 0;
   const currentDragProgress = Math.max(
     0,
     Math.min(images.length - 1, currentIndex - dragFraction)
@@ -277,26 +276,52 @@ export function LightboxModal({
         </div>
       )}
 
-      {/* 画像プレビュー本体 */}
-      <div class="flex-1 flex items-center justify-center w-full min-h-0 p-2 overflow-hidden">
-        {currentImage?.url && (
-          <img
-            src={currentImage.url}
-            referrerPolicy="no-referrer"
-            alt={currentImage.label || '拡大画像'}
-            onDblClick={handleDoubleClick}
-            class="max-w-[94vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 select-none"
-            style={{
-              transform: `translate(${pan.x + (isDragging ? dragDeltaX * 0.7 : 0)}px, ${pan.y}px) scale(${scale})`,
-              transition:
-                isDragging || isPanning
-                  ? 'none'
-                  : 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
-              cursor: scale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'pointer',
-              touchAction: 'none',
-            }}
-          />
-        )}
+      {/* 画像カルーセル本体（左右の画像を連続トラックで配置） */}
+      <div class="flex-1 w-full min-h-0 overflow-hidden relative flex items-center">
+        <div
+          class="flex w-full h-full items-center"
+          style={{
+            transform: `translateX(calc(${-currentIndex * 100}% + ${isDragging && scale === 1 ? dragDeltaX : 0}px))`,
+            transition:
+              isDragging || isPanning
+                ? 'none'
+                : 'transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+          }}
+        >
+          {images.map((img, idx) => {
+            const isCurrent = idx === currentIndex;
+            return (
+              <div
+                key={idx}
+                class="w-full h-full shrink-0 flex items-center justify-center p-2"
+              >
+                {img.url && (
+                  <img
+                    src={img.url}
+                    referrerPolicy="no-referrer"
+                    alt={img.label || '拡大画像'}
+                    onDblClick={isCurrent ? handleDoubleClick : undefined}
+                    class="max-w-[94vw] max-h-[85vh] object-contain rounded-2xl shadow-2xl ring-1 ring-white/10 select-none"
+                    style={
+                      isCurrent && scale > 1
+                        ? {
+                            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                            transition: isPanning
+                              ? 'none'
+                              : 'transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+                            cursor: isPanning ? 'grabbing' : 'grab',
+                            touchAction: 'none',
+                          }
+                        : {
+                            touchAction: 'none',
+                          }
+                    }
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* 拡大中インジケーター */}
