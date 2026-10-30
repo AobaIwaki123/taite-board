@@ -1,115 +1,117 @@
-# Ribbon Clock (taite-board) エージェント規約 (AGENTS.md)
+# Ribbon Clock (taite-board) 開発規約 (AGENTS.md)
 
-本ドキュメントは、ライブ情報・タイムテーブル即時把握ボード「Ribbon Clock（taite-board）」の開発・運用において、AIエージェントおよび開発者が遵守すべきアーキテクチャ方針、コーディング規約、データ管理プロトコル、およびPR運用ルールを定めます。
+本ドキュメントは、Ribbon Clock（taite-board）の開発・運用において、AIエージェントおよび開発者が遵守すべきアーキテクチャ方針、コーディング規約、データ管理プロトコル、およびPR運用ルールを定めます。
 
 ---
 
-## 1. プロジェクト概要と基本理念
+## 1. システム概要と非機能要件
 
-### 1.1 目的
-Ribbon Clock は、複数の公式アカウント、告知画像、チケットプラットフォームに分散するアイドル・アーティストの出演スケジュールやタイムテーブル（タイテ）を、ファンが現場・移動中に一瞬で確認・把握できるように最適化されたモバイルファーストのWebダッシュボードです。
+### 1.1 システム概要
+Ribbon Clock は、アイドルグループ「リボンクロック」のライブ出演情報およびタイムテーブルを集約し、静的配信JSONとモバイルWebクライアントを通じて提供するシステムです。
 
-### 1.2 コアバリュー
-1. **即時把握性（Glanceability）**: アプリを開いた瞬間に「今どこで誰が何をしているか」「次のライブは何時か」が判読できること。
-2. **完全なプライバシーとゼロテレメトリ**: ユーザーの行動追跡、Cookie、広告トラッカー、UUID発行を一切行わず、完全な静的キャッシュとローカル状態のみで動作すること。
-3. **オフライン耐性**: 会場の地下や通信制限下でも、直前に取得したスケジュールデータが `localStorage` から即座に展開されること。
-4. **データ整合性の保証**: 終了時刻が開演時刻より前になるなどの矛盾データを排除し、スキーマバリデーションを通過した確定JSONのみを配信すること。
+### 1.2 非機能要件・技術的制約
+1. **完全なプライバシー保護 (Zero Telemetry)**:
+   - ユーザーのトラッキング、Cookie、アクセス解析用外部タグ、識別用UUIDの発行を行わない。
+2. **オフライン耐性**:
+   - スケジュールデータ取得後は `localStorage` にキャッシュし、次回以降およびオフライン時にも同一データを即座に復元・表示する。
+3. **データ整合性の検証**:
+   - `schema/schedule.schema.json`（Draft-07）に完全準拠し、スキーマ違反や時刻逆転などの矛盾データはビルド・配信パイプラインで自動検知して配信を遮断する。
 
 ---
 
 ## 2. ディレクトリ構成と責務分離
 
-ADR-0007 に基づき、ソースコード、データパイプライン、成果物の責務は以下のように分離されています。
+ADR-0007 および ADR-0010 に基づき、各ディレクトリの責務を厳格に分離しています。
 
 ```text
 space/taite-board/
 ├── apps/
-│   └── web/              # フロントエンド正本 (TypeScript + Vite + Tailwind CSS)
-│       ├── src/          # TypeScript ソースコード
-│       ├── public/       # 静的アセット (アイコン、画像等)
-│       ├── index.html    # SPA エントリーポイント
-│       ├── package.json  # パッケージ定義とスクリプト
-│       ├── tsconfig.json # TypeScript 設定 (Strict Mode)
-│       └── vite.config.ts# Vite バンドラ設定
+│   └── web/              # フロントエンド正本 (Preact + TypeScript + Tailwind CSS)
 ├── cmd/
 │   └── taite/            # データパイプライン統合 Go CLI
-│       └── main.go       # fetch / extract / validate / build サブコマンド
-├── data/                 # 5層データパイプライン
-│   ├── input/            # クローラー巡回対象 (sources.json, input_urls.txt)
+├── data/                 # 5層データパイプライン (data/README.md 参照)
+│   ├── input/            # クローラー巡回対象定義
 │   ├── raw/              # 不変生スナップショット (runs/<run-id>/)
-│   ├── candidate/        # 自動抽出・OCR候補中間データ
+│   ├── candidate/        # 自動抽出中間データ
 │   ├── curated/          # 人間管理マスター (entities.json, overrides.json)
 │   └── generated/        # 公開配信確定成果物 (schedule.json)
 ├── deploy/
-│   └── nginx.conf        # Kubernetes Nginx コンテナ用設定 (port 8080, /healthz)
-├── docs/                 # GitHub Pages 公開用成果物同期ディレクトリ
+│   └── nginx.conf        # Kubernetes Nginx 設定 (port 8080, /healthz)
+├── docs/                 # 開発・アーキテクチャドキュメント (ビルド成果物の混入禁止)
 ├── internal/             # Go CLI 内部実装パッケージ
-│   ├── fetch/            # 一次データ取得
-│   ├── source/           # 外部ソースアダプター
-│   └── validate/         # スキーマ・整合性検証
 ├── k8s/                  # Kubernetes / GitOps (ArgoCD) マニフェスト
 ├── schema/
 │   └── schedule.schema.json # スケジュールデータ標準スキーマ (Draft-07)
-├── scripts/              # 開発・ビルド補助スクリプト
-│   └── build.sh          # フロントエンドビルドと成果物同期スクリプト
-├── adr/                  # アーキテクチャ決定記録 (0001-...形式)
-└── note/                 # 技術調査・仕様メモ
+├── scripts/              # 開発・ビルドスクリプト
+├── adr/                  # アーキテクチャ決定記録 (adr/README.md 参照)
+├── Makefile              # 開発タスク定義
+└── Dockerfile            # マルチステージコンテナビルド定義
 ```
 
-> **注意**: `web/` ディレクトリは初期MVPの遺産であり廃止されました。クライアント側の改修は必ず `apps/web/` に対して行います。
+> **禁止事項**: `docs/` に HTML、JS、CSS、画像などのビルド生成物をコミットすることは禁止します。生成物は `apps/web/dist/` にのみ出力され、Docker マルチステージビルドを通じて本番コンテナへ配置されます。
 
 ---
 
-## 3. Git & 変更管理プロトコル (PR-Only Workflow)
+## 3. Git & PR 運用ルール (PR-Only Workflow)
 
-本リポジトリ（外部公開プロダクト `taite-board`）では、保護された `main` ブランチへの直接Pushは厳格に禁止されており、以下のPR運用を徹底します。
+本リポジトリは、保護された `main` ブランチへの直接Pushを禁止し、**PR-Only Workflow** を適用します。
 
-1. **Feature ブランチの作成**:
-   - `feat/<topic>`, `fix/<topic>`, `refactor/<topic>` の形式でブランチを分岐します。
-2. **完全なローカル検証**:
-   - コミット前に必ず TypeScript の型検査（`npm run typecheck` または `npm run build`）、Go の検証（`go test ./...`）、およびスキーマ検証（`./bin/taite validate`）をパスさせます。
-3. **PR起票とCI確認**:
-   - GitHub CLI (`gh pr create`) を用いてPRを作成します。
-   - PR本文には「背景・目的」「変更内容」「検証手順（コマンドと結果）」を簡潔・論理的に記載します。
-4. **マージ**:
-   - CI（GitHub Actions）の通過を確認後、`gh pr merge --squash --delete-branch` でマージします。
+1. **ブランチ命名規則**:
+   - `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `docs/<topic>`
+2. **事前ローカル検証**:
+   - PR起票前に必ず以下の検証コマンドを実行し、エラーがゼロであることを確認します。
+   - `make test`: Go テスト
+   - `make validate`: スケジュールJSONスキーマ検証
+   - `npm --prefix apps/web run typecheck`: TypeScript 型検査
+   - `npm --prefix apps/web run build`: フロントエンドバンドルビルド
+3. **PR起票とマージ**:
+   - `gh pr create` でPRを作成し、GitHub Actions の通過を確認後、`gh pr merge --squash --delete-branch` でマージします。
 
 ---
 
-## 4. ドキュメント・コミュニケーション規約
+## 4. ドキュメント・文章規約
 
-1. **絵文字の完全不使用**:
-   - コミットメッセージ、PR本文、コード内コメント、ドキュメント（README、ADR、note等）において、原則として絵文字を使用しません。
-2. **チャット本文への生 Mermaid 出力の禁止**:
-   - ターミナルでの可読性を損なうため、チャット返答本文に生の Mermaid コードブロックを出力せず、テキストや表で要点を説明します。
-   - 構造図や状態遷移図が必要な場合は `docs/*.md` や `note/*.md` 内に記述し、ファイルリンクを提示します。
-3. **Mermaid 構文エラーの防止**:
-   - ドキュメント内で Mermaid を記述する際は、ノード名やエッジ文字列を必ずダブルクォート（`"..."`）で囲みます。
+1. **客観的事実の記述**:
+   - 個人の主観、情緒的な比喩、誇張表現、宣伝文句（「超低摩擦」「過酷な環境」「0.5秒で把握」「計器盤」「コックピット」など）を排除し、システムの仕様・技術的根拠・事実のみを論理的に記述します。
+2. **絵文字の完全不使用**:
+   - コミットメッセージ、PR本文、ドキュメント、コードコメントにおいて絵文字を使用しません。
+3. **チャット本文への生 Mermaid 出力の禁止**:
+   - チャット返答本文に生の Mermaid コードブロックを出力せず、テキストや表で要点を説明します。複雑な図は `docs/*.md` 内に記述し、ファイルリンクを提示します。
 4. **Markdown 強調表示の構文崩れ防止**:
-   - 日本語全角文字や鉤括弧（「」）の直前・直後に太字タグ `**` を密着させず、鉤括弧の内側を囲む（`「**重要**」`）か、半角スペースを空けます。
+   - 日本語全角文字や鉤括弧（「」）の直前・直後に太字タグ `**` を密着させず、鉤括弧の内側を囲む（`「**重要**」`）か、前後に半角スペースを空けます。
 
 ---
 
-## 5. フロントエンド設計・コーディング規約 (`apps/web`)
+## 5. ADR (Architecture Decision Record) 規約
 
-1. **TypeScript ファースト**:
-   - すべてのUIロジックは TypeScript で記述し、`any` 型の使用を禁止します。
-   - スケジュールデータの型は `schema/schedule.schema.json` から正確に導出された `src/types/schedule.ts` を使用します。
-2. **App-Shell とスクロール分離**:
-   - モバイルビューでのスワイプ切り替えや縦スクロールの干渉を防ぐため、親コンテナは `h-[100dvh] overflow-hidden` を維持し、各タブスライド（直近コックピット、全日程リスト、月間カレンダー）が個別に `overflow-y-auto` で独立スクロールする設計を厳守します。
-3. **DOM操作とコンポーネント分割**:
-   - 単一の巨大なスクリプトファイルにすべてを詰め込まず、関心事ごとにモジュールを分離します（`state.ts`, `cockpit.ts`, `scheduleList.ts`, `calendar.ts`, `carousel.ts`, `lightbox.ts`）。
-4. **外部CDN依存の最小化**:
-   - オフライン時やCDN障害時にも動作を担保するため、主要なロジックやバンドルはローカル成果物に包含させます。
+新規 ADR 作成時は [`adr/README.md`](adr/README.md) の標準テンプレートに従い、以下の項目を網羅します。
+1. **Title**: 簡潔な決定事項の要約
+2. **Status**: `Proposed`, `Accepted`, `Rejected`, `Deprecated`, `Superseded by ADR-XXXX`
+3. **Context & Problem Statement**: 発生していた技術的制約・課題（客観的事実ベース）
+4. **Decision Drivers**: 判断基準・評価軸
+5. **Considered Options**: 検討した各選択肢とそれぞれのトレードオフ（Pros & Cons）
+6. **Decision Outcome**: 採択理由
+7. **Consequences**: 決定に伴う正の影響（Positive）および負の影響・リスク（Negative & Mitigations）
 
 ---
 
-## 6. データパイプライン規約 (`data/` & `cmd/taite`)
+## 6. フロントエンド設計規約 (`apps/web`)
 
-1. **生データ不変の原則（ADR-0002）**:
-   - `data/raw/` 配下のスナップショットは追記のみとし、過去データを上書き・改ざんしません。
-2. **名寄せ・補正の分離（ADR-0003, ADR-0004）**:
-   - 表記揺れ（例: 「神楽あゆ」「あゆちゃん」）の解決は `data/curated/entities.json` に委ね、プログラムコード内に個別文字列のハードコードを行いません。
-   - 自動抽出の誤り修正は `data/curated/overrides.json` を通じて宣言的に適用します。
-3. **スキーマバリデーション必須（ADR-0001）**:
-   - `data/generated/schedule.json` を更新する際は、必ず `taite validate` または JSON Schema バリデータを通し、エラーがゼロであることを確認します。
+詳細仕様は [`docs/frontend-guidelines.md`](docs/frontend-guidelines.md) を参照してください。
+
+1. **宣言的 UI の徹底**:
+   - `document.getElementById` や `innerHTML` による命令型 DOM 操作を禁止します。
+   - コンポーネントは Preact による純粋な宣言的 TSX として実装し、状態変更に応じた仮想 DOM の自動差分更新を活用します。
+2. **厳格な型安全性**:
+   - `any` 型の使用を禁止します。
+   - `schema/schedule.schema.json` から導出された `src/types/schedule.ts` を唯一の正本とします。
+3. **グローバルスコープ汚染の禁止**:
+   - `window` オブジェクトへの関数注入を禁止し、コンポーネントツリー内の props やイベントハンドラで完全に閉じます。
+4. **アイコンのツリーシェイキング**:
+   - Lucide アイコンの一括インポートを禁止し、使用するシンボルのみを個別インポートしてバンドルサイズを最小化します。
+
+---
+
+## 7. CLI コマンド標準 (`taite`)
+
+- 実行バイナリの手動パス指定（`./bin/taite`）を廃止し、`make install` または `go install ./cmd/taite` によりインストールされた `taite` コマンド、あるいは `make validate` / `go run ./cmd/taite` を標準として使用します。
