@@ -2,6 +2,8 @@
 
 `TaiteBoardCore` を利用するSwiftUIアプリです。Web版の主要導線に合わせ、直近公演、公演一覧、カレンダーの3画面を横スワイプと下部ナビゲーションで切り替えます。
 
+App Storeリリースの準備項目は [APP_STORE_RELEASE.md](APP_STORE_RELEASE.md) にまとめています。
+
 ## データ接続の設計
 
 Web側とiOS側は、同じ公開データ契約 `schedule.json` を読むクライアントです。現行の本番環境には、UI用の静的ファイルと `schedule.json` を配信するNginxがあり、iOS専用のAPIサーバーや認証エンドポイントはありません。
