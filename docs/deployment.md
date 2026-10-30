@@ -33,9 +33,23 @@ Cloudflare Tunnel
 本リポジトリには `deploy/nginx.conf` が配置されています。公式の `nginx:alpine` デフォルト設定をそのまま使用せず、独自の設定ファイルをコンテナへ配置している理由は以下の3点です。
 
 ```nginx
+map $request_uri $privacy_route {
+    default other;
+    ~^/(\?.*)?$ document;
+    ~^/index\.html(\?.*)?$ document;
+    ~^/schedule\.json(\?.*)?$ schedule;
+    ~^/mock_schedule\.json(\?.*)?$ schedule;
+    ~^/(assets|icons|images)(/|\?|$) asset;
+}
+
+log_format privacy_json escape=json
+    '{"ts":"$time_iso8601","route":"$privacy_route","status":$status}';
+
 server {
     listen 8080;
     server_name _;
+
+    access_log /dev/stdout privacy_json;
 
     root /usr/share/nginx/html;
     index index.html;
