@@ -46,8 +46,13 @@ server {
         return 200 "ok\n";
     }
 
+    location = /manifest.webmanifest {
+        default_type application/manifest+json;
+        try_files $uri =404;
+    }
+
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ =404;
     }
 }
 ```
@@ -64,8 +69,13 @@ server {
 - デフォルトのNginxでは `/healthz` というファイルは存在しないため、HTTP 404エラーとなります。もしデフォルト設定のまま起動すると、Kubernetesが「Podが死んでいる」と誤認し、**数分おきにコンテナが強制再起動される CrashLoopBackOff に陥ります**。
 - `location = /healthz` を設け、`return 200 "ok\n";`（アクセスログ無効化）を返すことで、監視トラフィックでログを埋め尽くすことなく安全なヘルスチェックを実現しています。
 
-### 理由3: SPA（Single Page Application）ルーティングフォールバック
-- `try_files $uri $uri/ /index.html;` を設定することで、将来的なサブパスアクセスやクライアントサイドルーティング時にも404にならず、確実に `index.html` がロードされます。
+### 理由3: 静的ページの存在確認と404
+- Webアプリはクライアントサイドルーティングを使用していないため、未知のパスを `index.html` にフォールバックさせません。
+- `try_files $uri $uri/ =404;` により、実在する静的ファイルだけを配信し、`privacy.html` のような未定義のパスは404を返します。
+- App Store Connectで使用するプライバシーポリシーとサポートページは、次の実在する静的ページです。
+  - `https://ribonclock.iorin.net/privacy-policy.html`
+  - `https://ribonclock.iorin.net/support.html`
+- 将来クライアントサイドルーティングを導入する場合は、ルート定義と404の扱いを追加検討してから設定を変更します。
 
 ---
 
