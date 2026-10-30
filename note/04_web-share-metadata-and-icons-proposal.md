@@ -2,7 +2,7 @@
 
 ## 1. 背景と現状
 
-現在の `apps/web/index.html` は、文字コード・viewport・title・アプリの mount 要素を持つ最小構成であり、URLを共有したときのカード表示や、ブラウザ・iOS ホーム画面でのアイコン指定はまだない。
+作成時点の `apps/web/index.html` は、文字コード・viewport・title・アプリの mount 要素を持つ最小構成であり、URLを共有したときのカード表示や、ブラウザ・iOS ホーム画面でのアイコン指定はまだなかった。
 
 また、現在のフロントエンド移行では `apps/web/` が正本で、Vite の `public/` 配下がビルド時に `dist/` へコピーされ、Docker の Nginx から配信される構成になっている。したがって、共有用メタデータとアイコンの正本も `apps/web/` に置くのが自然である。`docs/` は現在削除・生成方針が移行中のため、同じ HTML や画像を手動で二重管理しない。
 
@@ -15,7 +15,7 @@
 
 ## 3. 実装候補
 
-### 3.1 `apps/web/index.html` の head
+### 3.1 初期候補: `apps/web/index.html` の head
 
 サイトの公開 URL は `https://ribonclock.iorin.net/` に固定し、クローラーが相対パスやローカル開発 URLを解釈しないよう、canonical と OGP 画像は絶対 URL で記述する。
 
@@ -52,7 +52,7 @@
 
 `twitter:site` は公式 X アカウントの運用方針が決まるまで追加しない。アカウントを所有していることを示せない状態で、推測したハンドルを埋め込まない。
 
-### 3.2 OGP 用画像
+### 3.2 初期候補: OGP 用画像
 
 `apps/web/public/og-image.png` をサービス専用の静的画像として追加する。
 
@@ -76,10 +76,12 @@
 | `icons/apple-touch-icon.png` | iOS ホーム画面 | 180 x 180px、背景込みの正方形 |
 | `icons/icon-192.png` | Manifest の標準アイコン | 192 x 192px |
 | `icons/icon-512.png` | Manifest の高解像度アイコン | 512 x 512px |
+| `icons/icon-192-maskable.png` | Manifest の maskable アイコン | 192 x 192px、安全領域を確保 |
+| `icons/icon-512-maskable.png` | Manifest の高解像度 maskable アイコン | 512 x 512px、安全領域を確保 |
 
 iOS の Web Clip 用アイコンは通常の `rel="icon"` だけではなく `apple-touch-icon` を明示する。Apple 向けには透過を前提にせず、ホーム画面上で角丸処理されることを前提に安全領域を確保する。
 
-### 3.4 Web App Manifest
+### 3.4 初期候補: Web App Manifest
 
 `apps/web/public/manifest.webmanifest` の候補は次のとおり。
 
@@ -110,7 +112,7 @@ iOS の Web Clip 用アイコンは通常の `rel="icon"` だけではなく `ap
 
 `display: standalone` はホーム画面から起動したときの表示を変えるため、実機でヘッダー・safe area・戻る操作を確認してから確定する。Manifest を追加することと、完全オフライン PWA にすることは別であり、Service Worker の導入は今回のメタデータ修正に含めない。
 
-今回の先行実装では、Manifest の `display: standalone` とブランドアイコンを追加した。ブランドアイコンはカレンダーを主役にし、上部に蝶々型のリボンを置く構成とした。黒背景を避けるため背景を `#3a1320` の濃いローズに変更し、主色に `#d4546b`、補助色に `#ee9aaa`、深いアクセントに `#a93d56` を使用している。一方、`apple-mobile-web-app-capable` と status bar の専用設定は、iOS 実機で safe area を確認するまで追加していない。
+先行実装では、Manifest の `display: standalone` とブランドアイコンを追加した。ブランドアイコンはカレンダーを主役にし、上部に蝶々型のリボンを置く構成とした。黒背景を避けるため背景を `#3a1320` の濃いローズに変更し、主色に `#d4546b`、補助色に `#ee9aaa`、深いアクセントに `#a93d56` を使用している。一方、`apple-mobile-web-app-capable` と status bar の専用設定は、iOS 実機で safe area を確認するまで追加していない。
 
 ## 4. 変更を分離する単位
 
@@ -145,13 +147,14 @@ iOS の Web Clip 用アイコンは通常の `rel="icon"` だけではなく `ap
 - ホーム画面から起動した場合、`display: standalone` によって画面上部の safe area が隠れない。
 - アイコンの文字や細線が 180px から縮小されても読める。
 
-## 6. 未決定事項
+## 6. 現在の状態と残課題
 
-- OGP 画像を PNG のまま配信するか JPEG に変換するか。一般共有向けの容量と文字の鮮明さで決める。
-- favicon の意匠は、カレンダーを主役にして上部に蝶々型のリボンを置く構成で確定した。黒背景は採用せず、濃いローズと muted rose の配色を基準とする。
-- Manifest の `display: standalone` を採用するか、まず `browser` のままアイコンだけ提供するか。
-- `apple-mobile-web-app-capable` を追加するか。追加する場合は standalone 起動時の safe area を実機確認する。
-- OGP 画像を将来の iOS ネイティブアプリのストア用素材と共用するか。
+- OGP 画像は PNG の `1200 x 630` を採用している。OGP の外側は暗色グラデーションを維持し、埋め込みアイコンの背景だけを濃いローズへ変更した。
+- favicon と通常の Web App アイコンは、カレンダーを主役にして上部に蝶々型のリボンを置く構成で確定した。アイコン内に「出演時間」「特典会」などの説明文は入れない。
+- Manifest の `display: standalone` と、`any` / `maskable` を分けたアイコン定義を採用した。maskable 版は端末のマスク処理に備えて安全領域を維持する。
+- `apple-mobile-web-app-capable` と status bar の専用設定は未追加であり、iOS 実機の safe area を確認してから判断する。
+- 実機でホーム画面に追加した際の見え方、アイコンの余白、彩度の最終評価は未完了である。通常アイコンが小さく見える場合も、maskable 版の安全領域とは分けて調整する。
+- OGP の通常 URL に共有サービス側の古いキャッシュが残る場合は、画像ファイル名または URL のバージョンを更新する。キャッシュバスター付き URL は確認用であり、既存キャッシュの削除そのものではない。
 
 ## 7. 参考文献
 

@@ -8,6 +8,21 @@
 
 ---
 
+## ブランド
+
+URL共有時のカードとアプリアイコンは、カレンダーとリボンを組み合わせた同じブランド表現で統一しています。画像の正本は `apps/web/public/` 配下です。
+
+<table>
+  <tr>
+    <td align="center" width="72%"><img src="apps/web/public/og-image.png" alt="Ribbon Clock OGP image" width="720"></td>
+    <td align="center" width="28%"><img src="apps/web/public/icons/icon-512.png" alt="Ribbon Clock app icon" width="180"><br><strong>Ribbon Clock</strong></td>
+  </tr>
+</table>
+
+用途別のアセット、maskable アイコン、安全領域、各ファイルのサイズは [docs/README.md](docs/README.md) にまとめています。
+
+---
+
 ## 主な機能と技術的特徴
 
 1. **モバイル最適化UI (Preact + TSX + Tailwind CSS)**:
@@ -84,6 +99,7 @@ taite-board/
 ├── deploy/
 │   └── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz)
 ├── docs/                      # 開発・アーキテクチャドキュメント
+│   ├── README.md              # ブランドアセット比較
 │   ├── architecture.md        # アーキテクチャ設計書
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
