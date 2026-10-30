@@ -159,7 +159,12 @@ export function CockpitView({
 
           {/* タイテ表 / フライヤー 切替ピル */}
           {images.length > 1 && (
-            <div class="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 p-1 rounded-xl bg-stone-950/85 backdrop-blur-md border border-white/10 shadow-lg">
+            <div class="absolute bottom-2.5 left-2.5 z-10 flex items-center p-1 rounded-xl bg-stone-950/85 backdrop-blur-md border border-white/10 shadow-lg select-none">
+              {/* スライディング・ピルインジケーター */}
+              <div
+                class="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-rose-500 shadow-sm transition-transform duration-200 ease-out pointer-events-none"
+                style={{ transform: `translateX(${selectedImageIndex * 100}%)` }}
+              />
               {images.map((img, idx) => {
                 const isActive = idx === selectedImageIndex;
                 const isTimetable = img.type === 'timetable';
@@ -170,10 +175,8 @@ export function CockpitView({
                       e.stopPropagation();
                       onSelectImageIndex(idx);
                     }}
-                    class={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                      isActive
-                        ? 'bg-rose-500 text-stone-950 shadow-sm'
-                        : 'bg-stone-900 text-stone-400 hover:text-stone-200 border border-white/10'
+                    class={`relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
+                      isActive ? 'text-stone-950' : 'text-stone-400 hover:text-stone-200'
                     }`}
                   >
                     <Icon icon={isTimetable ? CalendarDays : ImageIcon} class="w-3.5 h-3.5" />

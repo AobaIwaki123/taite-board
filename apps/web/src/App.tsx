@@ -16,6 +16,7 @@ export function App() {
   const [previousTab, setPreviousTab] = useState<TabName>('week');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const tabNames: TabName[] = ['next', 'week', 'month'];
@@ -41,6 +42,9 @@ export function App() {
   const scrollToTab = (tab: TabName) => {
     setActiveTab(tab);
     const index = tabNames.indexOf(tab);
+    if (index !== -1) {
+      setScrollProgress(index);
+    }
     if (carouselRef.current && index !== -1) {
       const width = carouselRef.current.clientWidth;
       carouselRef.current.scrollTo({
@@ -56,6 +60,7 @@ export function App() {
     const { scrollLeft, clientWidth } = carouselRef.current;
     if (!clientWidth) return;
     const progress = scrollLeft / clientWidth;
+    setScrollProgress(progress);
     const nearestIndex = Math.max(0, Math.min(tabNames.length - 1, Math.round(progress)));
     const targetTab = tabNames[nearestIndex];
     if (activeTab !== targetTab) {
@@ -154,6 +159,7 @@ export function App() {
         {/* 下部ナビゲーションバー */}
         <Navigation
           activeTab={activeTab}
+          scrollProgress={scrollProgress}
           onSelectTab={scrollToTab}
           isViewingSelectedLive={!isNextLive}
         />
