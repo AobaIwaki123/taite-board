@@ -11,9 +11,19 @@ mkdir -p "${REPO_ROOT}/web"
 mkdir -p "${REPO_ROOT}/docs/images"
 mkdir -p "${REPO_ROOT}/web/images"
 
-# 2. Sync apps/web source to docs/ and web/
+# 2. Sync apps/web source (HTML, JS, CSS, images) to docs/ and web/
 cp "${REPO_ROOT}/apps/web/index.html" "${REPO_ROOT}/docs/index.html"
 cp "${REPO_ROOT}/apps/web/index.html" "${REPO_ROOT}/web/index.html"
+
+if [ -f "${REPO_ROOT}/apps/web/app.js" ]; then
+  cp "${REPO_ROOT}/apps/web/app.js" "${REPO_ROOT}/docs/app.js"
+  cp "${REPO_ROOT}/apps/web/app.js" "${REPO_ROOT}/web/app.js"
+fi
+
+if [ -f "${REPO_ROOT}/apps/web/styles.css" ]; then
+  cp "${REPO_ROOT}/apps/web/styles.css" "${REPO_ROOT}/docs/styles.css"
+  cp "${REPO_ROOT}/apps/web/styles.css" "${REPO_ROOT}/web/styles.css"
+fi
 
 if [ -d "${REPO_ROOT}/apps/web/images" ]; then
   cp -r "${REPO_ROOT}/apps/web/images/"* "${REPO_ROOT}/docs/images/" || true

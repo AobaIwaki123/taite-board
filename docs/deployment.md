@@ -1,0 +1,130 @@
+# taite-board デプロイ・インフラ設計ガイド (deployment.md)
+
+本ドキュメントは、`taite-board` の本番配信基盤（Kubernetes、ArgoCD、Cloudflare Tunnel、GitHub Actions）のアーキテクチャおよび、コンテナ設定（`deploy/nginx.conf`）の設計意図を解説するドキュメントです。
+
+---
+
+## 1. インフラ全体図
+
+```text
+GitHub (main push)
+        ↓
+GitHub Actions (.github/workflows/deploy.yml)
+        ↓ (Docker build & push)
+ghcr.io/aobaiwaki123/taite-board:sha-<commit_sha>
+        ↓ (GitOps: k8s/manifests/deployment.yaml のイメージタグ自動更新)
+ArgoCD (k8s/argocd/application.yaml)
+        ↓ (Auto-Sync & Rolling Update)
+Kubernetes Cluster (Namespace: ribonclock)
+        │
+        ├── Pod (Nginx Container: port 8080, /healthz)
+        ├── Service (ClusterIP: port 80 -> 8080)
+        └── Ingress (ingressClassName: cloudflare-tunnel)
+                    ↓
+Cloudflare Tunnel
+        ↓
+公開ドメイン: https://ribonclock.iorin.net/
+```
+
+---
+
+## 2. `deploy/nginx.conf` が必要な理由と設定内容
+
+本リポジトリには `deploy/nginx.conf` が配置されています。公式の `nginx:alpine` デフォルト設定をそのまま使用せず、独自の設定ファイルをコンテナへ配置している理由は以下の3点です。
+
+```nginx
+server {
+    listen 8080;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+### 理由1: Kubernetesの非特権ポート要件（Port 8080）
+- デフォルトのNginxは特権ポートである80番ポートでリッスンします。
+- Kubernetes環境のベストプラクティスおよびコンテナセキュリティ方針（Non-root実行・ポート競合回避）に従い、一般ユーザー権限でもリッスン可能な `8080` 番ポートを明示的に指定しています。
+- `k8s/manifests/deployment.yaml` の `containerPort: 8080` と完全同期しています。
+
+### 理由2: Kubernetes ヘルスチェック（Probe）用の `/healthz` エンドポイント
+- `deployment.yaml` には以下のProbeが設定されています。
+  - **`readinessProbe`** (準備完了監視): Podがトラフィックを受け入れ可能か判定。
+  - **`livenessProbe`** (生存監視): コンテナが正常に動作しているか判定。
+- デフォルトのNginxでは `/healthz` というファイルは存在しないため、HTTP 404エラーとなります。もしデフォルト設定のまま起動すると、Kubernetesが「Podが死んでいる」と誤認し、**数分おきにコンテナが強制再起動される CrashLoopBackOff に陥ります**。
+- `location = /healthz` を設け、`return 200 "ok\n";`（アクセスログ無効化）を返すことで、監視トラフィックでログを埋め尽くすことなく安全なヘルスチェックを実現しています。
+
+### 理由3: SPA（Single Page Application）ルーティングフォールバック
+- `try_files $uri $uri/ /index.html;` を設定することで、将来的なサブパスアクセスやクライアントサイドルーティング時にも404にならず、確実に `index.html` がロードされます。
+
+---
+
+## 3. Dockerfile の設計
+
+```dockerfile
+FROM nginx:alpine
+
+LABEL org.opencontainers.image.source="https://github.com/AobaIwaki123/taite-board"
+
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/web/ /usr/share/nginx/html/
+COPY data/generated/schedule.json /usr/share/nginx/html/schedule.json
+COPY data/generated/schedule.json /usr/share/nginx/html/mock_schedule.json
+
+EXPOSE 8080
+```
+
+- **最小フットプリント**: Alpine Linuxをベースに採用し、イメージサイズを数十MBに抑えています。
+- **正本ソースの直接コピー**: `apps/web/` の正本アセットと、パイプラインで検証済みの `data/generated/schedule.json` を配置。
+- **後方互換性**: 既存クライアントや古いキャッシュへの配慮として、`mock_schedule.json` も同等に配置しています。
+- **.dockerignore**: `data/raw`, `data/candidate`, `data/input` などの不要な大容量生データやGitログを除外し、ビルドコンテキストを軽量に維持しています。
+
+---
+
+## 4. Kubernetes マニフェスト構成 (`k8s/`)
+
+- **`k8s/manifests/namespace.yaml`**: `ribonclock` ネームスペースの作成。
+- **`k8s/manifests/deployment.yaml`**:
+  - レプリカ数: 1
+  - リソース制限（Requests / Limits）の明記。
+  - Git short SHAによる不変イメージ（`ghcr.io/aobaiwaki123/taite-board:sha-<sha>`）の指定。
+  - `/healthz` Probeによる常時監視。
+- **`k8s/manifests/service.yaml`**: ClusterIP サービス（Port 80 -> TargetPort 8080）。
+- **`k8s/manifests/ingress.yaml`**:
+  - `ingressClassName: cloudflare-tunnel`
+  - ホスト名: `ribonclock.iorin.net`
+- **`k8s/argocd/application.yaml`**:
+  - ArgoCD Application 定義。
+  - `automated: { prune: true, selfHeal: true }` により、Gitへのコミット検知から数分以内に自動ローリングアップデートを実施。
+
+---
+
+## 5. CI/CD パイプライン (`.github/workflows/deploy.yml`)
+
+1. **トリガー**: `main` ブランチへのプッシュ（ただし `k8s/manifests/**` の更新時は再帰トリガーをスキップ）。
+2. **イメージビルド**: コミットハッシュ（`sha-${GITHUB_SHA:0:7}`）でタグ付け。
+3. **レジストリプッシュ**: GitHub Container Registry（GHCR）へプッシュ。
+4. **GitOps自動コミット**: `k8s/manifests/deployment.yaml` 内のイメージタグを更新し、`[skip ci]` を付けて `main` へコミット・プッシュ。
+5. **ArgoCD同期**: クラスタ内のArgoCDが変更を検知し、ゼロダウンタイムでPodを入れ替えます。
+
+---
+
+## 6. トラブルシューティング
+
+### 画面で「オフライン表示中」が表示される場合
+- クライアント側で `schedule.json` の取得に失敗し、前回ロードした `localStorage` キャッシュで描画されています。
+- ブラウザの開発者ツール（Networkタブ）を開き、`schedule.json` に対するリクエストが 200 を返しているか確認してください。
+
+### コンテナが起動しない場合
+- `kubectl describe pod -n ribonclock` を確認し、ImagePullBackOff や Probe失敗がないか確認してください。
+- ローカルで `docker run -p 8081:8080 <image>` を実行し、`curl -I http://localhost:8081/healthz` が 200 OK を返すかテストしてください。
