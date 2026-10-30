@@ -24,7 +24,7 @@ function HeroPromotionCard({ promo }: { promo: Promotion }) {
         <div class="w-full h-44 overflow-hidden bg-stone-950">
           <img
             src={promo.image_url}
-            referrerpolicy="no-referrer"
+            referrerPolicy="no-referrer"
             alt={promo.title}
             class="w-full h-full object-cover object-center"
           />

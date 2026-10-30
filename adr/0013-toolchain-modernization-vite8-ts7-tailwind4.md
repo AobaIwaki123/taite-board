@@ -1,4 +1,4 @@
-# ADR-0012: ツールチェーンの最新化とTailwind CSS v4移行
+# ADR-0013: ツールチェーンの最新化とTailwind CSS v4移行
 
 ## ステータス
 Accepted

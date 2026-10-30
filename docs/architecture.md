@@ -367,8 +367,9 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - [ADR-0008: クライアント側のキャッシュとデータ鮮度（Freshness）の表示](../adr/0008-client-offline-cache-and-freshness.md)
 - [ADR-0009: Kubernetes GitOps デプロイと Nginx コンテナ基盤](../adr/0009-kubernetes-gitops-and-nginx-container.md)
 - [ADR-0010: フロントエンドのVite・モダンTypeScript刷新とマルチステージビルド化](../adr/0010-modern-typescript-frontend-and-multistage-docker.md)
-- [ADR-0011: 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ](../adr/0011-multi-slot-promotions-and-deadline-countdown.md)
-- [ADR-0012: ツールチェーンの最新化とTailwind CSS v4移行](../adr/0012-toolchain-modernization-vite8-ts7-tailwind4.md)
+- [ADR-0011: iOSネイティブクライアント（SwiftUI）の採用と共通データ契約接続](../adr/0011-ios-native-client-architecture.md)
+- [ADR-0012: 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ](../adr/0012-multi-slot-promotions-and-deadline-countdown.md)
+- [ADR-0013: ツールチェーンの最新化とTailwind CSS v4移行](../adr/0013-toolchain-modernization-vite8-ts7-tailwind4.md)
 
 ## 14. 未決定事項
 

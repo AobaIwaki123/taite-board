@@ -80,7 +80,7 @@ export function CockpitView({
           {currentImage.url ? (
             <img
               src={currentImage.url}
-              referrerpolicy="no-referrer"
+              referrerPolicy="no-referrer"
               alt={currentImage.label || session.title}
               onClick={onOpenLightbox}
               class="w-full h-full object-cover object-top cursor-pointer transition-transform duration-300 group-hover:scale-105"
@@ -186,6 +186,16 @@ export function CockpitView({
             <Icon icon={MapPin} class="w-3.5 h-3.5 text-rose-400" />
             <span class="font-semibold underline underline-offset-2">{session.venue.name}</span>
           </a>
+          {session.source_tweet_url && (
+            <a
+              href={session.source_tweet_url}
+              target="_blank"
+              rel="noreferrer noopener"
+              class="flex items-center gap-1 text-stone-400 hover:text-rose-300 transition-colors"
+            >
+              <span>公式告知 ↗</span>
+            </a>
+          )}
         </div>
       </div>
 
@@ -195,18 +205,21 @@ export function CockpitView({
         <div class="soft-card rounded-2xl p-3.5 space-y-1 border-l-4 border-l-rose-500">
           <div class="flex items-center gap-1 text-xs font-bold text-rose-300">
             <Icon icon={Mic} class="w-3.5 h-3.5" />
-            <span>出番 ({session.live.stage || 'ステージ'})</span>
+            <span>出番</span>
           </div>
           <div class="text-xl font-display font-black text-white">
             {session.live.start_time}〜{session.live.end_time || ''}
           </div>
+          {session.live.stage && (
+            <div class="text-xs text-stone-300 font-medium">ステージ: {session.live.stage}</div>
+          )}
         </div>
 
         {/* 特典会枠 */}
         <div class="soft-card rounded-2xl p-3.5 space-y-1 border-l-4 border-l-purple-500">
           <div class="flex items-center gap-1 text-xs font-bold text-purple-300">
             <Icon icon={Gift} class="w-3.5 h-3.5" />
-            <span>特典会 ({session.benefit.type || '終演後'})</span>
+            <span>特典会{session.benefit.type ? ` (${session.benefit.type})` : ''}</span>
           </div>
           <div class="text-xl font-display font-black text-white">
             {session.benefit.start_time}〜{session.benefit.end_time || ''}

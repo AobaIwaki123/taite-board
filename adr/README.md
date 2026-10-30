@@ -82,5 +82,6 @@ YYYY-MM-DD
 | [ADR-0008](0008-client-offline-cache-and-freshness.md) | クライアント側のキャッシュとデータ鮮度（Freshness）の表示 | Accepted | 2026-10-30 |
 | [ADR-0009](0009-kubernetes-gitops-and-nginx-container.md) | Kubernetes GitOps デプロイと Nginx コンテナ基盤 | Accepted | 2026-10-30 |
 | [ADR-0010](0010-modern-typescript-frontend-and-multistage-docker.md) | フロントエンドのVite・モダンTypeScript刷新とマルチステージビルド化 | Accepted | 2026-10-30 |
-| [ADR-0011](0011-multi-slot-promotions-and-deadline-countdown.md) | 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ | Accepted | 2026-10-30 |
-| [ADR-0012](0012-toolchain-modernization-vite8-ts7-tailwind4.md) | ツールチェーンの最新化とTailwind CSS v4移行 | Accepted | 2026-10-30 |
+| [ADR-0011](0011-ios-native-client-architecture.md) | iOSネイティブクライアント（SwiftUI）の採用と共通データ契約接続 | Accepted | 2026-10-30 |
+| [ADR-0012](0012-multi-slot-promotions-and-deadline-countdown.md) | 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ | Accepted | 2026-10-30 |
+| [ADR-0013](0013-toolchain-modernization-vite8-ts7-tailwind4.md) | ツールチェーンの最新化とTailwind CSS v4移行 | Accepted | 2026-10-30 |
