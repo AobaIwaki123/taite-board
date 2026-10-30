@@ -42,6 +42,11 @@
       "live_start_override": "--:--",
       "live_end_override": "--:--",
       "status": "タイテ告知待ち"
+    },
+    "20261213-1": {
+      "flyer_image_override": "https://pbs.twimg.com/media/HVxnfJUbcAAolxm.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116002151944401001",
+      "status": "確定"
     }
   }
 }
