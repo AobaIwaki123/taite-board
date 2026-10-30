@@ -6,6 +6,7 @@ export type TabName = 'next' | 'week' | 'month';
 interface NavigationProps {
   activeTab: TabName;
   scrollProgress?: number;
+  isProgrammatic?: boolean;
   onSelectTab: (tab: TabName) => void;
   isViewingSelectedLive: boolean;
 }
@@ -13,6 +14,7 @@ interface NavigationProps {
 export function Navigation({
   activeTab,
   scrollProgress,
+  isProgrammatic,
   onSelectTab,
   isViewingSelectedLive,
 }: NavigationProps) {
@@ -26,10 +28,15 @@ export function Navigation({
   return (
     <nav class="flex-shrink-0 pt-2 pb-2.5 border-t border-white/5 bg-stone-950/80 backdrop-blur-md">
       <div class="relative flex p-1 rounded-2xl bg-stone-900 border border-white/10 select-none">
-        {/* スライディング・ピルインジケーター（スワイプにリアルタイム追従） */}
+        {/* スライディング・ピルインジケーター（スワイプにリアルタイム追従、クリック時は滑らかに遷移） */}
         <div
-          class="absolute top-1 bottom-1 w-[calc(33.333%-2px)] rounded-xl bg-gradient-to-r from-rose-500 to-rose-400 shadow-md transition-transform duration-75 ease-out pointer-events-none"
-          style={{ transform: `translateX(${currentProgress * 100}%)` }}
+          class="absolute top-1 bottom-1 w-[calc(33.333%-2px)] rounded-xl bg-gradient-to-r from-rose-500 to-rose-400 shadow-md pointer-events-none"
+          style={{
+            transform: `translateX(${currentProgress * 100}%)`,
+            transition: isProgrammatic
+              ? 'transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1)'
+              : 'none',
+          }}
         />
 
         {/* タブ 1: 直近ライブ / 公演詳細 */}
