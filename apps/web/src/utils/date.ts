@@ -96,3 +96,88 @@ export function getSessionProgress(
     badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
   };
 }
+
+export interface DeadlineInfo {
+  formattedDeadline: string; // e.g. "11/22(日)まで"
+  daysLeft: number;
+  countdownText: string;     // e.g. "あと23日", "本日締切", "受付終了"
+  isExpired: boolean;
+  isUrgent: boolean;
+}
+
+export function parseDeadlineDate(deadlineStr: string): { year: number; month: number; day: number } | null {
+  if (!deadlineStr) return null;
+  const matchYMD = deadlineStr.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (matchYMD) {
+    return {
+      year: parseInt(matchYMD[1], 10),
+      month: parseInt(matchYMD[2], 10),
+      day: parseInt(matchYMD[3], 10),
+    };
+  }
+  const matchMD = deadlineStr.match(/(\d{1,2})[-/](\d{1,2})/);
+  if (matchMD) {
+    const currentYear = new Date().getFullYear();
+    return {
+      year: currentYear,
+      month: parseInt(matchMD[1], 10),
+      day: parseInt(matchMD[2], 10),
+    };
+  }
+  return null;
+}
+
+/**
+ * 締め切り文字列（YYYY-MM-DD 等）から残日数を計算する
+ */
+export function getDeadlineInfo(deadlineStr?: string, nowDate = new Date()): DeadlineInfo | null {
+  if (!deadlineStr) return null;
+  const parsed = parseDeadlineDate(deadlineStr);
+  if (!parsed) {
+    return {
+      formattedDeadline: deadlineStr,
+      daysLeft: 0,
+      countdownText: '受付中',
+      isExpired: false,
+      isUrgent: false,
+    };
+  }
+
+  const { year, month, day } = parsed;
+  const targetUtc = Date.UTC(year, month - 1, day);
+  const nowUtc = Date.UTC(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysLeft = Math.round((targetUtc - nowUtc) / msPerDay);
+
+  const targetDateObj = new Date(year, month - 1, day);
+  const dayOfWeek = DAY_NAMES[targetDateObj.getDay()];
+  const formattedDeadline = `${month}/${day}(${dayOfWeek})まで`;
+
+  let countdownText = '';
+  let isExpired = false;
+  let isUrgent = false;
+
+  if (daysLeft < 0) {
+    countdownText = '受付終了';
+    isExpired = true;
+  } else if (daysLeft === 0) {
+    countdownText = '本日締切';
+    isUrgent = true;
+  } else if (daysLeft === 1) {
+    countdownText = 'あと1日 (明日締切)';
+    isUrgent = true;
+  } else {
+    countdownText = `あと${daysLeft}日`;
+    if (daysLeft <= 3) {
+      isUrgent = true;
+    }
+  }
+
+  return {
+    formattedDeadline,
+    daysLeft,
+    countdownText,
+    isExpired,
+    isUrgent,
+  };
+}
