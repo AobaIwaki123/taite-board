@@ -9,8 +9,9 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(11); // 1-12
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const handlePrevMonth = () => {

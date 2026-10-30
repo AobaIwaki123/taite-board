@@ -3,7 +3,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 
-const schedulePath = path.join(__dirname, '../docs/mock_schedule.json');
+const schedulePath = path.join(__dirname, '../data/generated/schedule.json');
 const schedule = JSON.parse(fs.readFileSync(schedulePath, 'utf8'));
 
 // Load fxtwitter raw posts if available for cross-verification
@@ -17,7 +17,7 @@ async function checkUrl(url, label, retry = 1) {
   if (!url) return { ok: false, error: 'URL is empty' };
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     // Local file check
-    const localPath = path.join(__dirname, '../docs', url);
+    const localPath = path.join(__dirname, '../apps/web/public', url);
     const exists = fs.existsSync(localPath);
     return { ok: exists, status: exists ? 'local file exists' : 'local file NOT FOUND' };
   }

@@ -48,7 +48,7 @@ Usage:
 The commands are:
   fetch     Fetch raw post snapshots from external URLs (ADR-0002)
   validate  Validate a schedule JSON file against ADR-0001 schema rules
-  build     Sync web app assets and generated schedule to docs/ and web/`)
+  build     Build web client bundle via Vite`)
 }
 
 func runFetch(args []string) {
