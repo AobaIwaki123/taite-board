@@ -33,7 +33,7 @@ export function PromotionBanner({ promotions }: PromotionBannerProps) {
 
       <div class="p-3.5 space-y-2.5 bg-stone-900">
         <div class="flex items-center justify-between text-xs">
-          <span class="px-2.5 py-0.5 rounded-md font-bold bg-red-600 text-white shadow text-[11px]">
+          <span class="px-2.5 py-0.5 rounded-md font-bold bg-red-600 text-white shadow text-xs">
             {badgeText}
           </span>
           {promo.deadline ? (

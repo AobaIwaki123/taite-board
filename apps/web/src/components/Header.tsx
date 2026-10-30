@@ -51,7 +51,7 @@ export function Header({ onLogoClick, isFallback, generatedAt }: HeaderProps) {
       </button>
 
       {freshnessLabel && (
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold">
           <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
           <span>{freshnessLabel}</span>
         </div>
