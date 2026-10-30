@@ -531,16 +531,32 @@ private struct RibbonImageViewer: View {
 
 private struct PromotionCard: View {
     let promotion: Promotion
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var isHero: Bool {
         promotion.type == "hero"
     }
 
+    private var usesRegularWidthLayout: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var promotionImageHeight: CGFloat {
+        usesRegularWidthLayout ? 360 : 150
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if let imageURL = promotion.imageUrl, !imageURL.isEmpty {
-                ScheduleRemoteImage(source: imageURL, contentMode: .fill)
-                    .frame(height: 150)
+                ScheduleRemoteImage(
+                    source: imageURL,
+                    contentMode: .fill
+                )
+                .frame(maxWidth: .infinity)
+                // Give the poster enough vertical space on iPad to keep the
+                // subject visible while retaining the compact web-like card.
+                .frame(height: promotionImageHeight)
+                .clipped()
             }
 
             HStack {
@@ -583,10 +599,15 @@ private struct PromotionCard: View {
             }
         }
         .padding(14)
+        .frame(
+            maxWidth: usesRegularWidthLayout ? 720 : .infinity,
+            alignment: .leading
+        )
         .ribbonCard(cornerRadius: 16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isHero ? RibbonTheme.roseStrong.opacity(0.55) : .clear, lineWidth: isHero ? 2 : 0)
         )
+        .frame(maxWidth: .infinity)
     }
 }
