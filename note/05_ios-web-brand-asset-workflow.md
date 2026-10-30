@@ -51,6 +51,22 @@ PR #56の初期実装では、Web側の `icon-512-maskable.png` を元にiOSの 
 6. Simulatorと実機で、ホーム画面のアイコン、ヘッダー、safe area、ダークモードでの表示を確認する。
 7. レビュー用スクリーンショットをPRブランチの `review-assets/` に保存する。
 
+### 3.4 WebとiOSの同期ルール
+
+現在のデザインでは、次の2つのSVGを派生画像の基準とする。
+
+- `apps/web/public/icons/favicon.svg`: 通常アイコン、favicon、Apple touch icon、iOSアプリ内ヘッダー用Image Setの基準。
+- `apps/web/public/icons/icon-maskable.svg`: Web Manifestのmaskableアイコンと、iOS `AppIcon-1024.png` の基準。
+
+余白や表示倍率を変更する場合は、Web側のSVGだけを更新せず、次の派生画像を同じ変更単位で再生成する。
+
+- Web: `favicon.png`、`apple-touch-icon.png`、`icon-192.png`、`icon-512.png`
+- Web maskable: `icon-192-maskable.png`、`icon-512-maskable.png`
+- iOS: `AppIcon-1024.png`、`RibbonClockIcon.png`、`RibbonClockIcon@2x.png`、`RibbonClockIcon@3x.png`
+- 共有カード: `og-image.png` と、埋め込みアイコンを持つ `og-image.svg`
+
+maskable版は端末のマスク処理に必要な安全領域を維持し、通常版の光学補正をそのまま同じ倍率で適用しない。今回の軽微な補正では、通常版の内部図形を `1.05` 倍、maskable版を `0.84` 倍の中央配置へ調整し、iOS側も同じSVGから再生成した。
+
 ## 4. 自動化の未整備と今後の候補
 
 現時点では、次の処理を自動化するスクリプトは存在しない。

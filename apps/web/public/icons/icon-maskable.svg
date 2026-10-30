@@ -2,7 +2,7 @@
   <title id="title">Ribbon Clock maskable calendar icon</title>
   <desc id="desc">A maskable calendar icon with a muted wine bow ribbon for Ribbon Clock.</desc>
   <rect width="512" height="512" fill="#3a1320"/>
-  <g transform="translate(51.2 51.2) scale(.8)">
+  <g transform="matrix(.84 0 0 .84 40.96 40.96)">
     <path d="M136 108c-19-35 20-59 61-36l59 33-65 31c-28 13-48 2-55-28z" fill="#ee9aaa"/>
     <path d="M376 108c19-35-20-59-61-36l-59 33 65 31c28 13 48 2 55-28z" fill="#ee9aaa"/>
     <path d="M246 120l-31 55 41-23 41 23-31-55z" fill="#a93d56"/>
