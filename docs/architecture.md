@@ -365,6 +365,7 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - [ADR-0006: 外部取得アダプター（Source Adapter）の責務分離](../adr/0006-source-adapter-boundary.md)
 - [ADR-0007: ソースコード・ビルド生成物のディレクトリ配置再編](../adr/0007-source-and-artifact-layout.md)
 - [ADR-0008: クライアント側のキャッシュとデータ鮮度（Freshness）の表示](../adr/0008-client-offline-cache-and-freshness.md)
+- [ADR-0009: Kubernetes GitOps デプロイと Nginx コンテナ基盤](../adr/0009-kubernetes-gitops-and-nginx-container.md)
 
 ## 14. 未決定事項
 
