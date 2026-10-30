@@ -8,27 +8,18 @@
 
 ---
 
-## ブランドアセット
+## ブランド
 
-URL共有、ブラウザ、PWA、iOS Web Clip で使用するブランドアセットを掲載しています。画像の正本は `apps/web/public/` 配下です。
+URL共有時のカードとアプリアイコンは、カレンダーとリボンを組み合わせた同じブランド表現で統一しています。画像の正本は `apps/web/public/` 配下です。
 
 <table>
   <tr>
-    <td align="center" width="48%"><strong>OGP画像</strong><br><img src="apps/web/public/og-image.png" alt="OGP image" width="600"></td>
-    <td align="center" width="13%"><strong>favicon</strong><br><img src="apps/web/public/icons/favicon.svg" alt="Favicon" width="96"></td>
-    <td align="center" width="13%"><strong>Web App</strong><br><img src="apps/web/public/icons/icon-512.png" alt="Web App icon" width="96"></td>
-    <td align="center" width="13%"><strong>Maskable</strong><br><img src="apps/web/public/icons/icon-512-maskable.png" alt="Maskable Web App icon" width="96"></td>
-    <td align="center" width="13%"><strong>Apple</strong><br><img src="apps/web/public/icons/apple-touch-icon.png" alt="Apple touch icon" width="96"></td>
+    <td align="center" width="72%"><img src="apps/web/public/og-image.png" alt="Ribbon Clock OGP image" width="720"></td>
+    <td align="center" width="28%"><img src="apps/web/public/icons/icon-512.png" alt="Ribbon Clock app icon" width="180"><br><strong>Ribbon Clock</strong></td>
   </tr>
 </table>
 
-| アセット | 用途 | サイズ |
-| --- | --- | ---: |
-| [`og-image.png`](apps/web/public/og-image.png) | URL共有時のOGPカード | 1200 x 630 |
-| [`icons/favicon.svg`](apps/web/public/icons/favicon.svg) | ブラウザタブ・ブックマーク | SVG |
-| [`icons/apple-touch-icon.png`](apps/web/public/icons/apple-touch-icon.png) | iOS Web Clip | 180 x 180 |
-| [`icons/icon-512.png`](apps/web/public/icons/icon-512.png) | Web App標準アイコン | 512 x 512 |
-| [`icons/icon-512-maskable.png`](apps/web/public/icons/icon-512-maskable.png) | Web App maskableアイコン | 512 x 512 |
+用途別のアセット、maskable アイコン、安全領域、各ファイルのサイズは [docs/README.md](docs/README.md) にまとめています。
 
 ---
 
@@ -108,6 +99,7 @@ taite-board/
 ├── deploy/
 │   └── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz)
 ├── docs/                      # 開発・アーキテクチャドキュメント
+│   ├── README.md              # ブランドアセット比較
 │   ├── architecture.md        # アーキテクチャ設計書
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
