@@ -17,16 +17,29 @@
   },
   "promotions": [
     {
-      "id": "promo-ayyu-birthday",
+      "id": "promo-ayyu-birthday-cf",
       "type": "hero",
       "badge": "20TH BIRTHDAY",
       "title": "神楽あゆ 生誕祭クラウドファンディング",
       "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
-      "cta_label": "生誕詳細・支援 ↗",
-      "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
+      "cta_label": "CAMPFIREで支援する ↗",
+      "cta_url": "https://camp-fire.jp/projects/983246/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
       "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
+      "deadline": "2026-11-22",
       "priority": 100,
       "active": true
+    },
+    {
+      "id": "promo-ayyu-birthday-live",
+      "type": "medium",
+      "badge": "生誕祭2026",
+      "title": "神楽あゆ生誕祭2026 開催カウントダウン",
+      "subtitle": "2026年12月6日(日) 開催予定！20歳メモリアル生誕公演",
+      "cta_label": "公式告知を見る ↗",
+      "cta_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
+      "deadline": "2026-12-06",
+      "priority": 90,
+      "active": false
     },
     {
       "id": "promo-tiktok-latest",
@@ -37,7 +50,7 @@
       "cta_label": "TikTokを開く ↗",
       "cta_url": "https://www.tiktok.com/@ribbon_clock",
       "priority": 50,
-      "active": true
+      "active": false
     }
   ],
   "current_next_id": "20261031-1",
@@ -280,13 +293,18 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2115639776422625284",
       "images": [
         {
           "type": "flyer",
-          "label": "フライヤー",
-          "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5?format=jpg&name=large"
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HVxASJ0a0AEORf5.jpg?name=large"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HVxASJ9aQAAb4i-.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -375,38 +393,39 @@
         "type": "並行",
         "start_time": "18:10",
         "end_time": "19:10",
-        "booth": "並行物販 ブースA"
+        "booth": "並行A"
       },
       "photo": null,
-      "special_notes": "雑誌MARQUEE主催「MARQUEE祭 mini」出演！全10組対バン（OPEN 16:30 / START 17:00）",
-      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
+      "special_notes": "動員重要ライブ！雑誌MARQUEE主催「MARQUEE祭 mini」出演！前売り完売・当日券あり",
+      "admission_bonus": "選べる入場特典：①ビンゴ大会（3部制・FLASHスタジオ） / ②私物サイン券",
       "ticket": {
-        "platform": "イープラス",
+        "platform": "イープラス（前売完売/当日券あり）",
         "url": "https://eplus.jp/marquee-matsuri/",
         "prices": [
           {
-            "tier": "前売券",
-            "price": "¥3,000"
+            "tier": "前売",
+            "price": "¥3,000 (完売)"
           },
           {
             "tier": "当日券",
-            "price": "¥3,500"
+            "price": "¥3,500 (+1D)"
           }
         ]
       },
-      "image_url": "/images/20261107_marquee_mini.png",
-      "source_tweet_url": "https://eplus.jp/marquee-matsuri/",
+      "image_url": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113186093717745808",
       "images": [
         {
           "type": "flyer",
-          "label": "フライヤー",
-          "url": "/images/20261107_marquee_mini.png"
+          "label": "フライヤー (1/1)",
+          "url": "https://pbs.twimg.com/media/HVNsriIaUAEK6E-.jpg?name=large"
         }
       ],
       "source_refs": [
         {
-          "type": "ticket_page",
-          "url": "https://eplus.jp/marquee-matsuri/"
+          "type": "x_post",
+          "source_id": "2113186093717745808",
+          "url": "https://x.com/Ribbon_Clock/status/2113186093717745808"
         }
       ]
     },
@@ -423,18 +442,18 @@
         "map_url": "https://maps.google.com/?q=横浜ランドマークホール"
       },
       "live": {
-        "start_time": "10:20",
-        "end_time": "10:45",
-        "stage": "ホール"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "並行",
-        "start_time": "11:00",
-        "end_time": "12:00",
-        "booth": "ホワイエ特設"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "横浜遠征大型対バン！数量限定特別チケットあり",
+      "special_notes": "横浜ランドマークホール大型対バン！（OPEN 10:10 / START 10:20）※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名特典：横浜限定チェキ券",
       "ticket": {
         "platform": "TicketDive",
@@ -517,18 +536,18 @@
         "map_url": "https://maps.google.com/?q=日暮里ネコシアター"
       },
       "live": {
-        "start_time": "16:30",
-        "end_time": "16:55",
-        "stage": "シアター"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "並行",
-        "start_time": "17:10",
-        "end_time": "18:10",
-        "booth": "並行卓"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "ネコシアター対バン！前方¥3000 通常¥1000",
+      "special_notes": "ネコシアター対バン！（OPEN 16:15 / START 16:30）※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名特典：①10秒動画券 / ②個別写メ券 / ③サイン券",
       "ticket": {
         "platform": "TicketDive",
@@ -564,18 +583,18 @@
         "map_url": "https://maps.google.com/?q=ZEAL+THEATER+新橋"
       },
       "live": {
-        "start_time": "11:15",
-        "end_time": "11:40",
-        "stage": "メイン"
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "stage": "タイテ告知待ち"
       },
       "benefit": {
-        "type": "終演後",
-        "start_time": "11:50",
-        "end_time": "12:50",
-        "booth": "ロビー"
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
       },
       "photo": null,
-      "special_notes": "勤労感謝の日祝日！ギガ盛りMAX前夜祭",
+      "special_notes": "勤労感謝の日祝日！ギガ盛りMAX前夜祭（OPEN 11:00 / START 11:15）※タイムテーブルは公式告知待ち",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）",
       "ticket": {
         "platform": "LivePocket",
@@ -671,6 +690,6 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-10-30T03:00:00+09:00",
+  "generated_at": "2026-10-30T07:53:21.324Z",
   "timezone": "Asia/Tokyo"
 }
