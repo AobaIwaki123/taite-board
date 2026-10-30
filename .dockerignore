@@ -8,6 +8,8 @@ data/candidate
 data/input
 note
 scripts
+!scripts/
+!scripts/report_access_counts.py
 discussion.md
 k8s
 apps/web/node_modules

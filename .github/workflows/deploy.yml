@@ -14,6 +14,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/aobaiwaki123/taite-board
+  ACCESS_REPORT_IMAGE_NAME: ghcr.io/aobaiwaki123/taite-board-access-report
 
 jobs:
   deploy:
@@ -37,20 +38,31 @@ jobs:
           docker build --tag "${IMAGE_NAME}:${short_sha}" .
           docker push "${IMAGE_NAME}:${short_sha}"
 
+      - name: Build and push access report image
+        run: |
+          set -euo pipefail
+          short_sha="sha-${GITHUB_SHA:0:7}"
+          docker build \
+            --file deploy/access-report.Dockerfile \
+            --tag "${ACCESS_REPORT_IMAGE_NAME}:${short_sha}" \
+            .
+          docker push "${ACCESS_REPORT_IMAGE_NAME}:${short_sha}"
+
       - name: Update GitOps image tag
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
           sed -i -E "s#(image: ${IMAGE_NAME}:).*#\1${short_sha}#" k8s/manifests/deployment.yaml
+          sed -i -E "s#(image: ${ACCESS_REPORT_IMAGE_NAME}:).*#\1${short_sha}#" k8s/manifests/access-report-cronjob.yaml
 
-          if git diff --quiet -- k8s/manifests/deployment.yaml; then
+          if git diff --quiet -- k8s/manifests/deployment.yaml k8s/manifests/access-report-cronjob.yaml; then
             echo 'Image tag is already up to date.'
             exit 0
           fi
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add k8s/manifests/deployment.yaml
-          git commit -m "chore(deploy): update ribonclock image to ${short_sha} [skip ci]"
+          git add k8s/manifests/deployment.yaml k8s/manifests/access-report-cronjob.yaml
+          git commit -m "chore(deploy): update ribonclock images to ${short_sha} [skip ci]"
           git push origin HEAD:main
 
