@@ -191,3 +191,137 @@ export function getDeadlineInfo(
     isUrgent,
   };
 }
+
+export interface FreshnessInfo {
+  label: string;
+  isStale: boolean;
+}
+
+/**
+ * データ鮮度表示プロトコル (ADR-0008)
+ * オンライン正常取得時は配信側の最新データであるため目障りな警告は表示しない。
+ * オフライン・通信失敗によるフォールバック時のみ、データの古さを明示する。
+ */
+export function getFreshnessInfo(params: {
+  isFallback: boolean;
+  generatedAt?: string;
+  nowDate?: Date;
+}): FreshnessInfo | null {
+  const { isFallback, generatedAt, nowDate = new Date() } = params;
+
+  if (!isFallback) {
+    return null;
+  }
+
+  if (!generatedAt) {
+    return {
+      label: 'オフライン保存版を表示中',
+      isStale: false,
+    };
+  }
+
+  try {
+    const genTime = new Date(generatedAt).getTime();
+    if (isNaN(genTime)) {
+      return {
+        label: 'オフライン保存版を表示中',
+        isStale: false,
+      };
+    }
+
+    const diffHours = (nowDate.getTime() - genTime) / (1000 * 60 * 60);
+    if (diffHours >= 24) {
+      const days = Math.floor(diffHours / 24);
+      return {
+        label: `オフライン保存版（${days}日前）`,
+        isStale: true,
+      };
+    }
+
+    return {
+      label: 'オフライン保存版を表示中',
+      isStale: false,
+    };
+  } catch {
+    return {
+      label: 'オフライン保存版を表示中',
+      isStale: false,
+    };
+  }
+}
+
+/**
+ * セッションが終了済みか判定する
+ * 当日の場合は、特典会終了時刻（または出番終了時刻）から指定の猶予時間（graceHours、デフォルト2時間）が
+ * 経過した時点で終了とみなす。
+ */
+export function isSessionPast(
+  session: {
+    date: string;
+    live?: { start_time?: string; end_time?: string };
+    benefit?: { start_time?: string; end_time?: string };
+  },
+  nowDate = new Date(),
+  graceHours = 2
+): boolean {
+  const todayStr = getTodayStr(nowDate);
+
+  if (session.date < todayStr) {
+    return true;
+  }
+  if (session.date > todayStr) {
+    return false;
+  }
+
+  const bEnd = parseMinutes(session.benefit?.end_time);
+  const lEnd = parseMinutes(session.live?.end_time);
+  const effectiveEnd = bEnd !== null ? bEnd : lEnd;
+
+  if (effectiveEnd === null) {
+    return false;
+  }
+
+  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  const graceMinutes = graceHours * 60;
+
+  return currentMinutes > effectiveEnd + graceMinutes;
+}
+
+/**
+ * 次回直近ライブセッションを決定する
+ * 1. 指定された currentNextId があり、未終了ならそれを優先
+ * 2. 未終了のセッションの中から最も近い日時・出番時刻のセッションを抽出
+ * 3. 全て終了している場合は先頭のセッションをフォールバック
+ */
+export function resolveNextSession<T extends {
+  id: string;
+  date: string;
+  live?: { start_time?: string; end_time?: string };
+  benefit?: { start_time?: string; end_time?: string };
+}>(
+  sessions: T[],
+  currentNextId?: string,
+  nowDate = new Date(),
+  graceHours = 2
+): T | null {
+  if (!sessions || sessions.length === 0) return null;
+
+  if (currentNextId) {
+    const current = sessions.find((s) => s.id === currentNextId);
+    if (current && !isSessionPast(current, nowDate, graceHours)) {
+      return current;
+    }
+  }
+
+  const upcoming = sessions.filter((s) => !isSessionPast(s, nowDate, graceHours));
+  if (upcoming.length > 0) {
+    return upcoming.slice().sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const aStart = parseMinutes(a.live?.start_time) ?? 9999;
+      const bStart = parseMinutes(b.live?.start_time) ?? 9999;
+      return aStart - bStart;
+    })[0];
+  }
+
+  return sessions[0];
+}

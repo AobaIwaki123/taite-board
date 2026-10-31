@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { getFreshnessInfo } from '../utils/date';
 
 interface HeaderProps {
   onLogoClick: () => void;
@@ -15,21 +16,9 @@ export function Header({ onLogoClick, isFallback, generatedAt }: HeaderProps) {
     onLogoClick();
   };
 
-  // 鮮度チェック: オフライン時または24時間経過時に警告ラベル表示
-  let freshnessLabel: string | null = null;
-  if (isFallback) {
-    freshnessLabel = 'オフライン保存版を表示中';
-  } else if (generatedAt) {
-    try {
-      const diffHours = (Date.now() - new Date(generatedAt).getTime()) / (1000 * 60 * 60);
-      if (diffHours >= 24) {
-        const days = Math.floor(diffHours / 24);
-        freshnessLabel = `${days}日前の情報です`;
-      }
-    } catch {
-      // ignore
-    }
-  }
+  // 鮮度チェック (ADR-0008): オフライン時のみフォールバック鮮度インジケーターを表示
+  const freshness = getFreshnessInfo({ isFallback, generatedAt });
+  const freshnessLabel = freshness?.label ?? null;
 
   return (
     <header class="flex-shrink-0 flex items-center justify-between py-1 border-b border-white/5 pb-2">

@@ -162,6 +162,24 @@ def validate(
         if live_start == "--:--" and benefit_start and benefit_start != "--:--":
             warnings.append(f"{prefix}: live.start_time is --:-- but benefit.start_time is {benefit_start}")
 
+        # Check admission_bonus option truncation (e.g. truncated at internal slash)
+        bonus = session.get("admission_bonus")
+        if isinstance(bonus, str):
+            if "券5枚" in bonus and "10枚" not in bonus:
+                warnings.append(
+                    f"{prefix}.admission_bonus contains '券5枚' but lacks '10枚' option (likely truncated at '/')"
+                )
+
+        # Check ticket.platform cleanliness
+        ticket = session.get("ticket")
+        if isinstance(ticket, dict):
+            platform = ticket.get("platform")
+            if isinstance(platform, str):
+                if "完売" in platform or "当日券" in platform:
+                    warnings.append(
+                        f"{prefix}.ticket.platform '{platform}' contains sales/status text which breaks CTA button layout; keep platform clean (e.g. 'イープラス') and move status to prices/special_notes"
+                    )
+
         # Check source_tweet_url if present
         source_tweet = session.get("source_tweet_url")
         if source_tweet and not re.match(r"^https?://(x\.com|twitter\.com)/[^/]+/status/\d+", str(source_tweet)):

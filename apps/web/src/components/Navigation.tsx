@@ -59,7 +59,7 @@ export function Navigation({
           )}
         </button>
 
-        {/* タブ 2: 全日程 */}
+        {/* タブ 2: 今後の日程 */}
         <button
           onClick={() => onSelectTab('week')}
           class={`relative z-10 flex-1 py-2.5 rounded-xl text-center font-bold text-xs transition-colors duration-150 flex items-center justify-center gap-1.5 focus:outline-none ${
@@ -67,7 +67,7 @@ export function Navigation({
           }`}
         >
           <Icon icon={List} class="w-3.5 h-3.5" />
-          <span>全日程</span>
+          <span>今後の日程</span>
         </button>
 
         {/* タブ 3: カレンダー */}

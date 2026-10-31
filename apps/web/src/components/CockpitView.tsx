@@ -1,5 +1,6 @@
 import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
+import { isSessionPast } from '../utils/date';
 import { Icon } from './Icon';
 import { PromotionBanner } from './PromotionBanner';
 import {
@@ -233,11 +234,15 @@ export function CockpitView({
               {session.date} ({session.day_of_week || ''})
             </span>
           </div>
-          {isNextLive && (
+          {isNextLive ? (
             <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
               ★ 直近ライブ
             </span>
-          )}
+          ) : isSessionPast(session) ? (
+            <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10">
+              公演終了
+            </span>
+          ) : null}
         </div>
 
         <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>

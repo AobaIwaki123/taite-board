@@ -1,5 +1,5 @@
 import { Session } from '../types/schedule';
-import { getTodayStr } from '../utils/date';
+import { isSessionPast } from '../utils/date';
 import { Icon } from './Icon';
 import { MapPin } from '../utils/icons';
 
@@ -9,22 +9,27 @@ interface ListViewProps {
 }
 
 export function ListView({ sessions, onSelectSession }: ListViewProps) {
-  const todayStr = getTodayStr();
-  // 本日以降の公演のみ抽出
-  const upcomingSessions = sessions.filter((s) => s.date >= todayStr);
+  // 特典会終了後数時間の猶予時間を考慮し、今後の公演のみを抽出
+  const upcomingSessions = sessions.filter((s) => !isSessionPast(s));
 
   return (
     <div class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3 pb-6">
       {/* 件数バッジ */}
       <div class="flex items-center justify-between px-1 text-xs text-stone-400">
-        <span>開催予定の公演</span>
+        <span>今後の公演予定</span>
         <span class="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-bold">
           {upcomingSessions.length}公演
         </span>
       </div>
 
-      {/* 公演カード一覧 */}
-      <div class="space-y-2.5">
+      {upcomingSessions.length === 0 ? (
+        <div class="text-center py-12 px-4 rounded-2xl bg-stone-900/40 border border-white/5 space-y-2">
+          <p class="text-sm font-bold text-stone-300">現在予定されている今後の公演はありません</p>
+          <p class="text-xs text-stone-500">過去の公演記録は「カレンダー」タブからご覧いただけます</p>
+        </div>
+      ) : (
+        /* 公演カード一覧 */
+        <div class="space-y-2.5">
         {upcomingSessions.map((session) => {
           const [, mStr, dStr] = session.date.split('-');
           const monthNum = parseInt(mStr, 10);
@@ -98,6 +103,7 @@ export function ListView({ sessions, onSelectSession }: ListViewProps) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
