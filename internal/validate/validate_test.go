@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -206,3 +207,51 @@ func TestValidateFile_CheckRemoteURLs(t *testing.T) {
 		t.Errorf("expected invalid for 404 image URL")
 	}
 }
+
+func TestValidateFile_TicketPlatformStatusWarning(t *testing.T) {
+	sched := validBaseSchedule()
+	sessions := sched["sessions"].([]map[string]interface{})
+	sessions[0]["ticket"] = map[string]interface{}{
+		"platform": "イープラス（前売完売/当日券あり）",
+		"url":      "https://eplus.jp/test",
+	}
+	filePath := createTestSchedule(t, sched)
+
+	report, err := ValidateFile(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	found := false
+	for _, w := range report.Warnings {
+		if strings.Contains(w, "ticket.platform") && strings.Contains(w, "sales/status text") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected warning for sales/status text in ticket.platform, got warnings: %v", report.Warnings)
+	}
+}
+
+func TestValidateFile_AdmissionBonusTruncationWarning(t *testing.T) {
+	sched := validBaseSchedule()
+	sessions := sched["sessions"].([]map[string]interface{})
+	sessions[0]["admission_bonus"] = "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚集合写真）"
+	filePath := createTestSchedule(t, sched)
+
+	report, err := ValidateFile(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	found := false
+	for _, w := range report.Warnings {
+		if strings.Contains(w, "admission_bonus") && strings.Contains(w, "lacks '10枚' option") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected warning for admission bonus missing 10枚, got warnings: %v", report.Warnings)
+	}
+}
+

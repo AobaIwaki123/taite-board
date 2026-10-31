@@ -329,7 +329,9 @@ export function CockpitView({
             <Icon icon={Gift} class="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div class="space-y-0.5">
               <span class="font-bold text-rose-300">入場特典：</span>
-              <span class="text-stone-300">{session.admission_bonus}</span>
+              <span class="text-stone-300">
+                {session.admission_bonus.replace(/^(?:(?:指名|選べる)?入場特典[：:]\s*)/, '')}
+              </span>
             </div>
           </div>
         )}
@@ -360,7 +362,7 @@ export function CockpitView({
       <div class="pt-1">
         {isTicketPending ? (
           <div class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-stone-800 text-stone-400 font-bold text-sm border border-white/10 select-none">
-            <Icon icon={Ticket} class="w-4 h-4" />
+            <Icon icon={Ticket} class="w-4 h-4 shrink-0" />
             <span>チケット告知待ち</span>
           </div>
         ) : (
@@ -368,10 +370,12 @@ export function CockpitView({
             href={ticket.url || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-black text-sm shadow-md transition-all"
+            class="flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-stone-950 font-black text-sm shadow-md transition-all"
           >
-            <Icon icon={Ticket} class="w-4 h-4" />
-            <span>チケット購入 ({ticket.platform || '外部サイト'})</span>
+            <Icon icon={Ticket} class="w-4 h-4 shrink-0" />
+            <span class="truncate">
+              チケット購入 ({ticket.platform ? ticket.platform.replace(/[（(].*?[）)]/g, '').trim() || '外部サイト' : '外部サイト'})
+            </span>
           </a>
         )}
       </div>
