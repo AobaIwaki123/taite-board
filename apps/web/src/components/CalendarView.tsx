@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef } from 'preact/hooks';
 import { Session } from '../types/schedule';
 import { Icon } from './Icon';
 import { ChevronLeft, ChevronRight } from '../utils/icons';
@@ -13,6 +13,9 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const handlePrevMonth = () => {
     if (month === 1) {
@@ -34,6 +37,35 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
     setSelectedDate(null);
   };
 
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+
+    // 水平方向のスワイプ判定 (50px以上かつ縦方向の1.4倍以上優位)
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX < 0) {
+        // 左スワイプ: 次月へ
+        handleNextMonth();
+      } else if (deltaX > 0) {
+        // 右スワイプ: 現在より未来の月を表示中なら前月へ戻す
+        const isFutureMonth =
+          year > today.getFullYear() ||
+          (year === today.getFullYear() && month > today.getMonth() + 1);
+        if (isFutureMonth) {
+          handlePrevMonth();
+        }
+      }
+    }
+  };
+
   // 月の日数と1日の曜日インデックス (0 = Sun)
   const firstDayIndex = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -44,7 +76,11 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
     : [];
 
   return (
-    <div class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3.5 pb-6">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3.5 pb-6"
+    >
       {/* 月送りナビゲーション */}
       <div class="flex items-center justify-between px-1">
         <button
@@ -99,15 +135,16 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
           return (
             <button
               key={dateStr}
+              type="button"
               onClick={() => {
                 if (hasLive) setSelectedDate(dateStr);
               }}
-              disabled={!hasLive}
-              class={`py-2 rounded-xl flex flex-col items-center justify-center transition-all ${
+              aria-disabled={!hasLive}
+              class={`py-2 rounded-xl flex flex-col items-center justify-center transition-all select-none ${
                 isSelected
-                  ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105'
+                  ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105 cursor-pointer'
                   : hasLive
-                  ? 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60'
+                  ? 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 cursor-pointer'
                   : 'bg-stone-900/30 text-stone-600 cursor-default'
               }`}
             >

@@ -26,7 +26,11 @@ public struct SessionTime: Equatable, Sendable {
 }
 
 public struct NextSessionResolver: Sendable {
-    public init() {}
+    public let graceInterval: TimeInterval
+
+    public init(graceInterval: TimeInterval = 2 * 60 * 60) {
+        self.graceInterval = graceInterval
+    }
 
     public func resolve(in document: ScheduleDocument, now: Date = Date()) -> Session? {
         let timezone = TimeZone(identifier: document.timezone) ?? .autoupdatingCurrent
@@ -67,7 +71,7 @@ public struct NextSessionResolver: Sendable {
         guard let latestEnd = parsedEnds.max() else {
             return false
         }
-        return latestEnd < now
+        return latestEnd.addingTimeInterval(graceInterval) < now
     }
 
     private func sortKey(_ session: Session) -> String {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
+import { resolveNextSession } from './utils/date';
 import { Header } from './components/Header';
 import { Navigation, TabName } from './components/Navigation';
 import { CockpitView } from './components/CockpitView';
@@ -26,11 +27,13 @@ export function App() {
 
   useEffect(() => {
     loadScheduleData()
-      .then((loadedData) => {
+      .then(({ data: loadedData, isFallback: loadedFallback }) => {
         setData(loadedData);
-        // 初期選択セッションの決定
-        if (loadedData.current_next_id) {
-          setSelectedSessionId(loadedData.current_next_id);
+        setIsFallback(loadedFallback);
+        // 特典会終了後数時間の猶予時間を考慮して直近ライブを動的決定
+        const nextSession = resolveNextSession(loadedData.sessions, loadedData.current_next_id);
+        if (nextSession) {
+          setSelectedSessionId(nextSession.id);
         } else if (loadedData.sessions?.length > 0) {
           setSelectedSessionId(loadedData.sessions[0].id);
         }
@@ -84,7 +87,8 @@ export function App() {
   // 直近ライブへの復帰
   const handleResetToNextLive = () => {
     if (!data?.sessions?.length) return;
-    const nextId = data.current_next_id || data.sessions[0].id;
+    const nextSession = resolveNextSession(data.sessions, data.current_next_id);
+    const nextId = nextSession?.id || data.current_next_id || data.sessions[0].id;
     setSelectedSessionId(nextId);
     setSelectedImageIndex(0);
     scrollToTab('next');
@@ -109,9 +113,10 @@ export function App() {
     );
   }
 
+  const nextSession = resolveNextSession(data.sessions, data.current_next_id);
   const currentSession =
-    data.sessions.find((s: Session) => s.id === selectedSessionId) || data.sessions[0];
-  const isNextLive = selectedSessionId === (data.current_next_id || data.sessions[0]?.id);
+    data.sessions.find((s: Session) => s.id === selectedSessionId) || nextSession || data.sessions[0];
+  const isNextLive = selectedSessionId === nextSession?.id;
   const currentImages =
     currentSession?.images && currentSession.images.length > 0
       ? currentSession.images

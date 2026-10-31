@@ -4,7 +4,12 @@
 
 import { ScheduleData } from './types/schedule';
 
-export async function loadScheduleData(): Promise<ScheduleData> {
+export interface LoadScheduleResult {
+  data: ScheduleData;
+  isFallback: boolean;
+}
+
+export async function loadScheduleData(): Promise<LoadScheduleResult> {
   // Purge any residual telemetry keys for privacy governance (Zero Telemetry)
   try {
     localStorage.removeItem('taite_visitor_id');
@@ -16,6 +21,7 @@ export async function loadScheduleData(): Promise<ScheduleData> {
   }
 
   let data: ScheduleData | null = null;
+  let isFallback = false;
 
   try {
     // schedule.json を優先取得 (フォールバックとして mock_schedule.json も試行)
@@ -35,6 +41,7 @@ export async function loadScheduleData(): Promise<ScheduleData> {
     }
   } catch (e) {
     console.warn('Network load failed, falling back to local cache', e);
+    isFallback = true;
     try {
       const cached = localStorage.getItem('taite_cached_schedule');
       if (cached) {
@@ -49,5 +56,5 @@ export async function loadScheduleData(): Promise<ScheduleData> {
     throw new Error('Fatal: No schedule data available');
   }
 
-  return data;
+  return { data, isFallback };
 }

@@ -44,7 +44,17 @@ URL やフライヤー画像を taite-board の公開データへ反映する前
    - **公式X以外のURLのソース混入禁止**: `source_tweet_url` にチケット販売サイト（eplus, TicketDive, LivePocket等）を設定してはなりません。チケットURLは `ticket.url` に格納し、ソースには必ず公式X告知投稿URLを設定します。
    - **ローカル相対画像パスの禁止**: `/images/...` や `images/...` 等の架空・暫定ローカルパスを成果物に設定してはなりません。外部配信可能な完全修飾URL（`https://pbs.twimg.com/media/...`）を使用します。
 
-4. `references/candidate-contract.md` に従って `sessions` を埋める。各セッションには必ず `source_refs` を付け、日付・会場・時刻・特典会など、根拠が見つからない値は推測しない。時刻は `--:--`、値は `null`、状態は `unconfirmed` または `needs_review` を使う。
+4. 特典情報・チケット情報の機械的抽出と候補 JSON の作成
+   - 入場特典の抽出およびチケットプラットフォームのサニタイズには、必ず `extract_admission_bonus.py` を使用します。手動での文字列切り出しによる「券10枚」の脱落やプラットフォーム名への完売情報混入を防止します。
+
+   ```bash
+   python3 .agents/skills/taite-board-json-ingest/scripts/extract_admission_bonus.py \
+     --file "data/raw/runs/${run_id}/posts/${post_id}.json" \
+     --platform "<platform-string>" \
+     --json
+   ```
+
+   - `references/candidate-contract.md` に従って `sessions` を埋める。各セッションには必ず `source_refs` を付け、日付・会場・時刻・特典会など、根拠が見つからない値は推測しない。時刻は `--:--`、値は `null`、状態は `unconfirmed` または `needs_review` を使う。
 
 5. 完成した候補を検証する。
 
@@ -56,6 +66,19 @@ URL やフライヤー画像を taite-board の公開データへ反映する前
    ```
 
 6. 検証結果と未解決項目をユーザーへ報告する。候補 JSON を `data/generated/schedule.json` にコピーしたり、候補だけで本番公開したりしない。公開には [docs/manual-ingest-release.md](../../../docs/manual-ingest-release.md) のレビュー手順を使う。
+
+## Script と Skill の責務分割 (Separation of Responsibilities)
+
+- **Script の責務 (機械的・決定論的処理)**:
+  - `extract_admission_bonus.py`:
+    - 投稿本文から入場特典（お目当て3択など）を正規化抽出。選択肢③内部のスラッシュ（`券5枚⇒集合写真/券10枚⇒私物サイン`）による文字列分断・切り捨てを機械的に防止する。
+    - チケット購入ボタンの描画崩れ防止のため、`ticket.platform` に混入した「完売」「当日券あり」等のステータス文言を自動除去し、純粋なプラットフォーム名（`イープラス` 等）と備考に分離する。
+  - `validate_candidate.py`:
+    - 特典の選択肢欠落（「券5枚」があるのに「10枚」が脱落）や `ticket.platform` の長文混入を機械的ルールとして自動検知・警告する。
+- **Skill の責務 (エージェント判断・検証プロトコル)**:
+  - 複数画像ポストにおける告知画像とタイテ表の種別判定、Apple Vision OCR の実行と突合。
+  - 個別特殊イベント（ビンゴ大会、動員招待特典等）における例外的な特典パターンの判定と確認。
+  - `extract_admission_bonus.py` を呼び出して抽出した結果を候補 JSON に反映し、推測による直書きを避ける。
 
 ## 完了条件
 
