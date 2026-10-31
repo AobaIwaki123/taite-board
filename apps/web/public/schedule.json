@@ -144,8 +144,12 @@
         "end_time": "16:35",
         "booth": "並行B"
       },
-      "photo": null,
-      "special_notes": "日曜昼・全組25分SP",
+      "photo": {
+        "available": true,
+        "rule": "5曲目『75秒の沈黙』撮影可能",
+        "raw_text": "①1回し目の撮影可能曲は、5曲目『75秒の沈黙』です！"
+      },
+      "special_notes": "リボンクロック初の私服ライブ（私服出演） / 日曜昼・全組25分SP",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TicketDive",
@@ -184,6 +188,11 @@
           "type": "x_post",
           "source_id": "2114341213147205692",
           "url": "https://x.com/Ribbon_Clock/status/2114341213147205692"
+        },
+        {
+          "type": "x_post",
+          "source_id": "2116455139959840824",
+          "url": "https://x.com/Ribbon_Clock/status/2116455139959840824"
         }
       ]
     },
@@ -210,8 +219,12 @@
         "end_time": "20:05",
         "booth": "2階チャペルB"
       },
-      "photo": null,
-      "special_notes": "バトゥール東京・夜帯ライブ！前売券は当日会場精算",
+      "photo": {
+        "available": true,
+        "rule": "1曲目『えすえぬ・えーす』撮影可能",
+        "raw_text": "②2回し目の撮影可能曲は、1曲目『えすえぬ・えーす』です！"
+      },
+      "special_notes": "リボンクロック初の私服ライブ（私服出演） / バトゥール東京・夜帯ライブ！前売券は当日会場精算",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TIGET",
@@ -246,6 +259,11 @@
           "type": "x_post",
           "source_id": "2114597900827115847",
           "url": "https://x.com/Ribbon_Clock/status/2114597900827115847"
+        },
+        {
+          "type": "x_post",
+          "source_id": "2116455139959840824",
+          "url": "https://x.com/Ribbon_Clock/status/2116455139959840824"
         }
       ]
     },
@@ -804,6 +822,6 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-10-30T09:37:53.506Z",
+  "generated_at": "2026-10-31T16:59:00.000Z",
   "timezone": "Asia/Tokyo"
 }
