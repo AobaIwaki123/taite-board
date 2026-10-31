@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 	"unicode"
@@ -132,8 +133,13 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 		if sn, ok := s["special_notes"].(string); ok && containsEmoji(sn) {
 			report.Warnings = append(report.Warnings, fmt.Sprintf("%s: special_notes contains emoji (violates text integrity rule)", prefix))
 		}
-		if ab, ok := s["admission_bonus"].(string); ok && containsEmoji(ab) {
-			report.Warnings = append(report.Warnings, fmt.Sprintf("%s: admission_bonus contains emoji (violates text integrity rule)", prefix))
+		if ab, ok := s["admission_bonus"].(string); ok {
+			if containsEmoji(ab) {
+				report.Warnings = append(report.Warnings, fmt.Sprintf("%s: admission_bonus contains emoji (violates text integrity rule)", prefix))
+			}
+			if strings.Contains(ab, "券5枚") && !strings.Contains(ab, "10枚") {
+				report.Warnings = append(report.Warnings, fmt.Sprintf("%s: admission_bonus contains '券5枚' but lacks '10枚' option (likely truncated at '/')", prefix))
+			}
 		}
 
 		// Venue
@@ -181,6 +187,12 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 		ticket, _ := s["ticket"].(map[string]interface{})
 		if ticket == nil {
 			report.Errors = append(report.Errors, fmt.Sprintf("%s: missing ticket object", prefix))
+		} else {
+			if platform, ok := ticket["platform"].(string); ok {
+				if strings.Contains(platform, "完売") || strings.Contains(platform, "当日券") {
+					report.Warnings = append(report.Warnings, fmt.Sprintf("%s: ticket.platform '%s' contains sales/status text which breaks CTA button layout; keep platform clean (e.g. 'イープラス') and move status to prices/special_notes", prefix, platform))
+				}
+			}
 		}
 
 		// Source Tweet URL verification (prevent non-X URLs in source_tweet_url)

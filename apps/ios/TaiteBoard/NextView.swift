@@ -376,8 +376,9 @@ struct NextView: View {
            let urlString = ticket.url,
            let url = URL(string: urlString),
            ticket.platform != "公式アナウンス待ち" {
+            let platformName = cleanPlatformName(for: ticket.platform)
             Link(destination: url) {
-                Label("チケット購入 (\(ticket.platform ?? "外部サイト"))", systemImage: "ticket.fill")
+                Label("チケット購入 (\(platformName))", systemImage: "ticket.fill")
                     .font(.subheadline.weight(.black))
                     .foregroundStyle(RibbonTheme.background)
                     .frame(maxWidth: .infinity)
@@ -396,6 +397,12 @@ struct NextView: View {
                 .background(RibbonTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(RibbonTheme.border, lineWidth: 1))
         }
+    }
+
+    private func cleanPlatformName(for platform: String?) -> String {
+        guard let platform = platform else { return "外部サイト" }
+        let cleaned = platform.replacingOccurrences(of: #"[（(].*?[）)]"#, with: "", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? platform : cleaned
     }
 
     @ViewBuilder
