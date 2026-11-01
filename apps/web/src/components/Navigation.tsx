@@ -26,8 +26,8 @@ export function Navigation({
   const isTabActive = (index: number) => Math.abs(currentProgress - index) < 0.5;
 
   return (
-    <nav class="flex-shrink-0 pt-2 pb-1.5 border-t border-white/5 bg-stone-950/80 backdrop-blur-md flex flex-col items-center">
-      <div class="w-full relative flex p-1 rounded-2xl bg-stone-900 border border-white/10 select-none">
+    <nav class="flex-shrink-0 pt-2 pb-2.5 border-t border-white/5 bg-stone-950/80 backdrop-blur-md">
+      <div class="relative flex p-1 rounded-2xl bg-stone-900 border border-white/10 select-none">
         {/* スライディング・ピルインジケーター（スワイプにリアルタイム追従、クリック時は滑らかに遷移） */}
         <div
           class="absolute top-1 bottom-1 w-[calc(33.333%-2px)] rounded-xl bg-gradient-to-r from-rose-500 to-rose-400 shadow-md pointer-events-none"
@@ -80,9 +80,6 @@ export function Navigation({
           <Icon icon={Calendar} class="w-3.5 h-3.5" />
           <span>カレンダー</span>
         </button>
-      </div>
-      <div class="pt-1 text-[10px] font-mono text-stone-600 tracking-wider select-none pointer-events-none">
-        {__APP_VERSION__}
       </div>
     </nav>
   );

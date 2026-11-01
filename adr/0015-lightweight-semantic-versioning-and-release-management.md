@@ -13,7 +13,7 @@ Accepted
 - `VERSION`
 - `apps/web/package.json`
 - `apps/web/vite.config.ts`
-- `apps/web/src/` (`App.tsx`, `Navigation.tsx`, `vite-env.d.ts`)
+- `apps/web/src/` (`App.tsx`, `CockpitView.tsx`, `vite-env.d.ts`)
 - `cmd/taite/` (`main.go`, `internal/version/`)
 - `scripts/release.sh`
 - `.github/workflows/deploy.yml`
@@ -117,14 +117,15 @@ Ribbon Clock (taite-board) は、コミット SHA（`sha-<hash>`）を元にし�
   9. `origin main` およびタグを Push。
   10. `gh` コマンドが利用可能な場合、`gh release create vX.Y.Z --generate-notes` で GitHub Release を起票。
 
-### 4. アプリ最下部のバージョン表示仕様
+### 4. アプリ内のバージョン表示仕様
 - `apps/web/vite.config.ts`:
   - `define: { __APP_VERSION__: JSON.stringify('v' + version) }`
 - `apps/web/src/vite-env.d.ts`:
   - `declare const __APP_VERSION__: string;`
-- `apps/web/src/components/Navigation.tsx` / `App.tsx`:
-  - アプリ最下部のナビゲーションバー直下に、目立たないモノスペースフォント（`text-[10px] text-stone-600 font-mono tracking-wider text-center select-none`）で `vX.Y.Z` を表示。
-  - 横スクロールやボタン押下に干渉しない静的要素として配置。
+- `apps/web/src/components/CockpitView.tsx`:
+  - 常時画面領域を占有する固定フッターではなく、コックピット最下部の「サイトについて」リンクの直下に配置。
+  - 屋外視認性および最小文字サイズ規約（`note/07_mobile-typography-and-outdoor-readability.md` における 12px 以上の Floor Standard）を遵守し、`text-xs text-stone-600 font-mono select-none` で `vX.Y.Z` を表示。
+  - ナビゲーション操作やタブ切り替えに一切干渉しない自然なフッター情報として提供。
 
 ### 5. Go CLI のバージョン表示 (`taite version`)
 - `taite version` または `taite -v` を実行した際、リポジトリの `VERSION` を読み取って `taite vX.Y.Z` を標準出力に出力。
