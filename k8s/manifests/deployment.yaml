@@ -8,6 +8,8 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: ribonclock
@@ -84,5 +86,6 @@ spec:
               mountPath: /var/log/ribonclock
       volumes:
         - name: log-volume
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: ribonclock-log-pvc
 

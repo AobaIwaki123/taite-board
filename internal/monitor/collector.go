@@ -3,6 +3,7 @@ package monitor
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -66,6 +67,7 @@ type Collector struct {
 	maxRecent     int
 	recentIntakes []candidate.IntakeResult // ring buffer (max 20)
 	maxIntakes    int
+	intakesPath   string
 }
 
 // NewCollector creates a new Collector instance.
@@ -85,13 +87,38 @@ func NewCollector(version string) *Collector {
 	}
 }
 
-// AddIntake records an intake result to the recent intakes list.
+// SetIntakesPath sets the persistence path for intake items and loads existing records if present.
+func (c *Collector) SetIntakesPath(path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.intakesPath = path
+	if path == "" {
+		return
+	}
+	data, err := os.ReadFile(path)
+	if err == nil {
+		var loaded []candidate.IntakeResult
+		if err := json.Unmarshal(data, &loaded); err == nil && len(loaded) > 0 {
+			c.recentIntakes = loaded
+			if len(c.recentIntakes) > c.maxIntakes {
+				c.recentIntakes = c.recentIntakes[:c.maxIntakes]
+			}
+		}
+	}
+}
+
+// AddIntake records an intake result to the recent intakes list and persists it to disk.
 func (c *Collector) AddIntake(res candidate.IntakeResult) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.recentIntakes = append([]candidate.IntakeResult{res}, c.recentIntakes...)
 	if len(c.recentIntakes) > c.maxIntakes {
 		c.recentIntakes = c.recentIntakes[:c.maxIntakes]
+	}
+	if c.intakesPath != "" {
+		if data, err := json.MarshalIndent(c.recentIntakes, "", "  "); err == nil {
+			_ = os.WriteFile(c.intakesPath, data, 0644)
+		}
 	}
 }
 
