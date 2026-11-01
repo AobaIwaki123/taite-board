@@ -71,21 +71,21 @@
     <!-- Key Metrics Cards -->
     <div class="grid" style="margin-bottom: 1.5rem;">
       <article style="padding: 1.25rem;">
-        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">24h Total Requests</header>
-        <div id="stat-total" class="stat-val">-</div>
-        <div class="stat-sub">Aggregated from Nginx log</div>
+        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">Today's Page Views (PV)</header>
+        <div id="stat-today-pv" class="stat-val" style="color: #f43f5e;">-</div>
+        <div class="stat-sub">Site visits since 00:00 JST</div>
       </article>
 
       <article style="padding: 1.25rem;">
-        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">Today's Requests (JST)</header>
-        <div id="stat-today" class="stat-val" style="color: #38bdf8;">-</div>
-        <div class="stat-sub">Since 00:00 JST</div>
+        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">Total Page Views (PV)</header>
+        <div id="stat-total-pv" class="stat-val" style="color: #38bdf8;">-</div>
+        <div class="stat-sub">All-time site visits</div>
       </article>
 
       <article style="padding: 1.25rem;">
-        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">Last Hour Traffic</header>
-        <div id="stat-hour" class="stat-val" style="color: #34d399;">-</div>
-        <div class="stat-sub">Requests in past 60 min</div>
+        <header style="margin-bottom: 0.5rem; font-size: 0.8rem; text-transform: uppercase; color: var(--pico-muted-color);">Total HTTP Requests</header>
+        <div id="stat-total" class="stat-val" style="color: #34d399;">-</div>
+        <div class="stat-sub">HTML + API + Assets combined</div>
       </article>
 
       <article style="padding: 1.25rem;">
@@ -137,26 +137,40 @@
     let routeChartInstance = null;
 
     function initCharts() {
-      // 1. Hourly Bar Chart
+      // 1. Hourly Bar Chart (PV vs Total Requests)
       const ctxHourly = document.getElementById('hourlyChart').getContext('2d');
       hourlyChartInstance = new Chart(ctxHourly, {
         type: 'bar',
         data: {
           labels: [],
-          datasets: [{
-            label: 'Requests',
-            data: [],
-            backgroundColor: 'rgba(244, 63, 94, 0.65)',
-            borderColor: '#f43f5e',
-            borderWidth: 1,
-            borderRadius: 4
-          }]
+          datasets: [
+            {
+              label: 'Page Views (PV)',
+              data: [],
+              backgroundColor: 'rgba(244, 63, 94, 0.75)',
+              borderColor: '#f43f5e',
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
+              label: 'Total Requests',
+              data: [],
+              backgroundColor: 'rgba(56, 189, 248, 0.35)',
+              borderColor: '#38bdf8',
+              borderWidth: 1,
+              borderRadius: 4
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { display: false }
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { color: '#e7e5e4', boxWidth: 12, font: { size: 11 } }
+            }
           },
           scales: {
             x: {
@@ -177,7 +191,7 @@
       routeChartInstance = new Chart(ctxRoute, {
         type: 'doughnut',
         data: {
-          labels: ['Documents', 'Schedule API', 'Static Assets', 'Other'],
+          labels: ['Page Views (HTML)', 'Schedule API', 'Static Assets', 'Other'],
           datasets: [{
             data: [0, 0, 0, 0],
             backgroundColor: [
@@ -209,9 +223,9 @@
         const data = await res.json();
 
         // Summary cards
+        document.getElementById('stat-today-pv').innerText = Number(data.today_page_views || 0).toLocaleString();
+        document.getElementById('stat-total-pv').innerText = Number(data.total_page_views || 0).toLocaleString();
         document.getElementById('stat-total').innerText = Number(data.total_requests || 0).toLocaleString();
-        document.getElementById('stat-today').innerText = Number(data.today_requests || 0).toLocaleString();
-        document.getElementById('stat-hour').innerText = Number(data.last_hour_count || 0).toLocaleString();
 
         const errRate = Number(data.error_rate || 0).toFixed(1);
         const errEl = document.getElementById('stat-error');
@@ -231,7 +245,8 @@
         // Update Hourly Chart
         if (hourlyChartInstance && data.hourly) {
           hourlyChartInstance.data.labels = data.hourly.map(h => h.hour);
-          hourlyChartInstance.data.datasets[0].data = data.hourly.map(h => h.count);
+          hourlyChartInstance.data.datasets[0].data = data.hourly.map(h => h.page_views || 0);
+          hourlyChartInstance.data.datasets[1].data = data.hourly.map(h => h.total_requests || h.count || 0);
           hourlyChartInstance.update();
         }
 
@@ -252,10 +267,13 @@
             const statusClass = r.status >= 500 ? 'badge-500' :
                                 r.status >= 400 ? 'badge-404' :
                                 r.status >= 300 ? 'badge-304' : 'badge-200';
+            const routeName = r.route === 'document' ? 'Page View (HTML)' :
+                              r.route === 'schedule' ? 'Schedule API' :
+                              r.route === 'asset' ? 'Static Asset' : r.route;
             return `
               <tr>
                 <td>${r.time}</td>
-                <td><mark style="background:transparent; color:#e2e8f0; font-weight:600;">${r.route}</mark></td>
+                <td><mark style="background:transparent; color:#e2e8f0; font-weight:600;">${routeName}</mark></td>
                 <td><span class="badge ${statusClass}">${r.status}</span></td>
               </tr>
             `;
