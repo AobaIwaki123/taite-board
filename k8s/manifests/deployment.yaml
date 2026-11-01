@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/aobaiwaki123/taite-board:sha-703e13e
+          image: ghcr.io/aobaiwaki123/taite-board:sha-7c7fe6b
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -49,7 +49,7 @@ spec:
             - name: log-volume
               mountPath: /var/log/ribonclock
         - name: monitor
-          image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-703e13e
+          image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-7c7fe6b
           imagePullPolicy: IfNotPresent
           ports:
             - name: dashboard
