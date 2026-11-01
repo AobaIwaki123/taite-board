@@ -1,6 +1,8 @@
 # Stage 1: Build Modern TypeScript Frontend
 FROM node:26-alpine AS builder
 
+WORKDIR /app
+COPY VERSION ./
 WORKDIR /app/apps/web
 COPY apps/web/package*.json ./
 RUN npm ci

@@ -36,6 +36,10 @@ URL共有時のカードとアプリアイコンは、カレンダーとリボ�
    - スケジュール生成日時（`generated_at`）から24時間以上経過している場合、ヘッダーに更新通知バッジを表示。
 4. **プライバシー保護 (Zero Telemetry)**:
    - 訪問者追跡、Cookie、外部トラッキングタグ、識別用UUIDの発行を行わない設計。
+5. **軽量セマンティックバージョニングと透過的バージョン表示 (ADR-0015)**:
+   - ルートの `VERSION` と `apps/web/package.json` を単一の真実として同期。
+   - アプリ最下部に現在稼働中のバージョン（`vX.Y.Z`）を常時表示。
+   - `./scripts/release.sh [patch|minor|major]` によるワンコマンドでの検証・タグ打ち・GitHub Release 発行。
 
 ---
 
@@ -77,8 +81,9 @@ taite-board/
 │       ├── package.json       # 依存パッケージ定義
 │       ├── tsconfig.json      # TypeScript 設定 (Strict Mode)
 │       └── vite.config.ts     # Vite 設定
+├── VERSION                    # セマンティックバージョン正本 (SemVer)
 ├── cmd/
-│   └── taite/                 # 統合Go CLI (fetch, validate, sync, sort, add-session, update-session, build)
+│   └── taite/                 # 統合Go CLI (fetch, validate, sync, sort, add-session, update-session, build, version)
 │       ├── main.go
 │       └── README.md
 ├── internal/                  # Go CLI 内部パッケージ
@@ -86,7 +91,8 @@ taite-board/
 │   ├── raw/                   # 生スナップショット定義
 │   ├── fetch/                 # 取得オーケストレーター
 │   ├── validate/              # JSON Schema・時系列順序・公演重複インターバル検証
-│   └── schedule/              # スケジュール同期・ソート・追加・更新
+│   ├── schedule/              # スケジュール同期・ソート・追加・更新
+│   └── version/               # アプリケーションバージョン解決
 ├── data/                      # 5層データパイプライン (詳細は data/README.md)
 │   ├── input/                 # クローラー巡回対象
 │   ├── raw/                   # 実行別スナップショット
@@ -106,9 +112,10 @@ taite-board/
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
 │   └── frontend-guidelines.md # フロントエンド設計・TypeScript規約
-├── adr/                       # アーキテクチャ決定記録 (0001〜0014)
+├── adr/                       # アーキテクチャ決定記録 (0001〜0015)
 │   └── README.md              # ADR 作成ガイドライン
 ├── scripts/
+│   ├── release.sh             # SemVer バンプ・検証・タグ打ち・GitHub Release 自動化
 │   ├── verify.sh              # 統一ローカル完全検証スクリプト (Sync, Validate, Test, Typecheck, Build)
 │   ├── ship.sh                # Worktree・PR起票・マージ自動化スクリプト
 │   ├── sync-schedule.sh       # schedule.json 同期スクリプト
@@ -117,6 +124,31 @@ taite-board/
 ├── Makefile                   # 開発タスク実行定義
 └── Dockerfile                 # マルチステージコンテナビルド定義
 ```
+
+---
+
+## リリース手順 (Release Workflow)
+
+本リポジトリでは、`./scripts/release.sh` を用いた摩擦ゼロのワンコマンドリリース（ADR-0015準拠）を標準運用としています。
+
+```bash
+# 1. パッチリリース (1.0.0 -> 1.0.1: バグ修正、ドキュメント更新、軽微な調整)
+./scripts/release.sh patch
+
+# 2. マイナーリリース (1.0.0 -> 1.1.0: 新機能追加、新画面追加)
+./scripts/release.sh minor
+
+# 3. リリースシミュレーション (Gitやファイルに影響を与えず事前確認)
+./scripts/release.sh patch --dry-run
+```
+
+コマンド実行により、以下の処理が自動完結します。
+1. `VERSION` および `apps/web/package.json` の SemVer インクリメント
+2. `./scripts/verify.sh` による全自動検証（テスト・型検査・ビルド）の実行
+3. バージョン更新コミットの作成（`chore(release): bump version to vX.Y.Z`）
+4. 注釈付き Git タグ（`vX.Y.Z`）の発行とリモート Push
+5. `gh release create` による GitHub Releases の自動生成（コミットログ要約付き）
+6. GitHub Actions によるコンテナイメージ（`ghcr.io/aobaiwaki123/taite-board:vX.Y.Z`）の自動ビルド・発行
 
 ---
 

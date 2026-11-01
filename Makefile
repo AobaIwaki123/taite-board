@@ -1,9 +1,11 @@
-.PHONY: help install build test validate sync verify ship web-install web-build web-dev clean
+.PHONY: help install build test validate sync verify ship release version web-install web-build web-dev clean
 
 help:
 	@echo "Available targets:"
 	@echo "  verify       Run full mechanical verification pipeline (sync, validate, test, typecheck, build)"
 	@echo "  sync         Sync data/generated/schedule.json to apps/web/public/"
+	@echo "  version      Print current application version"
+	@echo "  release      Release new version via scripts/release.sh (usage: make release TYPE=patch)"
 	@echo "  install      Install 'taite' CLI binary to \$$GOBIN"
 	@echo "  build        Build 'taite' CLI binary to bin/taite"
 	@echo "  test         Run Go tests"
@@ -22,6 +24,12 @@ verify:
 
 ship:
 	./scripts/ship.sh $(TITLE)
+
+version:
+	@go run ./cmd/taite version
+
+release:
+	./scripts/release.sh $(TYPE)
 
 install:
 	go install ./cmd/taite
