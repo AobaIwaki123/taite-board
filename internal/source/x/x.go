@@ -196,5 +196,53 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 		}
 	}
 
+	// Secondary fallback via FxTwitter API if syndication returns empty
+	if len(images) == 0 {
+		images = c.fetchFxTwitterImages(ctx, statusID)
+	}
+
+	return images
+}
+
+func (c *Client) fetchFxTwitterImages(ctx context.Context, statusID string) []string {
+	fxURL := fmt.Sprintf("https://api.fxtwitter.com/status/%s", statusID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fxURL, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("User-Agent", "TaiteBoardBot/1.0")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return nil
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+
+	var fxResult struct {
+		Tweet struct {
+			Media struct {
+				Photos []struct {
+					URL string `json:"url"`
+				} `json:"photos"`
+			} `json:"media"`
+		} `json:"tweet"`
+	}
+
+	var images []string
+	if err := json.Unmarshal(body, &fxResult); err == nil {
+		for _, p := range fxResult.Tweet.Media.Photos {
+			if p.URL != "" {
+				images = append(images, normalizeMediaURL(p.URL))
+			}
+		}
+	}
 	return images
 }

@@ -360,8 +360,8 @@
       "special_notes": "渋谷VIDENT開催対バン！並行特典会A",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写メ+30秒トーク / ③動員ポイント）",
       "ticket": {
-        "platform": "LivePocket",
-        "url": null,
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/AQ_1104",
         "prices": [
           {
             "tier": "前方エリア",
@@ -377,9 +377,20 @@
           }
         ]
       },
-      "image_url": "",
+      "image_url": "https://pbs.twimg.com/media/HWBxPKuaYAAiL7E.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116817522318250115",
-      "images": [],
+      "images": [
+        {
+          "type": "flyer",
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HWBxPKuaYAAiL7E.jpg?name=large"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HWBxPK9awAA9kLg.jpg?name=large"
+        }
+      ],
       "source_refs": [
         {
           "type": "x_post",
