@@ -43,3 +43,7 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 ## プライバシー配慮型アクセス集計
 
 クライアント計測を追加せず、Nginx の匿名ログを必要なときだけ集計して Discord へ通知する案は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) にまとめています。初期案では origin request count のみを扱い、個人単位の追跡や raw log の Discord 送信は行いません。
+
+## 設計資料
+
+- [自宅オーケストレーターと Cloud Run AI パーサー設計案](home-orchestrator-cloud-run-ai-parser.md)
