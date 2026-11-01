@@ -4,6 +4,7 @@
 外部SNSや告知画像から抽出・名寄せされた確定スケジュールデータを静的JSONとして配信し、モバイルブラウザ向けに表示します。
 
 - **本番URL**: [https://ribonclock.iorin.net/](https://ribonclock.iorin.net/)
+- **アクセス監視ダッシュボード**: [https://ribonclock-dashboard.aooba.net/](https://ribonclock-dashboard.aooba.net/)
 - **ローカル開発URL**: `http://localhost:8089/index.html`
 
 ---
@@ -40,6 +41,10 @@ URL共有時のカードとアプリアイコンは、カレンダーとリボ�
    - ルートの `VERSION` と `apps/web/package.json` を単一の真実として同期。
    - アプリ最下部に現在稼働中のバージョン（`vX.Y.Z`）を常時表示。
    - `./scripts/release.sh [patch|minor|major]` によるワンコマンドでの検証・タグ打ち・GitHub Release 発行。
+6. **プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード (ADR-0016)**:
+   - Nginx の共有匿名アクセスログを Go 製サイドカー（`cmd/monitor`）がリアルタイム集計。
+   - クラスタの Prometheus 向けに `/metrics`（`ServiceMonitor`）を公開し、時系列推移を収集。
+   - 外部 Ingress（`https://ribonclock-dashboard.aooba.net/`）経由で累計アクセス、ルート別比率、24時間推移、リアルタイムアクセスフィードを即座に確認可能。
 
 ---
 
@@ -83,10 +88,10 @@ taite-board/
 │       └── vite.config.ts     # Vite 設定
 ├── VERSION                    # セマンティックバージョン正本 (SemVer)
 ├── cmd/
+│   ├── monitor/               # プライバシー配慮型アクセス監視・ダッシュボードサーバー
 │   └── taite/                 # 統合Go CLI (fetch, validate, sync, sort, add-session, update-session, build, version)
-│       ├── main.go
-│       └── README.md
-├── internal/                  # Go CLI 内部パッケージ
+├── internal/                  # 内部Goパッケージ
+│   ├── monitor/               # ログ収集・Prometheusメトリクス・ダッシュボードHTML
 │   ├── source/x/              # 外部通信アダプター
 │   ├── raw/                   # 生スナップショット定義
 │   ├── fetch/                 # 取得オーケストレーター
@@ -102,17 +107,19 @@ taite-board/
 ├── schema/
 │   └── schedule.schema.json   # データ契約 JSON Schema (Draft-07)
 ├── k8s/                       # Kubernetes マニフェスト & ArgoCD 設定
-│   ├── manifests/             # deployment, service, ingress, namespace
+│   ├── manifests/             # deployment, service, ingress, dashboard-ingress, servicemonitor, namespace
 │   └── argocd/                # application.yaml (GitOps自動同期)
 ├── deploy/
-│   └── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz)
+│   ├── nginx.conf             # 本番コンテナ用 Nginx 設定 (ポート8080, /healthz, 共有ログ出力)
+│   ├── monitor.Dockerfile     # アクセス監視ダッシュボードコンテナ定義
+│   └── access-report.Dockerfile # アクセス集計CronJobコンテナ定義
 ├── docs/                      # 開発・アーキテクチャドキュメント
 │   ├── README.md              # ブランドアセット比較
 │   ├── architecture.md        # アーキテクチャ設計書
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
 │   └── frontend-guidelines.md # フロントエンド設計・TypeScript規約
-├── adr/                       # アーキテクチャ決定記録 (0001〜0015)
+├── adr/                       # アーキテクチャ決定記録 (0001〜0016)
 │   └── README.md              # ADR 作成ガイドライン
 ├── scripts/
 │   ├── release.sh             # SemVer バンプ・検証・タグ打ち・GitHub Release 自動化

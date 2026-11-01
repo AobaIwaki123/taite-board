@@ -87,3 +87,4 @@ YYYY-MM-DD
 | [ADR-0013](0013-toolchain-modernization-vite8-ts7-tailwind4.md) | ツールチェーンの最新化とTailwind CSS v4移行 | Accepted | 2026-10-30 |
 | [ADR-0014](0014-offline-image-cache-and-cli-data-governance.md) | 画像オフラインキャッシュとGo CLIデータガバナンス | Accepted | 2026-11-01 |
 | [ADR-0015](0015-lightweight-semantic-versioning-and-release-management.md) | 軽量セマンティックバージョニングとリリースタグ運用 | Accepted | 2026-11-01 |
+| [ADR-0016](0016-access-monitoring-infrastructure-and-dashboard.md) | プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード | Accepted | 2026-11-01 |
