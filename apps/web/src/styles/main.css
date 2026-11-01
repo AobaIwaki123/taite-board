@@ -17,6 +17,23 @@ html {
   font-size: 17.5px; /* 全体フォントサイズを拡大して屋外視認性を最大化 */
 }
 
+/* グローバル・タイポグラフィスケール (12px Floor Standard 厳守)
+ * 各種コンポーネントでは文字サイズを任意pxで直接指定せず、本トークン／クラスを使用すること。
+ */
+:root {
+  --text-floor: 0.75rem;     /* 13.1px: 規約下限値。注記・バージョン・補足用 */
+  --text-meta: 0.875rem;     /* 15.3px: 特典会ブース・チケット価格 */
+  --text-body: 1rem;         /* 17.5px: 本文・会場名・日程 */
+  --text-subheading: 1.25rem;/* 21.9px: イベント名 */
+  --text-heading: 1.875rem;  /* 32.8px: 最重要時刻（出番・特典会） */
+}
+
+.text-floor { font-size: var(--text-floor); }
+.text-meta { font-size: var(--text-meta); }
+.text-body { font-size: var(--text-body); }
+.text-subheading { font-size: var(--text-subheading); }
+.text-heading { font-size: var(--text-heading); }
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
