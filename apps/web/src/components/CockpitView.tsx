@@ -395,6 +395,9 @@ export function CockpitView({
         >
           サイトについて
         </a>
+        <div class="mt-1 text-xs text-stone-600 font-mono select-none">
+          {__APP_VERSION__}
+        </div>
       </footer>
     </div>
   );
