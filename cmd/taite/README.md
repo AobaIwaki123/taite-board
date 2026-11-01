@@ -64,14 +64,14 @@ data/raw/runs/YYYYMMDDTHHMMSS+0900/
 ---
 
 ### 2. `taite validate`
-生成されたスケジュールJSONが [schema/schedule.schema.json](../../schema/schedule.schema.json) およびドメインルール（ADR-0001準拠）に適合しているかを厳格に検証します。
+生成されたスケジュールJSONが [schema/schedule.schema.json](../../schema/schedule.schema.json) およびドメインルール（ADR-0001、ADR-0014準拠）に適合しているかを厳格に検証します。
 
 ```bash
 # デフォルトパス (data/generated/schedule.json) を検証
 taite validate
 
 # 任意のファイルを指定して検証
-taite validate path/to/schedule.json
+taite validate --file path/to/schedule.json
 ```
 
 #### 主な検証項目:
@@ -80,6 +80,8 @@ taite validate path/to/schedule.json
 - 日付フォーマット（`YYYY-MM-DD`）。
 - 時刻フォーマット（`HH:MM` または `--:--`）。
 - 会場オブジェクト（`venue.name`）およびチケットオブジェクトの存在。
+- **時系列順序検査 (ADR-0014)**: `sessions[]` が `date`（昇順）→ `live.start_time`（昇順）→ `id`（昇順）に整列されているかを検証。
+- **同日複数公演インターバル検査 (ADR-0014)**: 同日に2公演以上ある場合、直前セッションの特典会終了時刻と次セッションの出番開始時刻の重複をエラー検出（30分未満の場合は警告）。
 
 ---
 
@@ -94,7 +96,53 @@ make sync
 
 ---
 
-### 4. `taite update-session`
+### 4. `taite sort`
+`data/generated/schedule.json` 内の `sessions[]` を日付（昇順）→ 出番開始時刻（昇順）→ ID（昇順）で機械的にソートし、`generated_at` を現在時刻に更新して Web 公開ディレクトリへ自動同期します（ADR-0014準拠）。
+
+```bash
+taite sort
+# または
+taite sort -file path/to/schedule.json
+```
+
+---
+
+### 5. `taite add-session`
+新規公演セッションを引数から安全に追加します。同一日の既存セッション数からセッションID（`YYYYMMDD-1` 等）および曜日（`day_of_week`）を自動算定し、時系列ソートと Web 公開ディレクトリへの自動同期を実行します（ADR-0014準拠）。
+
+```bash
+taite add-session \
+  -date "2026-11-15" \
+  -title "IDOL LIVE CIRCUIT 2026" \
+  -venue "渋谷近未来会館" \
+  -live-start "14:20" \
+  -live-end "14:40" \
+  -benefit-type "parallel" \
+  -benefit-start "14:50" \
+  -benefit-end "15:50" \
+  -booth "Bブース" \
+  -ticket-platform "TIGET" \
+  -ticket-url "https://tiget.net/events/example"
+```
+
+#### 主なオプション:
+- `-date <YYYY-MM-DD>`: 公演日付（必須）。
+- `-title <string>`: ライブ・イベント名称（必須）。
+- `-venue <string>`: 会場名（必須）。
+- `-live-start <HH:MM>`: ライブ出演開始時刻（必須）。
+- `-live-end <HH:MM>`: ライブ出演終了時刻（省略可）。
+- `-benefit-type <type>`: 特典会種別（`parallel`: 並行, `after`: 終演後, `none`: なし, `before`: 事前。デフォルト: `after`）。
+- `-benefit-start <HH:MM>`: 特典会開始時刻。
+- `-benefit-end <HH:MM>`: 特典会終了時刻。
+- `-booth <string>`: 特典会ブース番号・場所名。
+- `-ticket-platform <string>`: チケット販売プラットフォーム（デフォルト: `TIGET`）。
+- `-ticket-url <string>`: チケット販売・予約ページURL。
+- `-file <string>`: スケジュールJSONファイルのパス（デフォルト: `data/generated/schedule.json`）。
+- `-no-sync`: Web 公開ファイルへの自動同期をスキップする場合に指定。
+
+---
+
+### 6. `taite update-session`
 公演セッションの撮影可能ルール、特記事項、公式告知ポスト URL を更新し、`generated_at` の日時更新と Web 配下への自動同期を実行します。
 
 ```bash
@@ -115,7 +163,7 @@ taite update-session -session 20261101-1 \
 
 ---
 
-### 5. `taite build`
+### 7. `taite build`
 フロントエンド（`apps/web/`）の TypeScript バンドルビルド（`scripts/build.sh` 経由で Vite ビルド）を実行します。
 
 ```bash
@@ -138,6 +186,7 @@ make web-build
 - **`internal/fetch/`**:
   - 並列フェッチオーケストレータおよびローカルファイルへの不変保存処理。
 - **`internal/validate/`**:
-  - JSON Schema準拠のドメイン検証ロジック。
+  - JSON Schema準拠のドメイン検証、時系列順序検査、同日公演インターバル検査ロジック。
 - **`internal/schedule/`**:
+  - スケジュール JSON の SHA-256 同期保証（`sync.go`）、時系列決定論的ソート（`sort.go`）、安全なセッション追加（`add.go`）、セッション情報の決定論的更新（`update.go`）。
   - スケジュール JSON の SHA-256 同期保証およびセッションの決定論的更新ロジック。

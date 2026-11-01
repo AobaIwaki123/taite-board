@@ -8,10 +8,10 @@
 
 1. **ライブ・タイテ情報の集約**:
    - 告知画像やテキストに分散する出番時刻、特典会時刻、会場、撮影可否ルールを一元化。
-2. **高速表示とオフライン耐性**:
-   - 静的配信JSONと `localStorage` キャッシュにより、低速回線やオフライン環境でも直前のデータを表示。
-3. **データ整合性の担保**:
-   - JSON Schema（Draft-07）による厳格なデータバリデーション。
+2. **高速表示と地下会場オフライン耐性**:
+   - 静的配信JSONと `localStorage` キャッシュに加え、Service Worker によるフライヤー・タイテ画像の Cache-First 保持により、電波の届かない地下会場でも直前のデータを表示。
+3. **データ整合性の担保とデータガバナンス**:
+   - JSON Schema（Draft-07）による厳格なデータバリデーション、Go CLI による時系列自動整列および同日複数公演のインターバル重複検証。
 
 ---
 
@@ -19,8 +19,12 @@
 
 | Step | 項目 | 内容 | 状況 |
 | :--- | :--- | :--- | :--- |
-| **Step 1** | **要件定義 & データスキーマ策定** | 必須項目（出番、特典会、会場、チケット、撮影可否）の定義と JSON Schema 化 | 完了 |
-| **Step 2** | **データパイプライン構築** | 5層構造（input, raw, candidate, curated, generated）の分離と Go CLI（taite）実装 | 完了 |
-| **Step 3** | **フロントエンド刷新 (Preact + TSX)** | 宣言的コンポーネント化、Vite + Tailwind CSS、ツリーシェイキング最適化 | 完了 |
-| **Step 4** | **Kubernetes / GitOps デプロイ** | マルチステージ Dockerfile、Nginx 設定、ArgoCD 自動同期、Cloudflare Tunnel | 完了 |
-| **Step 5** | **クローラー・OCR自動抽出強化** | 画像内タイテ解析の自動化と candidate 抽出パイプラインの拡充 | 進行中 |
+| **Step 1** | **要件定義 & データスキーマ策定** | 必須項目（出番、特典会、会場、チケット、撮影可否）の定義と JSON Schema 化 (ADR-0001) | 完了 |
+| **Step 2** | **データパイプライン構築** | 5層構造（input, raw, candidate, curated, generated）の分離と Go CLI（taite）実装 (ADR-0002〜0007) | 完了 |
+| **Step 3** | **フロントエンド刷新 (Preact + TSX)** | 宣言的コンポーネント化、Vite + Tailwind CSS、ツリーシェイキング最適化 (ADR-0010, ADR-0013) | 完了 |
+| **Step 4** | **Kubernetes / GitOps デプロイ** | マルチステージ Dockerfile、Nginx 設定、ArgoCD 自動同期、Cloudflare Tunnel (ADR-0009) | 完了 |
+| **Step 5** | **地下会場オフラインキャッシュ & CLIデータガバナンス** | Service Worker による画像 Cache-First、Go CLI による自動整列・安全なセッション追加・重複検査 (ADR-0014) | 完了 |
+| **Step 6** | **クローラー・OCR自動抽出強化** | 画像内タイテ解析の自動化と candidate 抽出パイプラインの拡充 | 進行中 |
+
+> **備考**:
+> - ADR-0011 に基づく iOS ネイティブ版（SwiftUI）は、Web との二重保守オーバーヘッド防止のため 2026-11-01 に正式凍結し、Preact Web PWA へクライアント開発を一本化しました。
