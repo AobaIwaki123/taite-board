@@ -26,8 +26,11 @@
 | **Step 5** | **地下会場オフラインキャッシュ & CLIデータガバナンス** | Service Worker による画像 Cache-First、Go CLI による自動整列・安全なセッション追加・重複検査 (ADR-0014) | 完了 |
 | **Step 6** | **クローラー・OCR自動抽出強化** | Tailscale モバイル Intake、k8s ゼロコスト取得、決定論的名寄せ（internal/resolve）、Cloud Run AI パーサー（Gemini 2.5 Flash Vision）の構築 (note/11) | 完了 |
 | **Step 7** | **候補確定パイプラインと定期クローラー** | candidate の公開 schedule 昇格自動化とアカウント定期巡回 CronJob | 進行中 |
+| **Step 8** | **進行状況厳密化 & テレメトリ永続化** | 分単位カウントダウン表示、終了セッションの即時自動送り（graceHours=0）、Ceph RBD PVC によるログ・インテーク完全永続化 (note/12) | 完了 |
 
 > **備考**:
 > - ADR-0011 に基づく iOS ネイティブ版（SwiftUI）は、Web との二重保守オーバーヘッド防止のため 2026-11-01 に正式凍結し、コード資産（`apps/ios/`）および作業 Worktree を完全撤去しました。クライアント開発は Preact Web PWA へ一本化されています。
 > - 参戦チェック（localStorage 永続化）およびスケジュール押し吸収（+5〜+20分オフセット）を実装済みです。
 > - 外出先スマホからの X ポスト登録は Tailscale ダッシュボード（`ribonclock-dashboard`）上の Intake フォームからワンタップで実行可能です。
+> - セッション進行状況（出番開始/終了、特典会開始/終了）の分単位カウントダウン表示および、終了時の即時自動送り（Auto-Advance）を実装し 18 件の単体テストで保証しています。
+> - Kubernetes 上のモニター（`ribonclock-monitor`）は Ceph RBD PVC（1Gi）をマウントし、Pod 再起動後もアクセスログとインテーク履歴が完全復元されます。
