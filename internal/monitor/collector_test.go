@@ -26,6 +26,12 @@ func TestCollector_ProcessLine(t *testing.T) {
 	if snap.TotalRequests != 4 {
 		t.Fatalf("expected 4 total requests, got %d", snap.TotalRequests)
 	}
+	if snap.TotalPageViews != 1 {
+		t.Errorf("expected 1 total page views, got %d", snap.TotalPageViews)
+	}
+	if snap.TodayPageViews != 1 {
+		t.Errorf("expected 1 today page views, got %d", snap.TodayPageViews)
+	}
 	if snap.ByRoute["document"] != 1 {
 		t.Errorf("expected 1 document request, got %d", snap.ByRoute["document"])
 	}

@@ -25,8 +25,10 @@ type RequestRecord struct {
 
 // HourlyCount stores count of requests for a specific hour.
 type HourlyCount struct {
-	Hour  string `json:"hour"`  // "2026-11-01 15:00"
-	Count int64  `json:"count"`
+	Hour          string `json:"hour"`  // "15:00"
+	TotalRequests int64  `json:"total_requests"`
+	PageViews     int64  `json:"page_views"`
+	Count         int64  `json:"count"` // backward compatible alias
 }
 
 // StatsSnapshot contains full aggregated metrics for API and Dashboard.
@@ -35,6 +37,8 @@ type StatsSnapshot struct {
 	UptimeSeconds  int64           `json:"uptime_seconds"`
 	TotalRequests  int64           `json:"total_requests"`
 	TodayRequests  int64           `json:"today_requests"`
+	TotalPageViews int64           `json:"total_page_views"`
+	TodayPageViews int64           `json:"today_page_views"`
 	LastHourCount  int64           `json:"last_hour_count"`
 	ErrorRate      float64         `json:"error_rate"`
 	ByRoute        map[string]int64 `json:"by_route"`
@@ -50,11 +54,12 @@ type Collector struct {
 	startTime     time.Time
 	totalRequests int64
 
-	byRouteStatus map[string]int64      // "document:200" -> count
-	byRoute       map[string]int64      // "document" -> count
-	byStatusGroup map[string]int64      // "2xx", "3xx", "4xx", "5xx" -> count
-	hourly        map[string]int64      // "2006-01-02 15:00" -> count
-	recent        []RequestRecord       // ring buffer (max 50)
+	byRouteStatus map[string]int64 // "document:200" -> count
+	byRoute       map[string]int64 // "document" -> count
+	byStatusGroup map[string]int64 // "2xx", "3xx", "4xx", "5xx" -> count
+	hourly        map[string]int64 // "2006-01-02 15:00" -> total count
+	hourlyRoute   map[string]int64 // "route:2006-01-02 15:00" -> route count
+	recent        []RequestRecord  // ring buffer (max 50)
 	maxRecent     int
 }
 
@@ -67,6 +72,7 @@ func NewCollector(version string) *Collector {
 		byRoute:       make(map[string]int64),
 		byStatusGroup: make(map[string]int64),
 		hourly:        make(map[string]int64),
+		hourlyRoute:   make(map[string]int64),
 		recent:        make([]RequestRecord, 0, 50),
 		maxRecent:     50,
 	}
@@ -122,6 +128,7 @@ func (c *Collector) ProcessLine(line string) error {
 
 	hourKey := t.Format("2006-01-02 15:00")
 	c.hourly[hourKey]++
+	c.hourlyRoute[fmt.Sprintf("%s:%s", route, hourKey)]++
 
 	// Append to recent ring buffer
 	rec := RequestRecord{
@@ -149,9 +156,15 @@ func (c *Collector) Snapshot() StatsSnapshot {
 	lastHourKey := now.Format("2006-01-02 15:00")
 
 	var todayCount int64
+	var todayPV int64
 	for k, count := range c.hourly {
 		if strings.HasPrefix(k, todayPrefix) {
 			todayCount += count
+		}
+	}
+	for k, count := range c.hourlyRoute {
+		if strings.HasPrefix(k, "document:"+todayPrefix) {
+			todayPV += count
 		}
 	}
 
@@ -170,10 +183,13 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		targetHour := now.Add(-time.Duration(i) * time.Hour)
 		hKey := targetHour.Format("2006-01-02 15:00")
 		dispKey := targetHour.Format("15:00")
-		count := c.hourly[hKey]
+		tCount := c.hourly[hKey]
+		pvCount := c.hourlyRoute["document:"+hKey]
 		hourlyList = append(hourlyList, HourlyCount{
-			Hour:  dispKey,
-			Count: count,
+			Hour:          dispKey,
+			TotalRequests: tCount,
+			PageViews:     pvCount,
+			Count:         tCount,
 		})
 	}
 
@@ -200,6 +216,8 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		UptimeSeconds:  int64(time.Since(c.startTime).Seconds()),
 		TotalRequests:  c.totalRequests,
 		TodayRequests:  todayCount,
+		TotalPageViews: c.byRoute["document"],
+		TodayPageViews: todayPV,
 		LastHourCount:  c.hourly[lastHourKey],
 		ErrorRate:      errorRate,
 		ByRoute:        routes,
