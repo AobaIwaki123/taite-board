@@ -1,15 +1,27 @@
-.PHONY: help install build test validate web-install web-build web-dev clean
+.PHONY: help install build test validate sync verify ship web-install web-build web-dev clean
 
 help:
 	@echo "Available targets:"
+	@echo "  verify       Run full mechanical verification pipeline (sync, validate, test, typecheck, build)"
+	@echo "  sync         Sync data/generated/schedule.json to apps/web/public/"
 	@echo "  install      Install 'taite' CLI binary to \$$GOBIN"
 	@echo "  build        Build 'taite' CLI binary to bin/taite"
 	@echo "  test         Run Go tests"
 	@echo "  validate     Validate data/generated/schedule.json schema"
+	@echo "  ship         Ship current changes via scripts/ship.sh"
 	@echo "  web-install  Install npm dependencies for apps/web"
 	@echo "  web-build    Build modern TypeScript web frontend"
 	@echo "  web-dev      Start Vite dev server for frontend"
 	@echo "  clean        Remove build artifacts"
+
+sync:
+	./scripts/sync-schedule.sh
+
+verify:
+	./scripts/verify.sh
+
+ship:
+	./scripts/ship.sh $(TITLE)
 
 install:
 	go install ./cmd/taite
