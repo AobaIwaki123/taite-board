@@ -18,6 +18,7 @@ Accepted
 - `k8s/manifests/service.yaml`
 - `k8s/manifests/servicemonitor.yaml`
 - `k8s/manifests/dashboard-ingress.yaml`
+- `k8s/manifests/grafana-dashboard.yaml`
 - `.github/workflows/deploy.yml`
 
 ---
@@ -76,13 +77,19 @@ Ribbon Clock (taite-board) は、Zero Telemetry（クライアント側での個
   - `status`: `200`, `304`, `404`, `500` 等
 - **`ribonclock_monitor_uptime_seconds`**: モニター稼働秒数
 
-### 2. ダッシュボード機能仕様 (`ribonclock-dashboard.aooba.net`)
+### 2. ダッシュボード機能仕様と出来合いUIライブラリ採用 (`ribonclock-dashboard.aooba.net`)
+- **出来合いUIライブラリの採用 (Off-the-shelf Dashboard UI)**:
+  - 手書きCSSや自作SVGチャートによるレイアウト崩れ・保守工数を根絶するため、**Pico CSS v2**（セマンティックHTML、軽量ダークモード）および **Chart.js v4**（時系列バーチャート、ルート円グラフ）を採用。
+  - 独自の手書き CSS ルールを極小化し、標準コンポーネントのみで構築。
 - **Key Metrics**: 累計リクエスト数、本日アクセス数（JST）、直近1時間アクセス数、エラー率（%）。
-- **Route Breakdown**: Document、Schedule API、Assets、Other の件数および割合プログレスバー。
+- **Route Breakdown**: Chart.js ドーナツグラフによるルート別割合可視化。
 - **HTTP Status Breakdown**: 2xx（正常）、3xx（キャッシュ）、4xx（クライアントエラー）、5xx（サーバーエラー）。
-- **24-Hour Trend Chart**: 過去24時間の時間帯別リクエスト数の棒グラフ。
+- **24-Hour Trend Chart**: Chart.js による過去24時間の時間帯別リクエスト数の推移グラフ。
 - **Live Stream**: 最新50件のアクセス履歴（時刻、ルート、ステータスバッジ）。
 - **Auto-Refresh**: 5秒ごとの自動更新。
+- **Grafana 連携**:
+  - ヘッダー内に `Open in Grafana ↗` リンクを配置。
+  - `k8s/manifests/grafana-dashboard.yaml` により、`observability` 名前空間の Grafana へ「Ribbon Clock Access Metrics」ダッシュボードを ConfigMap 経由で自動プロビジョニング。
 
 ---
 
