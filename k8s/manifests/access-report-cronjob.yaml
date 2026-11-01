@@ -85,7 +85,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: reporter
-              image: ghcr.io/aobaiwaki123/taite-board-access-report:sha-920e45a
+              image: ghcr.io/aobaiwaki123/taite-board-access-report:sha-703e13e
               imagePullPolicy: IfNotPresent
               args:
                 - --last-minutes
