@@ -129,6 +129,7 @@ AI対話時における「コマンドを打つたびに処理が停止するオ
 ## 7. CLI コマンド標準 (`taite`)
 
 - 実行バイナリの手動パス指定（`./bin/taite`）を廃止し、`make install` または `go install ./cmd/taite` によりインストールされた `taite` コマンド、あるいは `make validate` / `go run ./cmd/taite` を標準として使用します。
+- スケジュール同期や公演データの更新は単発スクリプトではなく、Go CLI のサブコマンド（`taite sync`, `taite update-session`）として統合管理します。
 
 ---
 
@@ -145,13 +146,16 @@ AI対話時における「コマンドを打つたびに処理が停止するオ
 
 ## 9. データ更新と機械化パイプライン (Mechanical Data & Shipping Pipeline)
 
-1. **データ同期の自動化 (`scripts/sync-schedule.sh`)**:
-   - `data/generated/schedule.json` を更新した後は、手動で他のファイルを書き換えるのではなく、`make sync`（または `scripts/sync-schedule.sh`）を実行して `apps/web/public/` 配下の正本・モックへ同一データを自動複製します。
-2. **撮影可能曲・特記事項の決定論的更新 (`scripts/update_photo_rule.py`)**:
-   - 公式 X から撮影可能曲などの告知が公開された際は、スクリプトを使用して機械的に JSON 更新と同期を実行します。
+1. **データ同期の自動化 (`taite sync` / `make sync`)**:
+   - `data/generated/schedule.json` を更新した後は、手動で他のファイルを書き換えるのではなく、`make sync`（内部で `taite sync` を実行）により `apps/web/public/` 配下の正本・モックへ同一データを自動複製します。
+2. **撮影可能曲・公式告知URLの決定論的更新 (`taite update-session`)**:
+   - 公式 X から撮影可能曲などの告知が公開された際は、単発スクリプトではなく Go CLI の機能で機械的に JSON 更新・公式告知リンク更新・Web 同期を実行します。
    ```bash
-   ./scripts/update_photo_rule.py --session 20261101-1 --rule "5曲目『75秒の沈黙』撮影可能" --tweet-url "https://x.com/..."
+   go run ./cmd/taite update-session -session 20261101-1 \
+     -rule "5曲目『75秒の沈黙』撮影可能" \
+     -tweet-url "https://x.com/Ribbon_Clock/status/2116455139959840824"
    ```
+   - `-official`（デフォルト: true）により、公演カードの「公式告知 ↗」リンク（`source_tweet_url`）も撮影可能曲や私服告知を含む最新ポストへ自動更新されます。
 3. **AI コマンド停止の排除 (Zero AI Command Latency)**:
    - 作業後の検証とデプロイにおいて、AIが1コマンドずつ確認しながら対話停止することを防ぎます。
    - `make verify` で一括検証し、`./scripts/ship.sh` で PR 作成からマージ・同期までを単一の自律コマンドとして完了させます。

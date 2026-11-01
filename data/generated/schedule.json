@@ -122,150 +122,150 @@
       ]
     },
     {
-      "id": "20261101-1",
-      "title": "はなまるっ Vol.159～全組25分SP～",
+      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
+      "benefit": {
+        "booth": "並行B",
+        "end_time": "16:35",
+        "start_time": "15:35",
+        "type": "並行"
+      },
       "date": "2026-11-01",
       "day_of_week": "日",
-      "session_name": "1部（昼）",
-      "venue": {
-        "canonical_id": "venue:shinjuku-zirco-tokyo",
-        "name": "新宿ZircoTokyo",
-        "map_query": "Zirco Tokyo",
-        "map_url": "https://maps.google.com/?q=新宿ZircoTokyo"
-      },
-      "live": {
-        "start_time": "15:05",
-        "end_time": "15:30",
-        "stage": "Zirco Stage"
-      },
-      "benefit": {
-        "type": "並行",
-        "start_time": "15:35",
-        "end_time": "16:35",
-        "booth": "並行B"
-      },
-      "photo": {
-        "available": true,
-        "rule": "5曲目『75秒の沈黙』撮影可能",
-        "raw_text": "①1回し目の撮影可能曲は、5曲目『75秒の沈黙』です！"
-      },
-      "special_notes": "リボンクロック初の私服ライブ（私服出演） / 日曜昼・全組25分SP",
-      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
-      "ticket": {
-        "platform": "TicketDive",
-        "url": "https://ticketdive.com/event/hanamaru_159",
-        "prices": [
-          {
-            "tier": "前方エリア",
-            "price": "¥4,500"
-          },
-          {
-            "tier": "通常エリア",
-            "price": "¥2,500"
-          },
-          {
-            "tier": "当日券",
-            "price": "各+¥500 (+1D)"
-          }
-        ]
-      },
+      "id": "20261101-1",
       "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=large",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114341213147205692",
       "images": [
         {
-          "type": "flyer",
           "label": "フライヤー (1/2)",
+          "type": "flyer",
           "url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q.jpg?name=large"
         },
         {
-          "type": "timetable",
           "label": "タイムテーブル (2/2)",
+          "type": "timetable",
           "url": "https://pbs.twimg.com/media/HVYs_ptbcAESY9P.jpg?name=large"
         }
       ],
-      "source_refs": [
-        {
-          "type": "x_post",
-          "source_id": "2114341213147205692",
-          "url": "https://x.com/Ribbon_Clock/status/2114341213147205692"
-        },
-        {
-          "type": "x_post",
-          "source_id": "2116455139959840824",
-          "url": "https://x.com/Ribbon_Clock/status/2116455139959840824"
-        }
-      ]
-    },
-    {
-      "id": "20261101-2",
-      "title": "IDOL Treasure bottle LIVE",
-      "date": "2026-11-01",
-      "day_of_week": "日",
-      "session_name": "2部（夜）",
-      "venue": {
-        "canonical_id": "venue:batur-tokyo",
-        "name": "BATUR TOKYO（バトゥール東京）",
-        "map_query": "バトゥール東京",
-        "map_url": "https://maps.google.com/?q=バトゥール東京"
-      },
       "live": {
-        "start_time": "18:35",
-        "end_time": "18:55",
-        "stage": "メインチャペル"
-      },
-      "benefit": {
-        "type": "並行",
-        "start_time": "19:05",
-        "end_time": "20:05",
-        "booth": "2階チャペルB"
+        "end_time": "15:30",
+        "stage": "Zirco Stage",
+        "start_time": "15:05"
       },
       "photo": {
         "available": true,
-        "rule": "1曲目『えすえぬ・えーす』撮影可能",
-        "raw_text": "②2回し目の撮影可能曲は、1曲目『えすえぬ・えーす』です！"
+        "raw_text": "①1回し目の撮影可能曲は、5曲目『75秒の沈黙』です！",
+        "rule": "5曲目『75秒の沈黙』撮影可能"
       },
-      "special_notes": "リボンクロック初の私服ライブ（私服出演） / バトゥール東京・夜帯ライブ！前売券は当日会場精算",
-      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
+      "session_name": "1部（昼）",
+      "source_refs": [
+        {
+          "source_id": "2114341213147205692",
+          "type": "x_post",
+          "url": "https://x.com/Ribbon_Clock/status/2114341213147205692"
+        },
+        {
+          "source_id": "2116455139959840824",
+          "type": "x_post",
+          "url": "https://x.com/Ribbon_Clock/status/2116455139959840824"
+        }
+      ],
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116455139959840824",
+      "special_notes": "リボンクロック初の私服ライブ（私服出演） / 日曜昼・全組25分SP",
       "ticket": {
-        "platform": "TIGET",
-        "url": "http://tiget.net/events/531498",
+        "platform": "TicketDive",
         "prices": [
           {
-            "tier": "前売券",
-            "price": "¥3,200 (+1D)"
+            "price": "¥4,500",
+            "tier": "前方エリア"
           },
           {
-            "tier": "当日券",
-            "price": "¥3,700 (+1D)"
+            "price": "¥2,500",
+            "tier": "通常エリア"
+          },
+          {
+            "price": "各+¥500 (+1D)",
+            "tier": "当日券"
           }
-        ]
+        ],
+        "url": "https://ticketdive.com/event/hanamaru_159"
       },
+      "title": "はなまるっ Vol.159～全組25分SP～",
+      "venue": {
+        "canonical_id": "venue:shinjuku-zirco-tokyo",
+        "map_query": "Zirco Tokyo",
+        "map_url": "https://maps.google.com/?q=新宿ZircoTokyo",
+        "name": "新宿ZircoTokyo"
+      }
+    },
+    {
+      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
+      "benefit": {
+        "booth": "2階チャペルB",
+        "end_time": "20:05",
+        "start_time": "19:05",
+        "type": "並行"
+      },
+      "date": "2026-11-01",
+      "day_of_week": "日",
+      "id": "20261101-2",
       "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=large",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114597900827115847",
       "images": [
         {
-          "type": "flyer",
           "label": "フライヤー (1/2)",
+          "type": "flyer",
           "url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5.jpg?name=large"
         },
         {
-          "type": "timetable",
           "label": "タイムテーブル (2/2)",
+          "type": "timetable",
           "url": "https://pbs.twimg.com/media/HVeSDfIbAAAOaN2.jpg?name=large"
         }
       ],
+      "live": {
+        "end_time": "18:55",
+        "stage": "メインチャペル",
+        "start_time": "18:35"
+      },
+      "photo": {
+        "available": true,
+        "raw_text": "②2回し目の撮影可能曲は、1曲目『えすえぬ・えーす』です！",
+        "rule": "1曲目『えすえぬ・えーす』撮影可能"
+      },
+      "session_name": "2部（夜）",
       "source_refs": [
         {
-          "type": "x_post",
           "source_id": "2114597900827115847",
+          "type": "x_post",
           "url": "https://x.com/Ribbon_Clock/status/2114597900827115847"
         },
         {
-          "type": "x_post",
           "source_id": "2116455139959840824",
+          "type": "x_post",
           "url": "https://x.com/Ribbon_Clock/status/2116455139959840824"
         }
-      ]
+      ],
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116455139959840824",
+      "special_notes": "リボンクロック初の私服ライブ（私服出演） / バトゥール東京・夜帯ライブ！前売券は当日会場精算",
+      "ticket": {
+        "platform": "TIGET",
+        "prices": [
+          {
+            "price": "¥3,200 (+1D)",
+            "tier": "前売券"
+          },
+          {
+            "price": "¥3,700 (+1D)",
+            "tier": "当日券"
+          }
+        ],
+        "url": "http://tiget.net/events/531498"
+      },
+      "title": "IDOL Treasure bottle LIVE",
+      "venue": {
+        "canonical_id": "venue:batur-tokyo",
+        "map_query": "バトゥール東京",
+        "map_url": "https://maps.google.com/?q=バトゥール東京",
+        "name": "BATUR TOKYO（バトゥール東京）"
+      }
     },
     {
       "id": "20261103-1",
@@ -822,6 +822,6 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-10-31T16:59:00.000Z",
+  "generated_at": "2026-11-01T00:56:39.309Z",
   "timezone": "Asia/Tokyo"
 }
