@@ -39,7 +39,8 @@ export function getSessionProgress(
   liveEnd?: string,
   benefitStart?: string,
   benefitEnd?: string,
-  nowDate = new Date()
+  nowDate = new Date(),
+  delayMinutes = 0
 ): ProgressStatus {
   const todayStr = getTodayStr(nowDate);
 
@@ -58,18 +59,21 @@ export function getSessionProgress(
     };
   }
 
-  // 当日の時間比較
-  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  // 当日の時間比較（遅延オフセットを考慮：進行が押している場合は実質現在時刻から遅延分を引いて判定）
+  const rawMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  const currentMinutes = rawMinutes - delayMinutes;
 
   const lStart = parseMinutes(liveStart);
   const lEnd = parseMinutes(liveEnd);
   const bStart = parseMinutes(benefitStart);
   const bEnd = parseMinutes(benefitEnd);
 
+  const delaySuffix = delayMinutes > 0 ? ` (+${delayMinutes}分押)` : '';
+
   if (lStart !== null && lEnd !== null && currentMinutes >= lStart && currentMinutes <= lEnd) {
     return {
       status: 'live',
-      label: 'ライブ中',
+      label: `ライブ中${delaySuffix}`,
       badgeClass: 'bg-rose-500 text-white animate-pulse font-black',
     };
   }
@@ -77,7 +81,7 @@ export function getSessionProgress(
   if (bStart !== null && bEnd !== null && currentMinutes >= bStart && currentMinutes <= bEnd) {
     return {
       status: 'benefit',
-      label: '特典会中',
+      label: `特典会中${delaySuffix}`,
       badgeClass: 'bg-purple-600 text-white animate-pulse font-black',
     };
   }
@@ -92,7 +96,7 @@ export function getSessionProgress(
 
   return {
     status: 'upcoming',
-    label: '本日開催',
+    label: delayMinutes > 0 ? `本日開催 (+${delayMinutes}分押)` : '本日開催',
     badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
   };
 }
@@ -262,7 +266,8 @@ export function isSessionPast(
     benefit?: { start_time?: string; end_time?: string };
   },
   nowDate = new Date(),
-  graceHours = 2
+  graceHours = 2,
+  delayMinutes = 0
 ): boolean {
   const todayStr = getTodayStr(nowDate);
 
@@ -281,7 +286,7 @@ export function isSessionPast(
     return false;
   }
 
-  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes();
+  const currentMinutes = nowDate.getHours() * 60 + nowDate.getMinutes() - delayMinutes;
   const graceMinutes = graceHours * 60;
 
   return currentMinutes > effectiveEnd + graceMinutes;

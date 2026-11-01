@@ -4,6 +4,7 @@ import {
   getDeadlineInfo,
   parseDeadlineDate,
   getFreshnessInfo,
+  getSessionProgress,
   isSessionPast,
   resolveNextSession,
 } from './date.ts';
@@ -219,4 +220,30 @@ test('resolveNextSession advances to upcoming session after past session ends', 
   // After 11/01-1 ends + 2h grace period (16:35 + 2h = 18:35 -> test at 18:40), advances to 11/01-2
   const eveningOf1101 = new Date(2026, 10, 1, 18, 40);
   assert.equal(resolveNextSession(sessions, '20261031-1', eveningOf1101)?.id, '20261101-2');
+});
+
+// --- Delay Offset Tests ---
+
+test('getSessionProgress reflects schedule delay offset accurately', () => {
+  const date = '2026-11-01';
+  const liveStart = '18:30';
+  const liveEnd = '18:55';
+  const benefitStart = '19:05';
+  const benefitEnd = '20:05';
+
+  // 18:40 without delay -> Live in progress
+  const at1840 = new Date(2026, 10, 1, 18, 40);
+  const progNoDelay = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1840, 0);
+  assert.equal(progNoDelay.status, 'live');
+  assert.equal(progNoDelay.label, 'ライブ中');
+
+  // 19:00 without delay -> Between live and benefit (or upcoming benefit)
+  const at1900 = new Date(2026, 10, 1, 19, 0);
+  const progAt1900 = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1900, 0);
+  assert.equal(progAt1900.status, 'upcoming');
+
+  // 19:00 with 15min delay -> 19:00 - 15m = 18:45, which is inside live (18:30~18:55)!
+  const progWithDelay = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1900, 15);
+  assert.equal(progWithDelay.status, 'live');
+  assert.equal(progWithDelay.label, 'ライブ中 (+15分押)');
 });

@@ -5,10 +5,11 @@ import { ChevronLeft, ChevronRight } from '../utils/icons';
 
 interface CalendarViewProps {
   sessions: Session[];
+  attendedSessionIds?: string[];
   onSelectSession: (id: string) => void;
 }
 
-export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
+export function CalendarView({ sessions, attendedSessionIds = [], onSelectSession }: CalendarViewProps) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
@@ -94,6 +95,7 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
           const dateStr = `${year}-${monthStr}-${dayStr}`;
           const daySessions = sessions.filter((s) => s.date === dateStr);
           const hasLive = daySessions.length > 0;
+          const isAttended = daySessions.some((s) => attendedSessionIds.includes(s.id));
           const isSelected = selectedDate === dateStr;
 
           return (
@@ -108,7 +110,9 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
                 isSelected
                   ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105 cursor-pointer'
                   : hasLive
-                  ? 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 cursor-pointer'
+                  ? isAttended
+                    ? 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 cursor-pointer'
+                    : 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 cursor-pointer'
                   : 'bg-stone-900/30 text-stone-600 cursor-default'
               }`}
             >
@@ -116,7 +120,11 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
               {hasLive ? (
                 <span
                   class={`w-1.5 h-1.5 rounded-full mt-1 ${
-                    isSelected ? 'bg-stone-950' : 'bg-rose-400 animate-pulse'
+                    isSelected
+                      ? 'bg-stone-950'
+                      : isAttended
+                      ? 'bg-emerald-400'
+                      : 'bg-rose-400 animate-pulse'
                   }`}
                 />
               ) : (
@@ -131,30 +139,42 @@ export function CalendarView({ sessions, onSelectSession }: CalendarViewProps) {
       <div class="space-y-2 pt-2 border-t border-white/5">
         {selectedDate ? (
           selectedDaySessions.length > 0 ? (
-            selectedDaySessions.map((s) => (
-              <div
-                key={s.id}
-                onClick={() => onSelectSession(s.id)}
-                class="soft-card rounded-xl p-3 space-y-1.5 border-l-4 border-l-rose-500 cursor-pointer hover:border-rose-400/40 transition-all active:scale-[0.99]"
-              >
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-display font-bold text-rose-300">
-                    {s.date} {s.session_name ? `[${s.session_name}]` : ''}
-                  </span>
-                  <span class="text-stone-300 text-xs">{s.venue.name}</span>
+            selectedDaySessions.map((s) => {
+              const attended = attendedSessionIds.includes(s.id);
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => onSelectSession(s.id)}
+                  class={`soft-card rounded-xl p-3 space-y-1.5 border-l-4 cursor-pointer hover:border-rose-400/40 transition-all active:scale-[0.99] ${
+                    attended ? 'border-l-emerald-500' : 'border-l-rose-500'
+                  }`}
+                >
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-display font-bold text-rose-300">
+                      {s.date} {s.session_name ? `[${s.session_name}]` : ''}
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      {attended && (
+                        <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                          参戦済
+                        </span>
+                      )}
+                      <span class="text-stone-300 text-xs">{s.venue.name}</span>
+                    </div>
+                  </div>
+                  <div class="text-sm font-bold text-white pt-0.5">{s.title}</div>
+                  <div class="text-xs font-display text-stone-300 flex justify-between pt-1.5 border-t border-white/5">
+                    <span>
+                      出演: <strong class="text-white font-bold">{s.live.start_time}〜</strong>
+                    </span>
+                    <span>
+                      特典会: <strong class="text-white font-bold">{s.benefit.start_time}〜</strong> (
+                      {s.benefit.type})
+                    </span>
+                  </div>
                 </div>
-                <div class="text-sm font-bold text-white pt-0.5">{s.title}</div>
-                <div class="text-xs font-display text-stone-300 flex justify-between pt-1.5 border-t border-white/5">
-                  <span>
-                    出演: <strong class="text-white font-bold">{s.live.start_time}〜</strong>
-                  </span>
-                  <span>
-                    特典会: <strong class="text-white font-bold">{s.benefit.start_time}〜</strong> (
-                    {s.benefit.type})
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div class="text-xs text-stone-500 text-center py-3">この日の公演はありません</div>
           )
