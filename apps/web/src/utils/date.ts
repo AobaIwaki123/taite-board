@@ -31,6 +31,23 @@ export interface ProgressStatus {
   status: 'upcoming' | 'live' | 'benefit' | 'ended';
   label: string;
   badgeClass: string;
+  countdownMessage?: string;
+  minutesRemaining?: number;
+  phase: 'pre_live' | 'live' | 'intermission' | 'benefit' | 'ended';
+}
+
+function formatMinutesDuration(totalMinutes: number, targetAction: string): string {
+  if (totalMinutes <= 0) {
+    return `${targetAction}時刻`;
+  }
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return mins > 0
+      ? `${targetAction}まで あと${hours}時間${mins}分`
+      : `${targetAction}まで あと${hours}時間`;
+  }
+  return `${targetAction}まで あと${totalMinutes}分`;
 }
 
 export function getSessionProgress(
@@ -49,6 +66,7 @@ export function getSessionProgress(
       status: 'upcoming',
       label: '開催予定',
       badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+      phase: 'pre_live',
     };
   }
   if (date < todayStr) {
@@ -56,6 +74,8 @@ export function getSessionProgress(
       status: 'ended',
       label: '終了',
       badgeClass: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+      countdownMessage: '公演終了',
+      phase: 'ended',
     };
   }
 
@@ -70,27 +90,75 @@ export function getSessionProgress(
 
   const delaySuffix = delayMinutes > 0 ? ` (+${delayMinutes}分押)` : '';
 
+  // 1. 出番中
   if (lStart !== null && lEnd !== null && currentMinutes >= lStart && currentMinutes <= lEnd) {
+    const remaining = lEnd - currentMinutes;
     return {
       status: 'live',
       label: `ライブ中${delaySuffix}`,
       badgeClass: 'bg-rose-500 text-white animate-pulse font-black',
+      countdownMessage: formatMinutesDuration(remaining, '出番終了'),
+      minutesRemaining: remaining,
+      phase: 'live',
     };
   }
 
+  // 2. 特典会中
   if (bStart !== null && bEnd !== null && currentMinutes >= bStart && currentMinutes <= bEnd) {
+    const remaining = bEnd - currentMinutes;
     return {
       status: 'benefit',
       label: `特典会中${delaySuffix}`,
       badgeClass: 'bg-purple-600 text-white animate-pulse font-black',
+      countdownMessage: formatMinutesDuration(remaining, '特典会終了'),
+      minutesRemaining: remaining,
+      phase: 'benefit',
     };
   }
 
+  // 3. 特典会終了後（または出番終了後）
   if (bEnd !== null && currentMinutes > bEnd) {
     return {
       status: 'ended',
       label: '本日終了',
       badgeClass: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+      countdownMessage: '本日の全行程終了',
+      phase: 'ended',
+    };
+  }
+  if (bEnd === null && lEnd !== null && currentMinutes > lEnd) {
+    return {
+      status: 'ended',
+      label: '本日終了',
+      badgeClass: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+      countdownMessage: '出番終了',
+      phase: 'ended',
+    };
+  }
+
+  // 4. 出番終了〜特典会開始までの転換・待機時間
+  if (lEnd !== null && bStart !== null && currentMinutes > lEnd && currentMinutes < bStart) {
+    const remaining = bStart - currentMinutes;
+    return {
+      status: 'upcoming',
+      label: `出番終了 / 特典会待ち${delaySuffix}`,
+      badgeClass: 'bg-purple-900/60 text-purple-300 border-purple-500/40',
+      countdownMessage: formatMinutesDuration(remaining, '特典会開始'),
+      minutesRemaining: remaining,
+      phase: 'intermission',
+    };
+  }
+
+  // 5. 出番前（本日開催）
+  if (lStart !== null && currentMinutes < lStart) {
+    const remaining = lStart - currentMinutes;
+    return {
+      status: 'upcoming',
+      label: delayMinutes > 0 ? `本日開催 (+${delayMinutes}分押)` : '本日開催',
+      badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+      countdownMessage: formatMinutesDuration(remaining, '出番開始'),
+      minutesRemaining: remaining,
+      phase: 'pre_live',
     };
   }
 
@@ -98,6 +166,7 @@ export function getSessionProgress(
     status: 'upcoming',
     label: delayMinutes > 0 ? `本日開催 (+${delayMinutes}分押)` : '本日開催',
     badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+    phase: 'pre_live',
   };
 }
 
@@ -256,8 +325,10 @@ export function getFreshnessInfo(params: {
 
 /**
  * セッションが終了済みか判定する
- * 当日の場合は、特典会終了時刻（または出番終了時刻）から指定の猶予時間（graceHours、デフォルト2時間）が
- * 経過した時点で終了とみなす。
+ * 1. 過去日付なら終了 (true)
+ * 2. 未来日付なら未終了 (false)
+ * 3. 本日公演の場合：特典会終了（または出番終了）時刻を実質現在時刻（遅延オフセット適用後）が
+ *    超えた時点で直ちに終了（past=true）と判定する。
  */
 export function isSessionPast(
   session: {
@@ -266,7 +337,7 @@ export function isSessionPast(
     benefit?: { start_time?: string; end_time?: string };
   },
   nowDate = new Date(),
-  graceHours = 2,
+  graceHours = 0,
   delayMinutes = 0
 ): boolean {
   const todayStr = getTodayStr(nowDate);
@@ -295,8 +366,9 @@ export function isSessionPast(
 /**
  * 次回直近ライブセッションを決定する
  * 1. 指定された currentNextId があり、未終了ならそれを優先
- * 2. 未終了のセッションの中から最も近い日時・出番時刻のセッションを抽出
- * 3. 全て終了している場合は先頭のセッションをフォールバック
+ * 2. 当該セッションが終了（本日終了）した場合は即座に次回以降の未終了セッションへ自動遷移
+ * 3. 未終了のセッションの中から最も近い日時・出番時刻のセッションを抽出
+ * 4. 全て終了している場合は直近の最新セッションをフォールバック
  */
 export function resolveNextSession<T extends {
   id: string;
@@ -307,18 +379,24 @@ export function resolveNextSession<T extends {
   sessions: T[],
   currentNextId?: string,
   nowDate = new Date(),
-  graceHours = 2
+  graceHours = 0,
+  delayMap?: { [id: string]: number }
 ): T | null {
   if (!sessions || sessions.length === 0) return null;
 
   if (currentNextId) {
     const current = sessions.find((s) => s.id === currentNextId);
-    if (current && !isSessionPast(current, nowDate, graceHours)) {
+    const delay = delayMap?.[currentNextId] ?? 0;
+    if (current && !isSessionPast(current, nowDate, graceHours, delay)) {
       return current;
     }
   }
 
-  const upcoming = sessions.filter((s) => !isSessionPast(s, nowDate, graceHours));
+  const upcoming = sessions.filter((s) => {
+    const delay = delayMap?.[s.id] ?? 0;
+    return !isSessionPast(s, nowDate, graceHours, delay);
+  });
+
   if (upcoming.length > 0) {
     return upcoming.slice().sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -328,5 +406,5 @@ export function resolveNextSession<T extends {
     })[0];
   }
 
-  return sessions[0];
+  return sessions[sessions.length - 1] ?? sessions[0];
 }

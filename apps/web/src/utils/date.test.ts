@@ -155,71 +155,125 @@ test('getFreshnessInfo handles fallback with missing or invalid date', () => {
 
 // --- Session Past & Next Session Resolver Tests ---
 
-test('isSessionPast detects past, upcoming, and post-benefit grace period correctly', () => {
+test('isSessionPast detects past, upcoming, and ends immediately after benefit ends', () => {
   const session = {
     date: '2026-10-31',
     live: { start_time: '12:50', end_time: '13:15' },
     benefit: { start_time: '13:20', end_time: '14:20' },
   };
 
-  // 1. Previous day
+  // 1. Previous day -> not past
   const beforeDay = new Date(2026, 9, 30, 12, 0); // 10/30 12:00
   assert.equal(isSessionPast(session, beforeDay), false);
 
-  // 2. Next day
+  // 2. Next day -> past
   const nextDay = new Date(2026, 10, 1, 9, 0); // 11/01 09:00
   assert.equal(isSessionPast(session, nextDay), true);
 
-  // 3. Same day before benefit ends
-  const duringBenefit = new Date(2026, 9, 31, 13, 50); // 10/31 13:50
+  // 3. Same day before benefit ends -> not past
+  const duringBenefit = new Date(2026, 9, 31, 14, 0); // 10/31 14:00
   assert.equal(isSessionPast(session, duringBenefit), false);
 
-  // 4. Same day 1 hour after benefit ends (within 2h grace period)
-  const oneHourAfter = new Date(2026, 9, 31, 15, 20); // 10/31 15:20
-  assert.equal(isSessionPast(session, oneHourAfter, 2), false);
+  // 4. Same day 1 minute after benefit ends (default graceHours = 0) -> past!
+  const justAfterBenefit = new Date(2026, 9, 31, 14, 21); // 10/31 14:21
+  assert.equal(isSessionPast(session, justAfterBenefit), true);
 
-  // 5. Same day 2.5 hours after benefit ends (past 2h grace period)
-  const twoAndHalfHoursAfter = new Date(2026, 9, 31, 16, 51); // 10/31 16:51
-  assert.equal(isSessionPast(session, twoAndHalfHoursAfter, 2), true);
+  // 5. With delay offset of 10 min: 14:25 becomes effective 14:15 (inside benefit 13:20-14:20) -> not past!
+  const at1425 = new Date(2026, 9, 31, 14, 25);
+  assert.equal(isSessionPast(session, at1425, 0, 10), false);
 });
 
-test('resolveNextSession advances to upcoming session after past session ends', () => {
+test('resolveNextSession automatically advances immediately when a session ends', () => {
   const sessions = [
-    {
-      id: '20261031-1',
-      date: '2026-10-31',
-      live: { start_time: '12:50', end_time: '13:15' },
-      benefit: { start_time: '13:20', end_time: '14:20' },
-    },
     {
       id: '20261101-1',
       date: '2026-11-01',
-      live: { start_time: '15:05', end_time: '15:30' },
-      benefit: { start_time: '15:35', end_time: '16:35' },
+      live: { start_time: '12:00', end_time: '12:30' },
+      benefit: { start_time: '12:40', end_time: '13:40' },
     },
     {
       id: '20261101-2',
       date: '2026-11-01',
-      live: { start_time: '18:35', end_time: '18:55' },
-      benefit: { start_time: '19:05', end_time: '20:05' },
+      live: { start_time: '17:00', end_time: '17:30' },
+      benefit: { start_time: '17:40', end_time: '18:40' },
+    },
+    {
+      id: '20261103-1',
+      date: '2026-11-03',
+      live: { start_time: '18:30', end_time: '19:00' },
+      benefit: { start_time: '19:15', end_time: '20:15' },
     },
   ];
 
-  // While 10/31 event is fresh / upcoming
-  const duringEvent = new Date(2026, 9, 31, 14, 0);
-  assert.equal(resolveNextSession(sessions, '20261031-1', duringEvent)?.id, '20261031-1');
+  // 1. Morning before Part 1 (11:00) -> returns Part 1
+  const morning = new Date(2026, 10, 1, 11, 0);
+  assert.equal(resolveNextSession(sessions, '20261101-1', morning)?.id, '20261101-1');
 
-  // Hours after 10/31 event ends (e.g. 10/31 18:00)
-  const eveningOf1031 = new Date(2026, 9, 31, 18, 0);
-  assert.equal(resolveNextSession(sessions, '20261031-1', eveningOf1031)?.id, '20261101-1');
+  // 2. Part 1 benefit finishes at 13:40. At 13:45, Part 1 is finished -> immediately advances to Part 2!
+  const afterPart1 = new Date(2026, 10, 1, 13, 45);
+  assert.equal(resolveNextSession(sessions, '20261101-1', afterPart1)?.id, '20261101-2');
 
-  // Next morning (11/01 10:00)
-  const morningOf1101 = new Date(2026, 10, 1, 10, 0);
-  assert.equal(resolveNextSession(sessions, '20261031-1', morningOf1101)?.id, '20261101-1');
+  // 3. Part 2 benefit finishes at 18:40. At 18:45, today is finished -> immediately advances to 11/03!
+  const afterPart2 = new Date(2026, 10, 1, 18, 45);
+  assert.equal(resolveNextSession(sessions, '20261101-1', afterPart2)?.id, '20261103-1');
 
-  // After 11/01-1 ends + 2h grace period (16:35 + 2h = 18:35 -> test at 18:40), advances to 11/01-2
-  const eveningOf1101 = new Date(2026, 10, 1, 18, 40);
-  assert.equal(resolveNextSession(sessions, '20261031-1', eveningOf1101)?.id, '20261101-2');
+  // 4. If Part 2 had a +15m delay: at 18:45, effective time is 18:30 (inside benefit) -> remains Part 2!
+  const delayMap = { '20261101-2': 15 };
+  assert.equal(resolveNextSession(sessions, '20261101-1', afterPart2, 0, delayMap)?.id, '20261101-2');
+});
+
+// --- Detailed Minute Countdown & Progress Tests ---
+
+test('getSessionProgress provides accurate minute countdowns across all phases', () => {
+  const date = '2026-11-01';
+  const liveStart = '18:30';
+  const liveEnd = '18:55';
+  const benefitStart = '19:05';
+  const benefitEnd = '20:05';
+
+  // 1. Pre-live: 17:48 (42 minutes before 18:30 live)
+  const at1748 = new Date(2026, 10, 1, 17, 48);
+  const progPreLive = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1748, 0);
+  assert.equal(progPreLive.status, 'upcoming');
+  assert.equal(progPreLive.phase, 'pre_live');
+  assert.equal(progPreLive.minutesRemaining, 42);
+  assert.equal(progPreLive.countdownMessage, '出番開始まで あと42分');
+
+  // 2. Pre-live: 16:00 (2 hours 30 minutes before 18:30 live)
+  const at1600 = new Date(2026, 10, 1, 16, 0);
+  const progHours = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1600, 0);
+  assert.equal(progHours.countdownMessage, '出番開始まで あと2時間30分');
+
+  // 3. Live in progress: 18:40 (15 minutes before 18:55 live end)
+  const at1840 = new Date(2026, 10, 1, 18, 40);
+  const progLive = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1840, 0);
+  assert.equal(progLive.status, 'live');
+  assert.equal(progLive.phase, 'live');
+  assert.equal(progLive.minutesRemaining, 15);
+  assert.equal(progLive.countdownMessage, '出番終了まで あと15分');
+
+  // 4. Intermission / transition: 18:58 (7 minutes before 19:05 benefit start)
+  const at1858 = new Date(2026, 10, 1, 18, 58);
+  const progIntermission = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1858, 0);
+  assert.equal(progIntermission.status, 'upcoming');
+  assert.equal(progIntermission.phase, 'intermission');
+  assert.equal(progIntermission.minutesRemaining, 7);
+  assert.equal(progIntermission.countdownMessage, '特典会開始まで あと7分');
+
+  // 5. Benefit in progress: 19:35 (30 minutes before 20:05 benefit end)
+  const at1935 = new Date(2026, 10, 1, 19, 35);
+  const progBenefit = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at1935, 0);
+  assert.equal(progBenefit.status, 'benefit');
+  assert.equal(progBenefit.phase, 'benefit');
+  assert.equal(progBenefit.minutesRemaining, 30);
+  assert.equal(progBenefit.countdownMessage, '特典会終了まで あと30分');
+
+  // 6. Ended: 20:10 (after benefit ends)
+  const at2010 = new Date(2026, 10, 1, 20, 10);
+  const progEnded = getSessionProgress(date, liveStart, liveEnd, benefitStart, benefitEnd, at2010, 0);
+  assert.equal(progEnded.status, 'ended');
+  assert.equal(progEnded.phase, 'ended');
+  assert.equal(progEnded.countdownMessage, '本日の全行程終了');
 });
 
 // --- Delay Offset Tests ---

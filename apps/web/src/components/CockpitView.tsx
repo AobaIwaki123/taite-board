@@ -264,7 +264,7 @@ export function CockpitView({
               <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
                 ★ 直近
               </span>
-            ) : isSessionPast(session, new Date(), 2, delayMinutes) ? (
+            ) : isSessionPast(session, new Date(), 0, delayMinutes) ? (
               <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10">
                 公演終了
               </span>
@@ -299,7 +299,7 @@ export function CockpitView({
 
       {/* 当日公演のリアルタイム進行状況 ＆ 進行遅延（押し）調整コントロール */}
       {session.date === getTodayStr() && (
-        <div class="p-3 rounded-2xl bg-stone-900/90 border border-white/10 space-y-2">
+        <div class="p-3.5 rounded-2xl bg-stone-900/90 border border-white/10 space-y-2.5">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5 text-xs font-bold text-stone-300">
               <Icon icon={Clock} class="w-3.5 h-3.5 text-amber-400" />
@@ -322,6 +322,30 @@ export function CockpitView({
               );
             })()}
           </div>
+
+          {/* 分単位のリアルタイム残り時間・カウントダウン */}
+          {(() => {
+            const progress = getSessionProgress(
+              session.date,
+              session.live.start_time,
+              session.live.end_time,
+              session.benefit.start_time,
+              session.benefit.end_time,
+              new Date(),
+              delayMinutes
+            );
+            if (!progress.countdownMessage) return null;
+            return (
+              <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
+                <span class="font-bold text-white text-[13px]">{progress.countdownMessage}</span>
+                {progress.minutesRemaining !== undefined && progress.status !== 'ended' && (
+                  <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
+                    残り {progress.minutesRemaining}分
+                  </span>
+                )}
+              </div>
+            );
+          })()}
 
           <div class="flex items-center justify-between pt-1.5 border-t border-white/5 text-xs">
             <span class="text-stone-400 text-[11px] font-medium">進行押し調整:</span>
