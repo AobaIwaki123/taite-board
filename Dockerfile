@@ -16,6 +16,7 @@ FROM nginx:alpine
 LABEL org.opencontainers.image.source="https://github.com/AobaIwaki123/taite-board"
 
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+RUN mkdir -p /var/log/ribonclock && chmod 777 /var/log/ribonclock
 COPY --from=builder /app/apps/web/dist/ /usr/share/nginx/html/
 COPY data/generated/schedule.json /usr/share/nginx/html/schedule.json
 COPY data/generated/schedule.json /usr/share/nginx/html/mock_schedule.json

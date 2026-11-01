@@ -45,4 +45,44 @@ spec:
               memory: 64Mi
           securityContext:
             allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log/ribonclock
+        - name: monitor
+          image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-d718b4d
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: dashboard
+              containerPort: 8082
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log/ribonclock
+      volumes:
+        - name: log-volume
+          emptyDir: {}
 

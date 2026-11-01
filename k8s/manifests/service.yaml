@@ -5,6 +5,7 @@ metadata:
   namespace: ribonclock
   labels:
     app.kubernetes.io/name: ribonclock
+    release: kube-prometheus-stack
 spec:
   selector:
     app.kubernetes.io/name: ribonclock
@@ -12,5 +13,13 @@ spec:
     - name: http
       port: 80
       targetPort: http
+      protocol: TCP
+    - name: dashboard
+      port: 8082
+      targetPort: dashboard
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: metrics
       protocol: TCP
 
