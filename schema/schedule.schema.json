@@ -113,7 +113,7 @@
             "properties": {
               "start_time": { "type": "string" },
               "end_time": { "type": "string" },
-              "stage": { "type": "string" }
+              "stage": { "type": ["string", "null"] }
             }
           },
           "benefit": {

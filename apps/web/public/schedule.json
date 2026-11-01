@@ -70,7 +70,7 @@
       "live": {
         "start_time": "12:50",
         "end_time": "13:15",
-        "stage": "メインステージ"
+        "stage": null
       },
       "benefit": {
         "type": "並行",
@@ -147,7 +147,7 @@
       ],
       "live": {
         "end_time": "15:30",
-        "stage": "Zirco Stage",
+        "stage": null,
         "start_time": "15:05"
       },
       "photo": {
@@ -222,7 +222,7 @@
       ],
       "live": {
         "end_time": "18:55",
-        "stage": "メインチャペル",
+        "stage": null,
         "start_time": "18:35"
       },
       "photo": {
@@ -282,7 +282,7 @@
       "live": {
         "start_time": "11:55",
         "end_time": "12:15",
-        "stage": "ホール"
+        "stage": null
       },
       "benefit": {
         "type": "並行",
@@ -348,7 +348,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -405,7 +405,7 @@
       "live": {
         "start_time": "17:40",
         "end_time": "18:00",
-        "stage": "O-nest"
+        "stage": null
       },
       "benefit": {
         "type": "並行",
@@ -462,7 +462,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -509,7 +509,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -556,7 +556,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -603,7 +603,7 @@
       "live": {
         "start_time": "12:30",
         "end_time": "13:00",
-        "stage": "メイン"
+        "stage": null
       },
       "benefit": {
         "type": "終演後",
@@ -660,7 +660,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -721,7 +721,7 @@
       "live": {
         "start_time": "--:--",
         "end_time": "--:--",
-        "stage": "タイテ告知待ち"
+        "stage": null
       },
       "benefit": {
         "type": "未定",
@@ -778,7 +778,7 @@
       "live": {
         "start_time": "12:05",
         "end_time": "12:25",
-        "stage": "O-nest"
+        "stage": null
       },
       "benefit": {
         "type": "並行",

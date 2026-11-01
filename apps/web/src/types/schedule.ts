@@ -46,7 +46,7 @@ export interface Venue {
 export interface LivePerformance {
   start_time: string;
   end_time?: string;
-  stage?: string;
+  stage?: string | null;
 }
 
 export interface BenefitEvent {
