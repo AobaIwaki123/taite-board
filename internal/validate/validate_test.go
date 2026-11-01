@@ -255,3 +255,103 @@ func TestValidateFile_AdmissionBonusTruncationWarning(t *testing.T) {
 	}
 }
 
+func TestValidateFile_ChronologicalOrderError(t *testing.T) {
+	sched := validBaseSchedule()
+	sessions := sched["sessions"].([]map[string]interface{})
+	sessions = append(sessions, map[string]interface{}{
+		"id":    "20261031-1",
+		"title": "Earlier Live",
+		"date":  "2026-10-31",
+		"venue": map[string]interface{}{"name": "Shibuya RING"},
+		"live":  map[string]interface{}{"start_time": "12:00"},
+		"ticket": map[string]interface{}{"platform": "TIGET"},
+	})
+	sched["sessions"] = sessions
+	filePath := createTestSchedule(t, sched)
+
+	report, err := ValidateFile(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if report.IsValid {
+		t.Errorf("expected validation to fail due to chronological order, got valid")
+	}
+	found := false
+	for _, e := range report.Errors {
+		if strings.Contains(e, "chronological order") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected chronological order error, got: %v", report.Errors)
+	}
+}
+
+func TestValidateFile_BenefitOverlapError(t *testing.T) {
+	sched := validBaseSchedule()
+	sessions := sched["sessions"].([]map[string]interface{})
+	// Part 1 ends benefit at 16:35
+	// Part 2 starts live at 16:00 (overlaps!)
+	sessions = append(sessions, map[string]interface{}{
+		"id":    "20261101-2",
+		"title": "Part 2",
+		"date":  "2026-11-01",
+		"venue": map[string]interface{}{"name": "BATUR TOKYO"},
+		"live":  map[string]interface{}{"start_time": "16:00"},
+		"ticket": map[string]interface{}{"platform": "TIGET"},
+	})
+	sched["sessions"] = sessions
+	filePath := createTestSchedule(t, sched)
+
+	report, err := ValidateFile(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if report.IsValid {
+		t.Errorf("expected validation to fail due to benefit overlap, got valid")
+	}
+	found := false
+	for _, e := range report.Errors {
+		if strings.Contains(e, "overlaps with previous session") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected overlap error, got: %v", report.Errors)
+	}
+}
+
+func TestValidateFile_TightIntervalWarning(t *testing.T) {
+	sched := validBaseSchedule()
+	sessions := sched["sessions"].([]map[string]interface{})
+	// Part 1 ends benefit at 16:35
+	// Part 2 starts live at 16:50 (15 min interval < 30 min)
+	sessions = append(sessions, map[string]interface{}{
+		"id":    "20261101-2",
+		"title": "Part 2",
+		"date":  "2026-11-01",
+		"venue": map[string]interface{}{"name": "BATUR TOKYO"},
+		"live":  map[string]interface{}{"start_time": "16:50"},
+		"ticket": map[string]interface{}{"platform": "TIGET"},
+	})
+	sched["sessions"] = sessions
+	filePath := createTestSchedule(t, sched)
+
+	report, err := ValidateFile(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	found := false
+	for _, w := range report.Warnings {
+		if strings.Contains(w, "tight interval (15 min)") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected tight interval warning, got: %v", report.Warnings)
+	}
+}
+

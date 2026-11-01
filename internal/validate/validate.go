@@ -103,6 +103,8 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 	seenIDs := make(map[string]bool)
 	var remoteURLsToCheck []string
 
+	var prevID, prevDate, prevLiveStart, prevBenEnd string
+
 	for i, s := range root.Sessions {
 		id, _ := s["id"].(string)
 		title, _ := s["title"].(string)
@@ -193,6 +195,32 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 					report.Warnings = append(report.Warnings, fmt.Sprintf("%s: ticket.platform '%s' contains sales/status text which breaks CTA button layout; keep platform clean (e.g. 'イープラス') and move status to prices/special_notes", prefix, platform))
 				}
 			}
+		}
+
+		// Chronological order & interval check
+		if prevDate != "" {
+			if date < prevDate || (date == prevDate && liveStart != "" && prevLiveStart != "" && liveStart != "--:--" && prevLiveStart != "--:--" && liveStart < prevLiveStart) {
+				report.Errors = append(report.Errors, fmt.Sprintf("%s: sessions must be in chronological order (date '%s' live.start_time '%s' appears after session %s '%s' '%s')", prefix, date, liveStart, prevID, prevDate, prevLiveStart))
+			} else if date == prevDate && prevBenEnd != "" && liveStart != "" && prevBenEnd != "--:--" && liveStart != "--:--" {
+				pEnd, ok1 := parseMinutes(prevBenEnd)
+				cStart, ok2 := parseMinutes(liveStart)
+				if ok1 && ok2 {
+					if cStart < pEnd {
+						report.Errors = append(report.Errors, fmt.Sprintf("%s: live.start_time (%s) overlaps with previous session %s benefit.end_time (%s)", prefix, liveStart, prevID, prevBenEnd))
+					} else if cStart-pEnd < 30 {
+						report.Warnings = append(report.Warnings, fmt.Sprintf("%s: tight interval (%d min) from previous session %s benefit.end_time (%s)", prefix, cStart-pEnd, prevID, prevBenEnd))
+					}
+				}
+			}
+		}
+
+		prevID = id
+		prevDate = date
+		prevLiveStart = liveStart
+		if benefit != nil {
+			prevBenEnd, _ = benefit["end_time"].(string)
+		} else {
+			prevBenEnd = ""
 		}
 
 		// Source Tweet URL verification (prevent non-X URLs in source_tweet_url)
@@ -289,4 +317,15 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 	}
 
 	return report, nil
+}
+
+func parseMinutes(hhmm string) (int, bool) {
+	if len(hhmm) != 5 || hhmm[2] != ':' {
+		return 0, false
+	}
+	var h, m int
+	if n, _ := fmt.Sscanf(hhmm, "%d:%d", &h, &m); n != 2 {
+		return 0, false
+	}
+	return h*60 + m, true
 }

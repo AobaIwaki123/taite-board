@@ -31,7 +31,19 @@ func main() {
 		runValidate(os.Args[2:])
 	case "sync":
 		runSync(os.Args[2:])
-	case "update-session", "session":
+	case "sort":
+		runSort(os.Args[2:])
+	case "add-session":
+		runAddSession(os.Args[2:])
+	case "session":
+		if len(os.Args) > 2 && os.Args[2] == "add" {
+			runAddSession(os.Args[3:])
+		} else if len(os.Args) > 2 && os.Args[2] == "sort" {
+			runSort(os.Args[3:])
+		} else {
+			runUpdateSession(os.Args[2:])
+		}
+	case "update-session":
 		runUpdateSession(os.Args[2:])
 	case "build":
 		runBuild(os.Args[2:])
@@ -54,6 +66,8 @@ The commands are:
   fetch           Fetch raw post snapshots from external URLs (ADR-0002)
   validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
   sync            Synchronize data/generated/schedule.json to apps/web/public/
+  sort            Sort all sessions chronologically (date, live.start_time, id) and sync
+  add-session     Add a new session with auto ID derivation (YYYYMMDD-N) and auto-sort
   update-session  Update session photo rules, notes, official tweet URL, and auto-sync
   build           Build web client bundle via Vite`)
 }
@@ -165,6 +179,95 @@ func runSync(args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("✓ Synced schedule.json to %d web public targets (sha256: %s)\n", len(targets), hash[:8])
+}
+
+func runSort(args []string) {
+	fs := flag.NewFlagSet("sort", flag.ExitOnError)
+	fileOpt := fs.String("file", "data/generated/schedule.json", "Schedule JSON file path")
+	rootOpt := fs.String("root", ".", "Project root directory")
+	noSync := fs.Bool("no-sync", false, "Do not auto-sync to web public targets")
+	_ = fs.Parse(args)
+
+	var syncTargets []string
+	if !*noSync {
+		syncTargets = schedule.DefaultSyncTargets(*rootOpt)
+	}
+
+	count, err := schedule.SortSchedule(*fileOpt, syncTargets...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Sort error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Successfully sorted %d sessions chronologically in %s\n", count, *fileOpt)
+	if len(syncTargets) > 0 {
+		fmt.Printf("  Auto-synced to %d web public target(s)\n", len(syncTargets))
+	}
+}
+
+func runAddSession(args []string) {
+	fs := flag.NewFlagSet("add-session", flag.ExitOnError)
+	date := fs.String("date", "", "Date (YYYY-MM-DD, required)")
+	title := fs.String("title", "", "Live event title (required)")
+	sessionName := fs.String("session-name", "", "Session label (e.g. 昼帯, 1部)")
+	venue := fs.String("venue", "", "Venue name (required)")
+	liveStart := fs.String("live-start", "--:--", "Live start time (HH:MM)")
+	liveEnd := fs.String("live-end", "", "Live end time (HH:MM)")
+	benType := fs.String("benefit-type", "並行", "Benefit type (並行, 終演後, etc.)")
+	benStart := fs.String("benefit-start", "", "Benefit start time (HH:MM)")
+	benEnd := fs.String("benefit-end", "", "Benefit end time (HH:MM)")
+	booth := fs.String("booth", "", "Benefit booth (e.g. 並行B)")
+	ticketPlatform := fs.String("ticket-platform", "", "Ticket platform (e.g. LivePocket, TIGET)")
+	ticketURL := fs.String("ticket-url", "", "Ticket purchase URL")
+	imageURL := fs.String("image-url", "", "Primary flyer image URL")
+	tweetURL := fs.String("tweet-url", "", "Official announcement tweet URL")
+	notes := fs.String("notes", "", "Special notes")
+	fileOpt := fs.String("file", "data/generated/schedule.json", "Schedule JSON file path")
+	rootOpt := fs.String("root", ".", "Project root directory")
+	noSync := fs.Bool("no-sync", false, "Do not auto-sync to web public targets")
+
+	_ = fs.Parse(args)
+
+	if *date == "" || *title == "" || *venue == "" {
+		fmt.Fprintln(os.Stderr, "Error: -date, -title, and -venue flags are required")
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	var syncTargets []string
+	if !*noSync {
+		syncTargets = schedule.DefaultSyncTargets(*rootOpt)
+	}
+
+	opts := schedule.AddSessionOptions{
+		Date:             *date,
+		Title:            *title,
+		SessionName:      *sessionName,
+		VenueName:        *venue,
+		LiveStartTime:    *liveStart,
+		LiveEndTime:      *liveEnd,
+		BenefitType:      *benType,
+		BenefitStartTime: *benStart,
+		BenefitEndTime:   *benEnd,
+		Booth:            *booth,
+		TicketPlatform:   *ticketPlatform,
+		TicketURL:        *ticketURL,
+		ImageURL:         *imageURL,
+		SourceTweetURL:   *tweetURL,
+		SpecialNotes:     *notes,
+		FilePath:         *fileOpt,
+		SyncTargets:      syncTargets,
+	}
+
+	newID, err := schedule.AddSession(opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Add session error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Added session '%s' (%s - %s) to %s\n", newID, *date, *title, *fileOpt)
+	if len(syncTargets) > 0 {
+		fmt.Printf("  Auto-synced to %d web public target(s)\n", len(syncTargets))
+	}
 }
 
 func runUpdateSession(args []string) {
