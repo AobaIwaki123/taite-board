@@ -62,6 +62,7 @@ var (
 
 	liveTimeRegex    = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 	benefitTimeRegex = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\s\n\r]+)`)
 	genericTimeRegex = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 )
 
@@ -137,6 +138,17 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 				Confidence: 1.0,
 			})
 			break
+		}
+	}
+	if cand.VenueRaw == "" {
+		if m := venueFallbackRegex.FindStringSubmatch(norm); len(m) == 2 {
+			cand.VenueRaw = strings.TrimSpace(m[1])
+			evidences = append(evidences, candidate.Evidence{
+				Field:      "venue_raw",
+				Source:     "text",
+				Quote:      m[0],
+				Confidence: 0.8,
+			})
 		}
 	}
 
