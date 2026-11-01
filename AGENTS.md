@@ -26,8 +26,7 @@ ADR-0007 および ADR-0010 に基づき、各ディレクトリの責務を厳�
 ```text
 space/taite-board/
 ├── apps/
-│   ├── web/              # フロントエンド正本 (Preact + TypeScript + Tailwind CSS)
-│   └── ios/              # 【開発凍結・更新停止】SwiftUI クライアント (ADR-0011 参照)
+│   └── web/              # フロントエンド正本 (Preact + TypeScript + Tailwind CSS)
 ├── cmd/
 │   └── taite/            # データパイプライン統合 Go CLI
 ├── data/                 # 5層データパイプライン (data/README.md 参照)
@@ -133,14 +132,14 @@ AI対話時における「コマンドを打つたびに処理が停止するオ
 
 ---
 
-## 8. Swift 版 (`apps/ios/`) の更新停止・凍結方針 (Swift Client Freeze)
+## 8. Swift 版の完全撤去と Web PWA への一本化 (Swift Client Retirement)
 
-1. **開発凍結とアーカイブ**:
-   - `apps/ios/`（TaiteBoard / TaiteBoardCore）は、クライアントの二重管理とパイプライン遅延を防ぐため、開発・保守を正式に凍結しました（ADR-0011 参照）。
-   - クライアントの正本および今後の機能拡張対象は Preact Web 版（`apps/web/`）に一本化します。
+1. **資産の完全撤去と一本化**:
+   - `apps/ios/`（TaiteBoard / TaiteBoardCore）は、クライアントの二重管理とパイプライン遅延を防ぐため、正式に撤去・削除しました（ADR-0011 参照）。
+   - クライアントの正本および今後の機能拡張対象は Preact Web 版（`apps/web/`）に一本化しています。
 2. **検証・更新パイプラインからの完全除外**:
-   - データ追加・更新時、または Web 機能改修時において、Swift コードの追従更新や `swift test` の実行は**一切行いません**。
-   - CI およびローカルの機械的検証（`make verify`）のスコープから `apps/ios/` を除外します。
+   - データ追加・更新時、または Web 機能改修時において、Swift コードの追従更新や `swift test` の実行は行いません。
+   - CI およびローカルの機械的検証（`make verify`）のスコープから iOS は完全に除外されています。
 
 ---
 
