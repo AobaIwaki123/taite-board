@@ -367,16 +367,18 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - [ADR-0008: クライアント側のキャッシュとデータ鮮度（Freshness）の表示](../adr/0008-client-offline-cache-and-freshness.md)
 - [ADR-0009: Kubernetes GitOps デプロイと Nginx コンテナ基盤](../adr/0009-kubernetes-gitops-and-nginx-container.md)
 - [ADR-0010: フロントエンドのVite・モダンTypeScript刷新とマルチステージビルド化](../adr/0010-modern-typescript-frontend-and-multistage-docker.md)
-- [ADR-0011: iOSネイティブクライアント（SwiftUI）の採用と共通データ契約接続](../adr/0011-ios-native-client-architecture.md)
+- [ADR-0011: iOSネイティブクライアント（SwiftUI）の採用と共通データ契約接続](../adr/0011-ios-native-client-architecture.md)（※2026-11-01 開発凍結、Preact PWAへ一本化）
 - [ADR-0012: 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ](../adr/0012-multi-slot-promotions-and-deadline-countdown.md)
 - [ADR-0013: ツールチェーンの最新化とTailwind CSS v4移行](../adr/0013-toolchain-modernization-vite8-ts7-tailwind4.md)
+- [ADR-0014: 画像オフラインキャッシュとGo CLIデータガバナンス](../adr/0014-offline-image-cache-and-cli-data-governance.md)
 
-## 14. 未決定事項
+## 14. 解決済みおよび未決定事項の整理
 
-- 最初のネイティブ対象をiOS、Android、または両方のどれにするか。
-- curated/schedule.jsonを人が直接編集するか、専用の確認UIを先に作るか。
-- 公開ファイル名をschedule.jsonに固定するか、feed.jsonなどにするか。
+### 解決済み事項
+- **クライアント基盤**: iOSネイティブ版は二重保守防止のため凍結し、モバイルWeb（Preact PWA + Service Worker）に一本化（ADR-0011, ADR-0014）。
+- **スケジュールデータのガバナンス**: 人手編集による順序狂いやID重複を防ぐため、Go CLI（`taite sort`, `taite add-session`, `taite update-session`）による自動化・機械的検証（順序・インターバル検査）を確立（ADR-0014）。
+- **公開形式と配信**: `schedule.json` に固定し、Kubernetes + ArgoCD + Cloudflare Tunnel 経由で静的配信（ADR-0005, ADR-0009）。
+
+### 未決定事項
 - 名寄せ対象をグループ・会場・チケットサービスからどこまで広げるか。
-- GitHub Pagesなどの静的ホスティングを正式な公開先にするか。
-
-これらは実装開始前にすべて確定させる必要はない。ただし、公開データのschema_version、canonical_id、source_refは早期に固定する。
+- 画像内タイテ解析（OCR / マルチモーダルLLM）による自動候補抽出パイプラインの本格統合。

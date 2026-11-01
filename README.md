@@ -30,8 +30,9 @@ URL共有時のカードとアプリアイコンは、カレンダーとリボ�
    - 画面ごとに独立した縦スクロールコンテナを保持し、画面遷移時のスクロール位置の干渉を防止。
 2. **フライヤー・タイムテーブル画像のプレビュー**:
    - 告知ポストに含まれる複数画像（フライヤー画像・タイテ表画像）の切り替え表示および拡大モーダル表示。
-3. **オフラインキャッシュとデータ鮮度表示**:
-   - 取得済みスケジュールデータを `localStorage` に保持し、オフライン環境でも直前のデータを表示。
+3. **地下ライブハウス対応オフラインキャッシュとデータ鮮度表示 (ADR-0008, ADR-0014)**:
+   - 取得済みスケジュールデータを `localStorage` に保持し、オフライン環境でも直前のデータを即座に復元。
+   - Service Worker（`sw.js`）による告知・フライヤー画像（`pbs.twimg.com/media/`）の Cache-First 保持により、電波の届かない地下会場でもタイムテーブル画像を閲覧可能。
    - スケジュール生成日時（`generated_at`）から24時間以上経過している場合、ヘッダーに更新通知バッジを表示。
 4. **プライバシー保護 (Zero Telemetry)**:
    - 訪問者追跡、Cookie、外部トラッキングタグ、識別用UUIDの発行を行わない設計。
@@ -57,7 +58,7 @@ taite publish ← data/curated/ (entities.json, overrides.json による名寄�
         ↓
 data/generated/schedule.json (schema/schedule.schema.json 準拠)
         ↓
-Web クライアント (apps/web: Docker マルチステージビルド / Nginx)
+Web クライアント (apps/web: Preact + PWA / Service Worker / Nginx / Kubernetes)
 ```
 
 詳細な設計方針は [docs/architecture.md](docs/architecture.md) および [adr/](adr/) を参照してください。
@@ -71,20 +72,21 @@ taite-board/
 ├── apps/
 │   └── web/                   # Webクライアント正本 (Preact + TypeScript + Tailwind CSS)
 │       ├── src/               # コンポーネントおよびロジック
-│       ├── public/            # 静的アセット (画像、ローカルモックJSON)
+│       ├── public/            # 静的アセット (画像、sw.js、ローカルモックJSON)
 │       ├── index.html         # SPA エントリーポイント
 │       ├── package.json       # 依存パッケージ定義
 │       ├── tsconfig.json      # TypeScript 設定 (Strict Mode)
 │       └── vite.config.ts     # Vite 設定
 ├── cmd/
-│   └── taite/                 # 統合Go CLI (fetch, validate, build)
+│   └── taite/                 # 統合Go CLI (fetch, validate, sync, sort, add-session, update-session, build)
 │       ├── main.go
 │       └── README.md
 ├── internal/                  # Go CLI 内部パッケージ
 │   ├── source/x/              # 外部通信アダプター
 │   ├── raw/                   # 生スナップショット定義
 │   ├── fetch/                 # 取得オーケストレーター
-│   └── validate/              # JSON Schema・ドメイン整合性検証
+│   ├── validate/              # JSON Schema・時系列順序・公演重複インターバル検証
+│   └── schedule/              # スケジュール同期・ソート・追加・更新
 ├── data/                      # 5層データパイプライン (詳細は data/README.md)
 │   ├── input/                 # クローラー巡回対象
 │   ├── raw/                   # 実行別スナップショット
@@ -104,12 +106,14 @@ taite-board/
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
 │   └── frontend-guidelines.md # フロントエンド設計・TypeScript規約
-├── adr/                       # アーキテクチャ決定記録 (0001〜0010)
+├── adr/                       # アーキテクチャ決定記録 (0001〜0014)
 │   └── README.md              # ADR 作成ガイドライン
 ├── scripts/
+│   ├── verify.sh              # 統一ローカル完全検証スクリプト (Sync, Validate, Test, Typecheck, Build)
+│   ├── ship.sh                # Worktree・PR起票・マージ自動化スクリプト
+│   ├── sync-schedule.sh       # schedule.json 同期スクリプト
 │   ├── install.sh             # taite CLI インストールスクリプト
-│   ├── build.sh               # フロントエンドビルドスクリプト
-│   └── validate_schedule.js   # スケジュール整合性検証スクリプト
+│   └── build.sh               # フロントエンドビルドスクリプト
 ├── Makefile                   # 開発タスク実行定義
 └── Dockerfile                 # マルチステージコンテナビルド定義
 ```
