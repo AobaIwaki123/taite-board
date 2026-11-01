@@ -2,11 +2,11 @@
 
 ## ステータス
 
-Proposed
+Deprecated (開発凍結・更新停止)
 
 ## 決定日
 
-2026-10-30
+2026-10-30（2026-11-01 凍結決定）
 
 ## 対象コンポーネント
 
@@ -17,6 +17,8 @@ Proposed
 - `adr/0001-schedule-json-data-contract.md`
 - `adr/0005-static-json-distribution.md`
 - `adr/0008-client-offline-cache-and-freshness.md`
+
+> **注意 (2026-11-01 追記)**: クライアントの二重保守に伴う検証オーバーヘッドおよび開発イテレーション速度低下を防ぐため、**SwiftUI による iOS 版（`apps/ios/`）の開発・更新は正式に凍結**しました。クライアントの正本および今後の機能開発は Preact 版 Web（`apps/web/`）に一本化し、`apps/ios/` に対するコード更新および `swift test` 等の検証実行はパイプラインから除外します。
 
 ## コンテキストと課題
 

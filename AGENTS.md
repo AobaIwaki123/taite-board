@@ -26,7 +26,8 @@ ADR-0007 および ADR-0010 に基づき、各ディレクトリの責務を厳�
 ```text
 space/taite-board/
 ├── apps/
-│   └── web/              # フロントエンド正本 (Preact + TypeScript + Tailwind CSS)
+│   ├── web/              # フロントエンド正本 (Preact + TypeScript + Tailwind CSS)
+│   └── ios/              # 【開発凍結・更新停止】SwiftUI クライアント (ADR-0011 参照)
 ├── cmd/
 │   └── taite/            # データパイプライン統合 Go CLI
 ├── data/                 # 5層データパイプライン (data/README.md 参照)
@@ -42,7 +43,7 @@ space/taite-board/
 ├── k8s/                  # Kubernetes / GitOps (ArgoCD) マニフェスト
 ├── schema/
 │   └── schedule.schema.json # スケジュールデータ標準スキーマ (Draft-07)
-├── scripts/              # 開発・ビルドスクリプト
+├── scripts/              # 開発・ビルド・自動化スクリプト (verify.sh, ship.sh 等)
 ├── adr/                  # アーキテクチャ決定記録 (adr/README.md 参照)
 ├── Makefile              # 開発タスク定義
 └── Dockerfile            # マルチステージコンテナビルド定義
@@ -52,20 +53,33 @@ space/taite-board/
 
 ---
 
-## 3. Git & PR 運用ルール (PR-Only Workflow)
+## 3. Git & PR 運用ルール (PR-Only Workflow & Mechanical Shipping)
 
 本リポジトリは、保護された `main` ブランチへの直接Pushを禁止し、**PR-Only Workflow** を適用します。
+AI対話時における「コマンドを打つたびに処理が停止するオーバーヘッド」を排除するため、検証と出荷は**単一スクリプト（ワンライナー機械化パイプライン）で実行**します。
 
 1. **ブランチ命名規則**:
    - `feat/<topic>`, `fix/<topic>`, `refactor/<topic>`, `docs/<topic>`
-2. **事前ローカル検証**:
-   - PR起票前に必ず以下の検証コマンドを実行し、エラーがゼロであることを確認します。
-   - `make test`: Go テスト
-   - `make validate`: スケジュールJSONスキーマ検証
-   - `npm --prefix apps/web run typecheck`: TypeScript 型検査
-   - `npm --prefix apps/web run build`: フロントエンドバンドルビルド
-3. **PR起票とマージ**:
-   - `gh pr create` でPRを作成し、GitHub Actions の通過を確認後、`gh pr merge --squash --delete-branch` でマージします。
+2. **事前ローカル検証（単一コマンド）**:
+   - 個別の検証コマンドを都度手動実行するのではなく、以下の統合コマンドで一括機械検証します（実行時間約2〜3秒）。
+   ```bash
+   make verify
+   # または ./scripts/verify.sh
+   ```
+   - 内部で以下の処理が連続実行されます:
+     1. スケジュールJSONのWeb公開ディレクトリへの自動同期（`sync-schedule.sh`）
+     2. JSON Schema スキーマ検証（`go run ./cmd/taite validate`）
+     3. Web 単体テスト（`npm --prefix apps/web test`）
+     4. TypeScript 型検査（`npm --prefix apps/web run typecheck`）
+     5. Web プロダクションビルド（`npm --prefix apps/web run build`）
+   - ※ 凍結済みの Swift 版（`apps/ios/`）のテストは実行しません。
+3. **作業後出荷の完全機械化 (`scripts/ship.sh`)**:
+   - 作業完了後は、以下の単一コマンドを1回実行するだけで、検証 -> コミット -> プッシュ -> PR作成 -> Squashマージ -> ローカルmain同期 までをノンストップで完了させます。
+   ```bash
+   ./scripts/ship.sh "<commit/PR title>" "<PR body>"
+   # 例: ./scripts/ship.sh "feat(schedule): update photo rules" "Summary of changes"
+   ```
+   - 途中で対話型コマンドを複数回打つことを禁止し、出荷パイプラインに処理を委譲します。
 
 ---
 
@@ -115,3 +129,30 @@ space/taite-board/
 ## 7. CLI コマンド標準 (`taite`)
 
 - 実行バイナリの手動パス指定（`./bin/taite`）を廃止し、`make install` または `go install ./cmd/taite` によりインストールされた `taite` コマンド、あるいは `make validate` / `go run ./cmd/taite` を標準として使用します。
+
+---
+
+## 8. Swift 版 (`apps/ios/`) の更新停止・凍結方針 (Swift Client Freeze)
+
+1. **開発凍結とアーカイブ**:
+   - `apps/ios/`（TaiteBoard / TaiteBoardCore）は、クライアントの二重管理とパイプライン遅延を防ぐため、開発・保守を正式に凍結しました（ADR-0011 参照）。
+   - クライアントの正本および今後の機能拡張対象は Preact Web 版（`apps/web/`）に一本化します。
+2. **検証・更新パイプラインからの完全除外**:
+   - データ追加・更新時、または Web 機能改修時において、Swift コードの追従更新や `swift test` の実行は**一切行いません**。
+   - CI およびローカルの機械的検証（`make verify`）のスコープから `apps/ios/` を除外します。
+
+---
+
+## 9. データ更新と機械化パイプライン (Mechanical Data & Shipping Pipeline)
+
+1. **データ同期の自動化 (`scripts/sync-schedule.sh`)**:
+   - `data/generated/schedule.json` を更新した後は、手動で他のファイルを書き換えるのではなく、`make sync`（または `scripts/sync-schedule.sh`）を実行して `apps/web/public/` 配下の正本・モックへ同一データを自動複製します。
+2. **撮影可能曲・特記事項の決定論的更新 (`scripts/update_photo_rule.py`)**:
+   - 公式 X から撮影可能曲などの告知が公開された際は、スクリプトを使用して機械的に JSON 更新と同期を実行します。
+   ```bash
+   ./scripts/update_photo_rule.py --session 20261101-1 --rule "5曲目『75秒の沈黙』撮影可能" --tweet-url "https://x.com/..."
+   ```
+3. **AI コマンド停止の排除 (Zero AI Command Latency)**:
+   - 作業後の検証とデプロイにおいて、AIが1コマンドずつ確認しながら対話停止することを防ぎます。
+   - `make verify` で一括検証し、`./scripts/ship.sh` で PR 作成からマージ・同期までを単一の自律コマンドとして完了させます。
+
