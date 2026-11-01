@@ -15,7 +15,7 @@ export function App() {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [activeTab, setActiveTab] = useState<TabName>('next');
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [customSelectedSessionId, setCustomSelectedSessionId] = useState<string | null>(null);
   const [previousTab, setPreviousTab] = useState<TabName>('week');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -23,11 +23,20 @@ export function App() {
   const [isProgrammatic, setIsProgrammatic] = useState(false);
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [delayOffsets, setDelayOffsets] = useState<{ [id: string]: number }>({});
+  const [now, setNow] = useState(new Date());
   const isProgrammaticRef = useRef(false);
   const programmaticTimerRef = useRef<number | null>(null);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const tabNames: TabName[] = ['next', 'week', 'month'];
+
+  // 30秒ごとに時刻を更新し、カウントダウン分数の進行や公演終了後の次回自動遷移を反映
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setAttendedSessionIds(getAttendedSessionIds());
@@ -35,13 +44,6 @@ export function App() {
       .then(({ data: loadedData, isFallback: loadedFallback }) => {
         setData(loadedData);
         setIsFallback(loadedFallback);
-        // 特典会終了後数時間の猶予時間を考慮して直近ライブを動的決定
-        const nextSession = resolveNextSession(loadedData.sessions, loadedData.current_next_id);
-        if (nextSession) {
-          setSelectedSessionId(nextSession.id);
-        } else if (loadedData.sessions?.length > 0) {
-          setSelectedSessionId(loadedData.sessions[0].id);
-        }
       })
       .catch((err) => {
         console.warn('Initial load fallback', err);
@@ -99,12 +101,9 @@ export function App() {
     }
   };
 
-  // 直近ライブへの復帰
+  // 直近ライブへの復帰（カスタム選択を解除して常に最新の次回直近ライブを表示）
   const handleResetToNextLive = () => {
-    if (!data?.sessions?.length) return;
-    const nextSession = resolveNextSession(data.sessions, data.current_next_id);
-    const nextId = nextSession?.id || data.current_next_id || data.sessions[0].id;
-    setSelectedSessionId(nextId);
+    setCustomSelectedSessionId(null);
     setSelectedImageIndex(0);
     scrollToTab('next');
   };
@@ -112,7 +111,7 @@ export function App() {
   // セッション詳細の表示
   const handleSelectSession = (id: string) => {
     setPreviousTab(activeTab);
-    setSelectedSessionId(id);
+    setCustomSelectedSessionId(id);
     setSelectedImageIndex(0);
     scrollToTab('next');
   };
@@ -128,10 +127,12 @@ export function App() {
     );
   }
 
-  const nextSession = resolveNextSession(data.sessions, data.current_next_id);
+  const nextSession = resolveNextSession(data.sessions, data.current_next_id, now, 0, delayOffsets);
   const currentSession =
-    data.sessions.find((s: Session) => s.id === selectedSessionId) || nextSession || data.sessions[0];
-  const isNextLive = selectedSessionId === nextSession?.id;
+    (customSelectedSessionId && data.sessions.find((s: Session) => s.id === customSelectedSessionId)) ||
+    nextSession ||
+    data.sessions[0];
+  const isNextLive = currentSession?.id === nextSession?.id;
   const currentImages =
     currentSession?.images && currentSession.images.length > 0
       ? currentSession.images
