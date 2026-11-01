@@ -3,6 +3,8 @@ package monitor
 import (
 	"strings"
 	"testing"
+
+	"github.com/AobaIwaki123/taite-board/internal/candidate"
 )
 
 func TestCollector_ProcessLine(t *testing.T) {
@@ -54,5 +56,38 @@ func TestCollector_ProcessLine(t *testing.T) {
 	}
 	if !strings.Contains(prom, `ribonclock_http_requests_total{route="other",status="404"} 1`) {
 		t.Errorf("prometheus metrics missing other:404 counter:\n%s", prom)
+	}
+}
+
+func TestCollector_IntakesPersistence(t *testing.T) {
+	tempFile := t.TempDir() + "/intakes.json"
+	c1 := NewCollector("1.0.0")
+	c1.SetIntakesPath(tempFile)
+
+	c1.AddIntake(candidate.IntakeResult{
+		Source:   "x",
+		SourceID: "112233",
+		Text:     "First post",
+	})
+	c1.AddIntake(candidate.IntakeResult{
+		Source:   "x",
+		SourceID: "445566",
+		Text:     "Second post",
+	})
+
+	if len(c1.RecentIntakes()) != 2 {
+		t.Fatalf("expected 2 intakes in c1, got %d", len(c1.RecentIntakes()))
+	}
+
+	// Create new collector simulating pod restart
+	c2 := NewCollector("1.0.0")
+	c2.SetIntakesPath(tempFile)
+
+	intakes := c2.RecentIntakes()
+	if len(intakes) != 2 {
+		t.Fatalf("expected 2 intakes reloaded in c2 after restart, got %d", len(intakes))
+	}
+	if intakes[0].SourceID != "445566" {
+		t.Errorf("expected newest intake first (445566), got %s", intakes[0].SourceID)
 	}
 }
