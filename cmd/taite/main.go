@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/fetch"
+	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 )
 
@@ -28,6 +29,10 @@ func main() {
 		runFetch(os.Args[2:])
 	case "validate":
 		runValidate(os.Args[2:])
+	case "sync":
+		runSync(os.Args[2:])
+	case "update-session", "session":
+		runUpdateSession(os.Args[2:])
 	case "build":
 		runBuild(os.Args[2:])
 	case "help", "-h", "--help":
@@ -46,9 +51,11 @@ Usage:
   taite <command> [arguments]
 
 The commands are:
-  fetch     Fetch raw post snapshots from external URLs (ADR-0002)
-  validate  Validate a schedule JSON file against ADR-0001 schema and source integrity rules
-  build     Build web client bundle via Vite`)
+  fetch           Fetch raw post snapshots from external URLs (ADR-0002)
+  validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
+  sync            Synchronize data/generated/schedule.json to apps/web/public/
+  update-session  Update session photo rules, notes, official tweet URL, and auto-sync
+  build           Build web client bundle via Vite`)
 }
 
 func runFetch(args []string) {
@@ -143,6 +150,73 @@ func runValidate(args []string) {
 		os.Exit(1)
 	}
 	fmt.Println("✓ Validation PASSED (All ADR-0001 schema requirements met)")
+}
+
+func runSync(args []string) {
+	fs := flag.NewFlagSet("sync", flag.ExitOnError)
+	srcOpt := fs.String("source", "data/generated/schedule.json", "Source schedule JSON file")
+	rootOpt := fs.String("root", ".", "Project root directory")
+	_ = fs.Parse(args)
+
+	targets := schedule.DefaultSyncTargets(*rootOpt)
+	hash, err := schedule.Sync(*srcOpt, targets...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Sync error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Synced schedule.json to %d web public targets (sha256: %s)\n", len(targets), hash[:8])
+}
+
+func runUpdateSession(args []string) {
+	// Support nested subcommands: e.g. "taite session update -session ..." or "taite update-session -session ..."
+	if len(args) > 0 && args[0] == "update" {
+		args = args[1:]
+	}
+
+	fs := flag.NewFlagSet("update-session", flag.ExitOnError)
+	sessionID := fs.String("session", "", "Session ID (required, e.g. 20261101-1)")
+	rule := fs.String("rule", "", "Clean photo rule (e.g. 5曲目『75秒の沈黙』撮影可能)")
+	rawText := fs.String("raw", "", "Raw announcement text snippet")
+	tweetURL := fs.String("tweet-url", "", "Source tweet URL")
+	official := fs.Bool("official", true, "Update source_tweet_url to the provided tweet-url")
+	notes := fs.String("notes", "", "Special notes to prepend or update")
+	fileOpt := fs.String("file", "data/generated/schedule.json", "Schedule JSON file path")
+	rootOpt := fs.String("root", ".", "Project root directory")
+	noSync := fs.Bool("no-sync", false, "Do not auto-sync to web public targets")
+
+	_ = fs.Parse(args)
+
+	if *sessionID == "" {
+		fmt.Fprintln(os.Stderr, "Error: -session flag is required")
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	var syncTargets []string
+	if !*noSync {
+		syncTargets = schedule.DefaultSyncTargets(*rootOpt)
+	}
+
+	opts := schedule.UpdateSessionOptions{
+		SessionID:         *sessionID,
+		PhotoRule:         *rule,
+		PhotoRawText:      *rawText,
+		SourceTweetURL:    *tweetURL,
+		UpdateOfficialURL: *official && *tweetURL != "",
+		SpecialNotes:      *notes,
+		FilePath:          *fileOpt,
+		SyncTargets:       syncTargets,
+	}
+
+	if err := schedule.UpdateSession(opts); err != nil {
+		fmt.Fprintf(os.Stderr, "Update error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Session %s updated successfully in %s\n", *sessionID, *fileOpt)
+	if len(syncTargets) > 0 {
+		fmt.Printf("  Auto-synced to %d web public target(s)\n", len(syncTargets))
+	}
 }
 
 func runBuild(args []string) {

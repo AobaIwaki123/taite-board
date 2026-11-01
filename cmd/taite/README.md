@@ -83,7 +83,39 @@ taite validate path/to/schedule.json
 
 ---
 
-### 3. `taite build`
+### 3. `taite sync`
+`data/generated/schedule.json` を `apps/web/public/schedule.json` および `apps/web/public/mock_schedule.json` へ自動複製し、SHA-256 チェックサムの一致を保証します。
+
+```bash
+taite sync
+# または
+make sync
+```
+
+---
+
+### 4. `taite update-session`
+公演セッションの撮影可能ルール、特記事項、公式告知ポスト URL を更新し、`generated_at` の日時更新と Web 配下への自動同期を実行します。
+
+```bash
+taite update-session -session 20261101-1 \
+  -rule "5曲目『75秒の沈黙』撮影可能" \
+  -tweet-url "https://x.com/Ribbon_Clock/status/2116455139959840824" \
+  -notes "私服ライブ出演"
+```
+
+#### 主なオプション:
+- `-session <id>`: 更新対象のセッションID（必須）。
+- `-rule <text>`: 正規化済みの撮影可否ルール文言。
+- `-raw <text>`: 告知元の生テキストスニペット。
+- `-tweet-url <url>`: 出典告知ポストのURL。
+- `-official`: 指定した `-tweet-url` を公演の公式告知リンク（`source_tweet_url`）にも反映（デフォルト: `true`）。
+- `-notes <text>`: 特記事項に追記・結合する文言。
+- `-no-sync`: Web 公開ファイルへの自動同期をスキップする場合に指定。
+
+---
+
+### 5. `taite build`
 フロントエンド（`apps/web/`）の TypeScript バンドルビルド（`scripts/build.sh` 経由で Vite ビルド）を実行します。
 
 ```bash
@@ -107,3 +139,5 @@ make web-build
   - 並列フェッチオーケストレータおよびローカルファイルへの不変保存処理。
 - **`internal/validate/`**:
   - JSON Schema準拠のドメイン検証ロジック。
+- **`internal/schedule/`**:
+  - スケジュール JSON の SHA-256 同期保証およびセッションの決定論的更新ロジック。
