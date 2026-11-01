@@ -23,6 +23,13 @@
     ],
     "venues": [
       {
+        "canonical_id": "venue:shibuya-vident",
+        "name": "渋谷VIDENT",
+        "area": "渋谷",
+        "map_query": "渋谷VIDENT",
+        "aliases": ["渋谷VIDENT", "VIDENT", "SHIBUYA VIDENT"]
+      },
+      {
         "canonical_id": "venue:shibuya-ring",
         "name": "渋谷RING",
         "area": "渋谷",

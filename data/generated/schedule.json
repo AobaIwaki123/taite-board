@@ -12,7 +12,7 @@
     "color_code": "#ef4444",
     "birthday_title": "神楽あゆ生誕祭 2026（20th Anniversary）",
     "crowdfunding_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
-    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
+    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg\u0026name=large",
     "canonical_id": "member:ribbon-clock:ayu-kagura"
   },
   "promotions": [
@@ -24,7 +24,7 @@
       "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
       "cta_label": "CAMPFIREで支援する ↗",
       "cta_url": "https://camp-fire.jp/projects/983246/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
-      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg\u0026name=large",
       "deadline": "2026-11-22",
       "priority": 100,
       "active": true
@@ -99,7 +99,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg\u0026name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194",
       "images": [
         {
@@ -132,7 +132,7 @@
       "date": "2026-11-01",
       "day_of_week": "日",
       "id": "20261101-1",
-      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg\u0026name=large",
       "images": [
         {
           "label": "フライヤー (1/2)",
@@ -207,7 +207,7 @@
       "date": "2026-11-01",
       "day_of_week": "日",
       "id": "20261101-2",
-      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg\u0026name=large",
       "images": [
         {
           "label": "フライヤー (1/2)",
@@ -330,6 +330,61 @@
           "type": "x_post",
           "source_id": "2115639776422625284",
           "url": "https://x.com/Ribbon_Clock/status/2115639776422625284"
+        }
+      ]
+    },
+    {
+      "id": "20261104-1",
+      "title": "AQUARIUM.",
+      "date": "2026-11-04",
+      "day_of_week": "水",
+      "session_name": "夜帯",
+      "venue": {
+        "canonical_id": "venue:shibuya-vident",
+        "name": "渋谷VIDENT",
+        "map_query": "渋谷VIDENT",
+        "map_url": "https://maps.google.com/?q=渋谷VIDENT"
+      },
+      "live": {
+        "start_time": "18:35",
+        "end_time": "18:55",
+        "stage": null
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "19:05",
+        "end_time": "20:05",
+        "booth": "並行A"
+      },
+      "photo": null,
+      "special_notes": "渋谷VIDENT開催対バン！並行特典会A",
+      "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写メ+30秒トーク / ③動員ポイント）",
+      "ticket": {
+        "platform": "LivePocket",
+        "url": null,
+        "prices": [
+          {
+            "tier": "前方エリア",
+            "price": "¥4,000"
+          },
+          {
+            "tier": "通常エリア",
+            "price": "¥2,000"
+          },
+          {
+            "tier": "当日券",
+            "price": "各+¥1,000 (+1D)"
+          }
+        ]
+      },
+      "image_url": "",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2116817522318250115",
+      "images": [],
+      "source_refs": [
+        {
+          "type": "x_post",
+          "source_id": "2116817522318250115",
+          "url": "https://x.com/Ribbon_Clock/status/2116817522318250115"
         }
       ]
     },
@@ -477,7 +532,7 @@
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/alamodepetite_142"
       },
-      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg\u0026name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113918424439296285",
       "images": [
         {
@@ -571,7 +626,7 @@
         "platform": "TicketDive",
         "url": "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y"
       },
-      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg\u0026name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114295917075460118",
       "images": [
         {
@@ -689,7 +744,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=large",
+      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg\u0026name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113948622446571638",
       "images": [
         {
@@ -822,6 +877,6 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-11-01T00:56:39.309Z",
+  "generated_at": "2026-11-01T13:37:14.772Z",
   "timezone": "Asia/Tokyo"
 }

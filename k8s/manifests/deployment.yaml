@@ -18,6 +18,8 @@ spec:
       labels:
         app.kubernetes.io/name: ribonclock
     spec:
+      securityContext:
+        fsGroup: 65532
       containers:
         - name: web
           image: ghcr.io/aobaiwaki123/taite-board:sha-962851d
@@ -53,6 +55,9 @@ spec:
         - name: monitor
           image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-962851d
           imagePullPolicy: IfNotPresent
+          env:
+            - name: AI_PARSER_URL
+              value: "https://taite-parser-3b7eomko6a-an.a.run.app"
           ports:
             - name: dashboard
               containerPort: 8082
