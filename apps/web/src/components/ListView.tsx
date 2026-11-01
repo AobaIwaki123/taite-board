@@ -5,18 +5,25 @@ import { MapPin } from '../utils/icons';
 
 interface ListViewProps {
   sessions: Session[];
+  attendedSessionIds?: string[];
   onSelectSession: (id: string) => void;
 }
 
-export function ListView({ sessions, onSelectSession }: ListViewProps) {
+export function ListView({ sessions, attendedSessionIds = [], onSelectSession }: ListViewProps) {
   // 特典会終了後数時間の猶予時間を考慮し、今後の公演のみを抽出
   const upcomingSessions = sessions.filter((s) => !isSessionPast(s));
+  const attendedCount = sessions.filter((s) => attendedSessionIds.includes(s.id)).length;
 
   return (
     <div class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3 pb-6">
       {/* 件数バッジ */}
       <div class="flex items-center justify-between px-1 text-xs text-stone-400">
-        <span>今後の公演予定</span>
+        <span class="flex items-center gap-1.5">
+          <span>今後の公演予定</span>
+          {attendedCount > 0 && (
+            <span class="text-emerald-400 font-bold">({attendedCount}公演 参戦済)</span>
+          )}
+        </span>
         <span class="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-bold">
           {upcomingSessions.length}公演
         </span>
@@ -73,11 +80,18 @@ export function ListView({ sessions, onSelectSession }: ListViewProps) {
                     <Icon icon={MapPin} class="w-3 h-3 text-rose-400 shrink-0" />
                     <span class="truncate">{session.venue.name}</span>
                   </span>
-                  {sessionTag && (
-                    <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-xs shrink-0">
-                      {sessionTag}
-                    </span>
-                  )}
+                  <div class="flex items-center gap-1 shrink-0">
+                    {attendedSessionIds.includes(session.id) && (
+                      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+                        参戦済
+                      </span>
+                    )}
+                    {sessionTag && (
+                      <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-xs">
+                        {sessionTag}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div class="text-sm font-extrabold text-white leading-snug line-clamp-2">

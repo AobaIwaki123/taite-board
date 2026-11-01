@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
 import { resolveNextSession } from './utils/date';
+import { getAttendedSessionIds, toggleAttendedSessionId } from './utils/attendance';
+import { getSessionDelayOffset, setSessionDelayOffset } from './utils/delay';
 import { Header } from './components/Header';
 import { Navigation, TabName } from './components/Navigation';
 import { CockpitView } from './components/CockpitView';
@@ -19,6 +21,8 @@ export function App() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isProgrammatic, setIsProgrammatic] = useState(false);
+  const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
+  const [delayOffsets, setDelayOffsets] = useState<{ [id: string]: number }>({});
   const isProgrammaticRef = useRef(false);
   const programmaticTimerRef = useRef<number | null>(null);
 
@@ -26,6 +30,7 @@ export function App() {
   const tabNames: TabName[] = ['next', 'week', 'month'];
 
   useEffect(() => {
+    setAttendedSessionIds(getAttendedSessionIds());
     loadScheduleData()
       .then(({ data: loadedData, isFallback: loadedFallback }) => {
         setData(loadedData);
@@ -43,6 +48,16 @@ export function App() {
         setIsFallback(true);
       });
   }, []);
+
+  const handleToggleAttended = (sessionId: string) => {
+    const updated = toggleAttendedSessionId(sessionId);
+    setAttendedSessionIds(updated);
+  };
+
+  const handleChangeDelay = (sessionId: string, minutes: number) => {
+    setSessionDelayOffset(sessionId, minutes);
+    setDelayOffsets((prev) => ({ ...prev, [sessionId]: minutes }));
+  };
 
   // カルーセルの横スクロール位置を同期
   const scrollToTab = (tab: TabName) => {
@@ -148,6 +163,10 @@ export function App() {
                 promotions={data.promotions}
                 isNextLive={isNextLive}
                 selectedImageIndex={selectedImageIndex}
+                isAttended={attendedSessionIds.includes(currentSession.id)}
+                delayMinutes={delayOffsets[currentSession.id] ?? getSessionDelayOffset(currentSession.id)}
+                onToggleAttended={handleToggleAttended}
+                onChangeDelay={(m) => handleChangeDelay(currentSession.id, m)}
                 onSelectImageIndex={setSelectedImageIndex}
                 onSelectSession={handleSelectSession}
                 onResetToNextLive={handleResetToNextLive}
@@ -161,6 +180,7 @@ export function App() {
           <section class="w-full shrink-0 h-full snap-start px-0.5">
             <ListView
               sessions={data.sessions}
+              attendedSessionIds={attendedSessionIds}
               onSelectSession={handleSelectSession}
             />
           </section>
@@ -169,6 +189,7 @@ export function App() {
           <section class="w-full shrink-0 h-full snap-start px-0.5">
             <CalendarView
               sessions={data.sessions}
+              attendedSessionIds={attendedSessionIds}
               onSelectSession={handleSelectSession}
             />
           </section>

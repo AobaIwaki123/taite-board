@@ -1,11 +1,14 @@
 import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
-import { isSessionPast } from '../utils/date';
+import { isSessionPast, getSessionProgress, getTodayStr } from '../utils/date';
 import { Icon } from './Icon';
 import { PromotionBanner } from './PromotionBanner';
 import {
   Calendar,
   CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock,
   Image as ImageIcon,
   MapPin,
   Mic,
@@ -22,6 +25,10 @@ interface CockpitViewProps {
   promotions?: Promotion[];
   isNextLive: boolean;
   selectedImageIndex: number;
+  isAttended: boolean;
+  delayMinutes: number;
+  onToggleAttended: (id: string) => void;
+  onChangeDelay: (minutes: number) => void;
   onSelectImageIndex: (idx: number) => void;
   onSelectSession: (id: string) => void;
   onResetToNextLive: () => void;
@@ -35,6 +42,10 @@ export function CockpitView({
   promotions,
   isNextLive,
   selectedImageIndex,
+  isAttended,
+  delayMinutes,
+  onToggleAttended,
+  onChangeDelay,
   onSelectImageIndex,
   onSelectSession,
   onResetToNextLive,
@@ -234,15 +245,31 @@ export function CockpitView({
               {session.date} ({session.day_of_week || ''})
             </span>
           </div>
-          {isNextLive ? (
-            <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
-              ★ 直近ライブ
-            </span>
-          ) : isSessionPast(session) ? (
-            <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10">
-              公演終了
-            </span>
-          ) : null}
+          <div class="flex items-center gap-1.5">
+            <button
+              onClick={() => onToggleAttended(session.id)}
+              class={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all border ${
+                isAttended
+                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300 shadow-sm'
+                  : 'bg-stone-900/80 border-white/10 text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              <Icon
+                icon={isAttended ? CheckCircle2 : Check}
+                class={`w-3.5 h-3.5 ${isAttended ? 'text-emerald-400' : 'text-stone-500'}`}
+              />
+              <span>{isAttended ? '参戦済 ✓' : '参戦チェック'}</span>
+            </button>
+            {isNextLive ? (
+              <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
+                ★ 直近
+              </span>
+            ) : isSessionPast(session, new Date(), 2, delayMinutes) ? (
+              <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10">
+                公演終了
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
@@ -269,6 +296,53 @@ export function CockpitView({
           )}
         </div>
       </div>
+
+      {/* 当日公演のリアルタイム進行状況 ＆ 進行遅延（押し）調整コントロール */}
+      {session.date === getTodayStr() && (
+        <div class="p-3 rounded-2xl bg-stone-900/90 border border-white/10 space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-stone-300">
+              <Icon icon={Clock} class="w-3.5 h-3.5 text-amber-400" />
+              <span>本日の進行状況</span>
+            </div>
+            {(() => {
+              const progress = getSessionProgress(
+                session.date,
+                session.live.start_time,
+                session.live.end_time,
+                session.benefit.start_time,
+                session.benefit.end_time,
+                new Date(),
+                delayMinutes
+              );
+              return (
+                <span class={`text-xs font-bold px-2 py-0.5 rounded border ${progress.badgeClass}`}>
+                  {progress.label}
+                </span>
+              );
+            })()}
+          </div>
+
+          <div class="flex items-center justify-between pt-1.5 border-t border-white/5 text-xs">
+            <span class="text-stone-400 text-[11px] font-medium">進行押し調整:</span>
+            <div class="flex items-center gap-1">
+              {[0, 5, 10, 15, 20].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => onChangeDelay(m)}
+                  class={`px-2 py-0.5 rounded text-[11px] font-bold transition-colors ${
+                    delayMinutes === m
+                      ? 'bg-amber-500 text-stone-950 font-black shadow-sm'
+                      : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                  }`}
+                >
+                  {m === 0 ? '定刻' : `+${m}分`}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 時間・出番情報カード */}
       <div class="grid grid-cols-2 gap-2.5">
