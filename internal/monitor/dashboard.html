@@ -95,6 +95,49 @@
       </article>
     </div>
 
+    <!-- X Timetable Ingest & AI Pipeline Card -->
+    <article style="margin-bottom: 2rem; border: 1px solid rgba(244, 63, 94, 0.25);">
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.05rem; color: #f43f5e; display: flex; align-items: center; gap: 6px;">
+            X Timetable Intake
+          </strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            Paste an X post link from mobile via Tailscale. The k8s pod fetches text & images and runs deterministic resolution.
+          </small>
+        </div>
+        <span class="badge" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;">k8s Zero-Cost Fetch</span>
+      </header>
+
+      <form id="intake-form" onsubmit="handleIntake(event)" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+        <fieldset role="group">
+          <input type="url" id="intake-url" placeholder="https://x.com/Ribbon_Clock/status/..." required autocomplete="off" style="font-size: 0.85rem;" />
+          <button type="submit" id="intake-btn" style="white-space: nowrap; font-size: 0.85rem;">Fetch Post</button>
+        </fieldset>
+      </form>
+
+      <div id="intake-loading" style="display: none; padding: 1rem; text-align: center; color: var(--pico-muted-color); font-size: 0.85rem;">
+        <span aria-busy="true">Fetching post & analyzing timetable content on k8s...</span>
+      </div>
+
+      <div id="intake-error" style="display: none; padding: 0.75rem; border-radius: 6px; background-color: rgba(244, 63, 94, 0.15); color: #f43f5e; font-size: 0.85rem; margin-bottom: 1rem;">
+      </div>
+
+      <!-- Result Container -->
+      <div id="intake-result" style="display: none; margin-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1rem;">
+      </div>
+
+      <!-- Recent Ingested Items -->
+      <details id="recent-intakes-container" style="margin-top: 1rem;">
+        <summary style="font-size: 0.82rem; color: var(--pico-muted-color); cursor: pointer;">
+          Recent Ingested Posts (<span id="recent-intake-count">0</span>)
+        </summary>
+        <div id="recent-intakes-list" style="margin-top: 0.5rem;">
+          <p style="font-size: 0.8rem; color: var(--pico-muted-color);">No intakes in this session yet.</p>
+        </div>
+      </details>
+    </article>
+
     <!-- Ready-made Charts Grid (Powered by Chart.js) -->
     <div class="grid" style="margin-bottom: 1.5rem;">
       <article>
@@ -282,10 +325,121 @@
           tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--pico-muted-color);">Waiting for requests...</td></tr>';
         }
 
+        // Update Recent Intakes
+        if (data.recent_intakes) {
+          document.getElementById('recent-intake-count').innerText = data.recent_intakes.length;
+          const intakeList = document.getElementById('recent-intakes-list');
+          if (data.recent_intakes.length > 0) {
+            intakeList.innerHTML = data.recent_intakes.map(item => `
+              <div style="padding: 0.6rem; border-radius: 6px; background: rgba(255,255,255,0.03); margin-bottom: 0.5rem; border-left: 3px solid ${item.needs_ai ? '#f59e0b' : '#10b981'};">
+                <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
+                  <strong>${item.author || 'X Post'}</strong>
+                  <span class="badge ${item.needs_ai ? 'badge-404' : 'badge-200'}">
+                    ${item.needs_ai ? 'AI Vision Needed' : 'Deterministic'}
+                  </span>
+                </div>
+                <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 4px; white-space: pre-line; max-height: 4.5em; overflow: hidden;">
+                  ${item.text.slice(0, 160)}${item.text.length > 160 ? '...' : ''}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--pico-muted-color); margin-top: 4px; font-family: monospace;">
+                  Venue: ${item.candidate.venue_raw || 'Unknown'} | Date: ${item.candidate.date || 'TBD'} | Live: ${item.candidate.live_start_raw || '--:--'}-${item.candidate.live_end_raw || '--:--'}
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+
         document.getElementById('refresh-indicator').innerText = 'Live';
       } catch (err) {
         document.getElementById('refresh-indicator').innerText = 'Reconnecting...';
       }
+    }
+
+    async function handleIntake(e) {
+      e.preventDefault();
+      const urlInput = document.getElementById('intake-url');
+      const btn = document.getElementById('intake-btn');
+      const loading = document.getElementById('intake-loading');
+      const errorEl = document.getElementById('intake-error');
+      const resultEl = document.getElementById('intake-result');
+
+      const url = urlInput.value.trim();
+      if (!url) return;
+
+      btn.disabled = true;
+      loading.style.display = 'block';
+      errorEl.style.display = 'none';
+      resultEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/intake', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to fetch and resolve URL');
+        }
+
+        renderIntakeResult(data, resultEl);
+        resultEl.style.display = 'block';
+        refreshTelemetry();
+      } catch (err) {
+        errorEl.innerText = err.message;
+        errorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    function renderIntakeResult(item, container) {
+      const c = item.candidate || {};
+      const imagesHtml = (item.images && item.images.length > 0) ? `
+        <div style="margin-top: 0.75rem;">
+          <small style="color: var(--pico-muted-color);">Attached Media (${item.images.length} images):</small>
+          <div style="display: flex; gap: 8px; margin-top: 4px; overflow-x: auto; padding-bottom: 6px;">
+            ${item.images.map(img => `
+              <a href="${img}" target="_blank" rel="noopener noreferrer">
+                <img src="${img}" style="height: 110px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover;" />
+              </a>
+            `).join('')}
+          </div>
+        </div>
+      ` : '';
+
+      container.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <div>
+            <strong>${item.author || 'Author'}</strong>
+            <span style="font-size: 0.75rem; color: var(--pico-muted-color); font-family: monospace;"> (ID: ${item.source_id})</span>
+          </div>
+          <span class="badge ${item.needs_ai ? 'badge-404' : 'badge-200'}">
+            ${item.needs_ai ? 'Needs Vision AI (Timetable in Image)' : 'Deterministic Match Complete'}
+          </span>
+        </div>
+
+        <div style="margin-top: 0.6rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 6px; white-space: pre-line; border-left: 2px solid #38bdf8;">
+          ${item.text}
+        </div>
+
+        ${imagesHtml}
+
+        <div style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+          <strong style="font-size: 0.85rem; color: #f43f5e; display: block; margin-bottom: 6px;">Extracted Candidate Parameters:</strong>
+          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 0.78rem;">
+            <div><span style="color:var(--pico-muted-color);">Date:</span> <strong>${c.date || 'TBD'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">Venue:</span> <strong>${c.venue_raw || 'Unknown'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">Live Time:</span> <strong>${c.live_start_raw || '--:--'} - ${c.live_end_raw || '--:--'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">Benefit Time:</span> <strong>${c.benefit_start_raw || '--:--'} - ${c.benefit_end_raw || '--:--'}</strong></div>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.7rem; color: var(--pico-muted-color); font-family: monospace; word-break: break-all;">
+            Fingerprint: ${item.raw_fingerprint}
+          </div>
+        </div>
+      `;
     }
 
     function formatUptime(sec) {
