@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 )
 
@@ -137,5 +138,36 @@ func TestServer_Intake_FetchError(t *testing.T) {
 
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("expected status 422, got %d", rec.Code)
+	}
+}
+
+func TestServer_AIParse_Mock(t *testing.T) {
+	collector := NewCollector("test-v1")
+	handler := NewHandler(collector)
+
+	body, _ := json.Marshal(map[string]any{
+		"source_id": "12345",
+		"text":      "タイテ画像です",
+		"images":    []string{"https://pbs.twimg.com/media/test.jpg"},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/intake/ai-parse", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var res parser.ParseResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+
+	if res.Candidate.LiveStartRaw != "18:30" {
+		t.Errorf("expected 18:30, got %s", res.Candidate.LiveStartRaw)
+	}
+	if res.Status != candidate.StatusCompleted {
+		t.Errorf("expected completed, got %s", res.Status)
 	}
 }

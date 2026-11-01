@@ -1,15 +1,19 @@
 package monitor
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/source/x"
@@ -137,6 +141,91 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(result)
+	})
+
+	// 6. AI Parser Proxy (forwards to Cloud Run)
+	type aiParseRequest struct {
+		SourceID string   `json:"source_id"`
+		Text     string   `json:"text"`
+		Images   []string `json:"images"`
+	}
+
+	mux.HandleFunc("/api/intake/ai-parse", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req aiParseRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json body", http.StatusBadRequest)
+			return
+		}
+
+		parserURL := os.Getenv("AI_PARSER_URL")
+		if parserURL == "" {
+			// Dry-run / mock mode when Cloud Run URL is not configured
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(parser.ParseResponse{
+				RequestID: fmt.Sprintf("mock-%d", time.Now().UnixNano()),
+				Status:    candidate.StatusCompleted,
+				ModelID:   "mock-parser",
+				Candidate: candidate.EventCandidate{
+					LiveStartRaw:    "18:30",
+					LiveEndRaw:      "19:00",
+					BenefitStartRaw: "19:15",
+					BenefitEndRaw:   "20:15",
+				},
+				Evidence: []candidate.Evidence{
+					{
+						Field:      "live_start_raw",
+						Source:     "image",
+						Quote:      "18:30-19:00 リボンクロック",
+						Confidence: 0.95,
+					},
+				},
+			})
+			return
+		}
+
+		// Forward to Cloud Run AI Parser
+		var media []parser.MediaItem
+		for _, img := range req.Images {
+			media = append(media, parser.MediaItem{
+				InputURL: img,
+			})
+		}
+
+		parseReq := parser.ParseRequest{
+			RequestID: fmt.Sprintf("k8s-%d", time.Now().UnixNano()),
+			Source:    "x",
+			SourceID:  req.SourceID,
+			Text:      req.Text,
+			Media:     media,
+		}
+
+		reqBody, _ := json.Marshal(parseReq)
+		httpReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, strings.TrimRight(parserURL, "/")+"/parse", bytes.NewReader(reqBody))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		if token := os.Getenv("AI_PARSER_TOKEN"); token != "" {
+			httpReq.Header.Set("Authorization", "Bearer "+token)
+		}
+
+		client := &http.Client{Timeout: 35 * time.Second}
+		resp, err := client.Do(httpReq)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("calling cloud run parser: %v", err), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
 	})
 
 	return mux
