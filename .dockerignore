@@ -2,7 +2,6 @@
 .github
 .worktrees
 AGENTS.md
-cmd
 data/raw
 data/candidate
 data/input
