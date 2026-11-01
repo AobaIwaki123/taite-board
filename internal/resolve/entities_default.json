@@ -1,0 +1,116 @@
+{
+  "entities": {
+    "groups": [
+      {
+        "canonical_id": "group:ribbon-clock",
+        "name": "リボンクロック",
+        "short_name": "リボクロ",
+        "aliases": ["リボンクロック", "リボクロ", "Ribbon Clock", "Ribbon Clock🎀", "🎀リボンクロック"],
+        "source_keys": {
+          "official_x": "https://x.com/Ribbon_Clock",
+          "official_tiktok": "https://www.tiktok.com/@ribbon_clock"
+        }
+      }
+    ],
+    "members": [
+      {
+        "canonical_id": "member:ribbon-clock:ayu-kagura",
+        "name": "神楽あゆ",
+        "member_color": "red",
+        "color_code": "#ef4444",
+        "aliases": ["神楽あゆ", "あゆ", "かぐらあゆ"]
+      }
+    ],
+    "venues": [
+      {
+        "canonical_id": "venue:shibuya-ring",
+        "name": "渋谷RING",
+        "area": "渋谷",
+        "map_query": "渋谷RING",
+        "aliases": ["渋谷RING", "SHIBUYA RING", "渋谷リング", "RING"]
+      },
+      {
+        "canonical_id": "venue:shinjuku-zirco-tokyo",
+        "name": "新宿ZircoTokyo",
+        "area": "新宿",
+        "map_query": "Zirco Tokyo",
+        "aliases": ["新宿ZircoTokyo", "Zirco Tokyo", "新宿Zirco", "ZircoTokyo"]
+      },
+      {
+        "canonical_id": "venue:batur-tokyo",
+        "name": "BATUR TOKYO（バトゥール東京）",
+        "area": "東新宿",
+        "map_query": "バトゥール東京",
+        "aliases": ["BATUR TOKYO", "バトゥール東京", "BATUR TOKYO（バトゥール東京）"]
+      },
+      {
+        "canonical_id": "venue:bellesalle-toranomon",
+        "name": "ベルサール虎ノ門",
+        "area": "虎ノ門",
+        "map_query": "ベルサール虎ノ門",
+        "aliases": ["ベルサール虎ノ門", "Bellesalle Toranomon"]
+      },
+      {
+        "canonical_id": "venue:harajuku-ruido",
+        "name": "原宿RUIDO",
+        "area": "原宿",
+        "map_query": "原宿RUIDO",
+        "aliases": ["原宿RUIDO", "Harajuku RUIDO", "RUIDO原宿"]
+      },
+      {
+        "canonical_id": "venue:spotify-o-nest",
+        "name": "渋谷 Spotify O-nest",
+        "area": "渋谷",
+        "map_query": "Spotify O-nest",
+        "aliases": ["渋谷 Spotify O-nest", "Spotify O-nest", "O-nest", "渋谷O-nest"]
+      },
+      {
+        "canonical_id": "venue:yokohama-landmark-hall",
+        "name": "横浜ランドマークホール",
+        "area": "横浜",
+        "map_query": "横浜ランドマークホール",
+        "aliases": ["横浜ランドマークホール", "ランドマークホール"]
+      },
+      {
+        "canonical_id": "venue:nippori-neko-theater",
+        "name": "日暮里ネコシアター",
+        "area": "日暮里",
+        "map_query": "日暮里ネコシアター",
+        "aliases": ["日暮里ネコシアター", "ネコシアター"]
+      },
+      {
+        "canonical_id": "venue:zeal-theater-shimbashi",
+        "name": "ZEAL THEATER 新橋",
+        "area": "新橋",
+        "map_query": "ZEAL THEATER 新橋",
+        "aliases": ["ZEAL THEATER 新橋", "ジールシアター新橋", "ZEAL THEATER"]
+      }
+    ],
+    "ticket_platforms": [
+      {
+        "canonical_id": "platform:ticketdive",
+        "display_name": "TicketDive",
+        "domain": "ticketdive.com",
+        "aliases": ["TicketDive", "ticketdive", "チケットダイブ"]
+      },
+      {
+        "canonical_id": "platform:livepocket",
+        "display_name": "LivePocket",
+        "domain": "livepocket.jp",
+        "aliases": ["LivePocket", "livepocket", "ライポケ"]
+      },
+      {
+        "canonical_id": "platform:tiget",
+        "display_name": "TIGET",
+        "domain": "tiget.net",
+        "aliases": ["TIGET", "tiget", "チゲット"]
+      },
+      {
+        "canonical_id": "platform:eplus",
+        "display_name": "イープラス",
+        "domain": "eplus.jp",
+        "aliases": ["イープラス", "e+", "eplus"]
+      }
+    ]
+  }
+}

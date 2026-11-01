@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/AobaIwaki123/taite-board/internal/candidate"
 )
 
 // LogEntry represents an anonymous Nginx access log entry.
@@ -44,7 +46,8 @@ type StatsSnapshot struct {
 	ByRoute        map[string]int64 `json:"by_route"`
 	ByStatus       map[string]int64 `json:"by_status"`
 	Hourly         []HourlyCount   `json:"hourly"`
-	RecentRequests []RequestRecord `json:"recent_requests"`
+	RecentRequests []RequestRecord        `json:"recent_requests"`
+	RecentIntakes  []candidate.IntakeResult `json:"recent_intakes"`
 }
 
 // Collector collects, aggregates, and stores access statistics in memory.
@@ -61,6 +64,8 @@ type Collector struct {
 	hourlyRoute   map[string]int64 // "route:2006-01-02 15:00" -> route count
 	recent        []RequestRecord  // ring buffer (max 50)
 	maxRecent     int
+	recentIntakes []candidate.IntakeResult // ring buffer (max 20)
+	maxIntakes    int
 }
 
 // NewCollector creates a new Collector instance.
@@ -75,7 +80,28 @@ func NewCollector(version string) *Collector {
 		hourlyRoute:   make(map[string]int64),
 		recent:        make([]RequestRecord, 0, 50),
 		maxRecent:     50,
+		recentIntakes: make([]candidate.IntakeResult, 0, 20),
+		maxIntakes:    20,
 	}
+}
+
+// AddIntake records an intake result to the recent intakes list.
+func (c *Collector) AddIntake(res candidate.IntakeResult) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.recentIntakes = append([]candidate.IntakeResult{res}, c.recentIntakes...)
+	if len(c.recentIntakes) > c.maxIntakes {
+		c.recentIntakes = c.recentIntakes[:c.maxIntakes]
+	}
+}
+
+// RecentIntakes returns a copy of recent intake records.
+func (c *Collector) RecentIntakes() []candidate.IntakeResult {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	out := make([]candidate.IntakeResult, len(c.recentIntakes))
+	copy(out, c.recentIntakes)
+	return out
 }
 
 // ProcessLine parses a single JSON line and updates metrics.
@@ -211,6 +237,10 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		recentReversed[len(c.recent)-1-i] = r
 	}
 
+	// Clone recent intakes
+	intakesCopy := make([]candidate.IntakeResult, len(c.recentIntakes))
+	copy(intakesCopy, c.recentIntakes)
+
 	return StatsSnapshot{
 		Version:        c.version,
 		UptimeSeconds:  int64(time.Since(c.startTime).Seconds()),
@@ -224,6 +254,7 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		ByStatus:       statuses,
 		Hourly:         hourlyList,
 		RecentRequests: recentReversed,
+		RecentIntakes:  intakesCopy,
 	}
 }
 
