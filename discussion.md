@@ -24,7 +24,10 @@
 | **Step 3** | **フロントエンド刷新 (Preact + TSX)** | 宣言的コンポーネント化、Vite + Tailwind CSS、ツリーシェイキング最適化 (ADR-0010, ADR-0013) | 完了 |
 | **Step 4** | **Kubernetes / GitOps デプロイ** | マルチステージ Dockerfile、Nginx 設定、ArgoCD 自動同期、Cloudflare Tunnel (ADR-0009) | 完了 |
 | **Step 5** | **地下会場オフラインキャッシュ & CLIデータガバナンス** | Service Worker による画像 Cache-First、Go CLI による自動整列・安全なセッション追加・重複検査 (ADR-0014) | 完了 |
-| **Step 6** | **クローラー・OCR自動抽出強化** | 画像内タイテ解析の自動化と candidate 抽出パイプラインの拡充 | 進行中 |
+| **Step 6** | **クローラー・OCR自動抽出強化** | Tailscale モバイル Intake、k8s ゼロコスト取得、決定論的名寄せ（internal/resolve）、Cloud Run AI パーサー（Gemini 2.5 Flash Vision）の構築 (note/11) | 完了 |
+| **Step 7** | **候補確定パイプラインと定期クローラー** | candidate の公開 schedule 昇格自動化とアカウント定期巡回 CronJob | 進行中 |
 
 > **備考**:
 > - ADR-0011 に基づく iOS ネイティブ版（SwiftUI）は、Web との二重保守オーバーヘッド防止のため 2026-11-01 に正式凍結し、コード資産（`apps/ios/`）および作業 Worktree を完全撤去しました。クライアント開発は Preact Web PWA へ一本化されています。
+> - 参戦チェック（localStorage 永続化）およびスケジュール押し吸収（+5〜+20分オフセット）を実装済みです。
+> - 外出先スマホからの X ポスト登録は Tailscale ダッシュボード（`ribonclock-dashboard`）上の Intake フォームからワンタップで実行可能です。
