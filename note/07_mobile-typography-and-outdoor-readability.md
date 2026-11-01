@@ -42,17 +42,16 @@ Ribbon Clock（taite-board）は、ライブアイドルファンの日常的な
    - チケット料金エリアのテキストを `text-[11px]` から `text-xs font-medium` へ引き上げ。
    - 特典会ブース表記を `text-xs`（実測 13.1px）へ引き上げ。
 
-## 4. 検証結果と機械的検証基盤
+## 4. 検証結果と構造的ガバナンス
 
 1. **実画面レンダリング検証**:
    - Google Chrome Headless を用いたモバイル実画面キャプチャ（幅 414px）において、文字の重なりやレイアウト破綻が生じないことを確認した。
    - 1行あたりの文字数（Line Length）が適切に維持され、直射日光を模した高コントラスト表示下でも主要な時刻・会場名が一瞥で認識可能となった。
 
-2. **機械的検証基盤（ADR-0017 による二重防壁）**:
-   - 人間の目視レビューによる見落としを防ぐため、以下の二重防壁を構築し、機械的に 12px 未満（`text-xs` 未満）のフォント指定を完全遮断している。
-     - **Tier 1 (ソースコード走査)**: `apps/web/src/utils/typography.test.ts` により、すべてのコンポーネントコード（`src/`）および HTML（`public/`）を静的解析し、`text-[10px]` や `text-[11px]` 等の違反クラス名を検出した瞬間に `npm test` を失敗させる。
-     - **Tier 2 (生成 CSS バンドル走査)**: `scripts/verify-typography.sh` により、Vite でビルドされた本番 CSS バンドル（`apps/web/dist/assets/*.css`）内のすべての `font-size` 宣言を解析し、実測 12px / 0.75rem 未満の CSS ルールが存在しないことを `./scripts/verify.sh`（ステップ 6/6）で自動検証する。
-   - 詳細仕様および設計決定記録は [ADR-0017](../adr/0017-mechanical-typography-floor-verification.md) を参照。
+2. **グローバルトークンによる構造的ガバナンス（ADR-0017）**:
+   - 過大な静的検査パーサーや力技のポリシングを排除し、`apps/web/src/styles/main.css` 内に標準 CSS 変数（`--text-floor: 0.75rem` 等）とユーティリティクラス（`.text-floor` 等）を一元定義した。
+   - 開発規約（`AGENTS.md`）において文字サイズの直接指定（インラインや任意px）を明示的に禁止し、単一の情報源に基づく身軽で堅牢なタイポグラフィ管理を実現している。
+   - 詳細仕様および設計決定記録は [ADR-0017](../adr/0017-global-typography-tokens-and-structural-governance.md) を参照。
 
 ## 5. 参考文献
 
