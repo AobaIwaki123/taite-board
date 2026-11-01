@@ -371,12 +371,14 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - [ADR-0012: 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ](../adr/0012-multi-slot-promotions-and-deadline-countdown.md)
 - [ADR-0013: ツールチェーンの最新化とTailwind CSS v4移行](../adr/0013-toolchain-modernization-vite8-ts7-tailwind4.md)
 - [ADR-0014: 画像オフラインキャッシュとGo CLIデータガバナンス](../adr/0014-offline-image-cache-and-cli-data-governance.md)
+- [ADR-0015: 軽量セマンティックバージョニングとリリースタグ運用](../adr/0015-lightweight-semantic-versioning-and-release-management.md)
 
 ## 14. 解決済みおよび未決定事項の整理
 
 ### 解決済み事項
 - **クライアント基盤**: iOSネイティブ版は二重保守防止のため凍結し、モバイルWeb（Preact PWA + Service Worker）に一本化（ADR-0011, ADR-0014）。
 - **スケジュールデータのガバナンス**: 人手編集による順序狂いやID重複を防ぐため、Go CLI（`taite sort`, `taite add-session`, `taite update-session`）による自動化・機械的検証（順序・インターバル検査）を確立（ADR-0014）。
+- **リリース管理とバージョニング**: リポジトリ直下の `VERSION` ファイルとワンコマンドスクリプト（`./scripts/release.sh`）により、軽量な SemVer バージョニングと Git リリースタグ発行、アプリ画面最下部へのバージョン表示を確立（ADR-0015）。
 - **公開形式と配信**: `schedule.json` に固定し、Kubernetes + ArgoCD + Cloudflare Tunnel 経由で静的配信（ADR-0005, ADR-0009）。
 
 ### 未決定事項

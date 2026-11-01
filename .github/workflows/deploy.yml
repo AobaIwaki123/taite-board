@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
     paths-ignore:
       - k8s/manifests/**
   workflow_dispatch:
@@ -35,8 +37,15 @@ jobs:
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
-          docker build --tag "${IMAGE_NAME}:${short_sha}" .
+          tags="--tag ${IMAGE_NAME}:${short_sha}"
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            tags="${tags} --tag ${IMAGE_NAME}:${GITHUB_REF_NAME}"
+          fi
+          docker build ${tags} .
           docker push "${IMAGE_NAME}:${short_sha}"
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
+            docker push "${IMAGE_NAME}:${GITHUB_REF_NAME}"
+          fi
 
       - name: Build and push access report image
         run: |

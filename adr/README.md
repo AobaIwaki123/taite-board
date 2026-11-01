@@ -86,3 +86,4 @@ YYYY-MM-DD
 | [ADR-0012](0012-multi-slot-promotions-and-deadline-countdown.md) | 複数プロモーション枠分離と締切カウントダウンのアーキテクチャ | Accepted | 2026-10-30 |
 | [ADR-0013](0013-toolchain-modernization-vite8-ts7-tailwind4.md) | ツールチェーンの最新化とTailwind CSS v4移行 | Accepted | 2026-10-30 |
 | [ADR-0014](0014-offline-image-cache-and-cli-data-governance.md) | 画像オフラインキャッシュとGo CLIデータガバナンス | Accepted | 2026-11-01 |
+| [ADR-0015](0015-lightweight-semantic-versioning-and-release-management.md) | 軽量セマンティックバージョニングとリリースタグ運用 | Accepted | 2026-11-01 |

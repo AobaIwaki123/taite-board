@@ -174,6 +174,17 @@ make web-build
 
 ---
 
+### 8. `taite version`
+現在のアプリケーションのセマンティックバージョンを出力します（ADR-0015準拠）。
+
+```bash
+taite version
+# または
+taite -v
+```
+
+---
+
 ## 内部パッケージ構成 (`internal/`)
 
 外部I/Oや抽出・検証ロジックは、CLIの `main.go` ではなく `internal/` 配下の独立したパッケージに隔離されています（ADR-0006準拠）。
@@ -189,4 +200,6 @@ make web-build
   - JSON Schema準拠のドメイン検証、時系列順序検査、同日公演インターバル検査ロジック。
 - **`internal/schedule/`**:
   - スケジュール JSON の SHA-256 同期保証（`sync.go`）、時系列決定論的ソート（`sort.go`）、安全なセッション追加（`add.go`）、セッション情報の決定論的更新（`update.go`）。
+- **`internal/version/`**:
+  - ルートの `VERSION` ファイルを動的に解決するバージョンプロバイダー。
   - スケジュール JSON の SHA-256 同期保証およびセッションの決定論的更新ロジック。

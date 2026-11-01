@@ -14,6 +14,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/fetch"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
+	"github.com/AobaIwaki123/taite-board/internal/version"
 )
 
 func main() {
@@ -47,6 +48,8 @@ func main() {
 		runUpdateSession(os.Args[2:])
 	case "build":
 		runBuild(os.Args[2:])
+	case "version", "-v", "--version":
+		runVersion(os.Args[2:])
 	case "help", "-h", "--help":
 		printUsage()
 	default:
@@ -69,7 +72,12 @@ The commands are:
   sort            Sort all sessions chronologically (date, live.start_time, id) and sync
   add-session     Add a new session with auto ID derivation (YYYYMMDD-N) and auto-sort
   update-session  Update session photo rules, notes, official tweet URL, and auto-sync
-  build           Build web client bundle via Vite`)
+  build           Build web client bundle via Vite
+  version         Print current application version`)
+}
+
+func runVersion(_ []string) {
+	fmt.Printf("taite v%s\n", version.Get())
 }
 
 func runFetch(args []string) {
