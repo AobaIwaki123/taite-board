@@ -1,8 +1,13 @@
 import { useState } from 'preact/hooks';
 import { Session } from '../types/schedule';
 import { isSessionPast } from '../utils/date';
+import {
+  calculateMonthExpenseSummary,
+  calculateExpenseTotal,
+  getSessionExpense,
+} from '../utils/expense';
 import { Icon } from './Icon';
-import { ChevronLeft, ChevronRight } from '../utils/icons';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Wallet } from '../utils/icons';
 
 interface CalendarViewProps {
   sessions: Session[];
@@ -15,6 +20,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
 
   const handlePrevMonth = () => {
     if (month === 1) {
@@ -39,6 +45,9 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
   // 月の日数と1日の曜日インデックス (0 = Sun)
   const firstDayIndex = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
+
+  // 月間・週間出費集計
+  const monthSummary = calculateMonthExpenseSummary(year, month, sessions);
 
   // 選択日の公演
   const selectedDaySessions = selectedDate
@@ -70,6 +79,85 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
         </button>
       </div>
 
+      {/* 月間・週間出費サマリーカード */}
+      {monthSummary.total > 0 && (
+        <div class="soft-card rounded-2xl p-3 space-y-2 border border-sky-500/20 bg-stone-900/60 shadow-md">
+          <div
+            onClick={() => setShowWeeklyDetail(!showWeeklyDetail)}
+            class="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div class="flex items-center gap-1.5 text-xs text-stone-300 font-bold">
+              <Icon icon={Wallet} class="w-3.5 h-3.5 text-sky-400" />
+              <span>{month}月の推し活出費</span>
+              <span class="text-[10px] text-stone-400 font-normal">
+                ({monthSummary.recordedSessionCount}公演記録)
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm font-display font-black text-sky-300">
+                ¥{monthSummary.total.toLocaleString()}
+              </span>
+              <Icon
+                icon={showWeeklyDetail ? ChevronUp : ChevronDown}
+                class="w-3.5 h-3.5 text-stone-500"
+              />
+            </div>
+          </div>
+
+          {/* 内訳チップス */}
+          <div class="grid grid-cols-3 gap-1 pt-1 border-t border-white/5 text-[11px]">
+            <div class="p-1.5 rounded-lg bg-stone-950/60 border border-white/5">
+              <div class="text-[10px] text-stone-400">チケット</div>
+              <div class="font-mono font-bold text-stone-200">
+                ¥{monthSummary.ticketTotal.toLocaleString()}
+              </div>
+            </div>
+            <div class="p-1.5 rounded-lg bg-stone-950/60 border border-white/5">
+              <div class="text-[10px] text-stone-400">ドリンク (D代)</div>
+              <div class="font-mono font-bold text-stone-200">
+                ¥{monthSummary.drinkTotal.toLocaleString()}
+              </div>
+            </div>
+            <div class="p-1.5 rounded-lg bg-stone-950/60 border border-white/5">
+              <div class="text-[10px] text-stone-400">
+                チェキ ({monthSummary.chekiSignedCount + monthSummary.chekiRegularCount}枚)
+              </div>
+              <div class="font-mono font-bold text-stone-200">
+                ¥{monthSummary.chekiTotal.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* 週単位の内訳（トグル展開） */}
+          {showWeeklyDetail && (
+            <div class="pt-2 border-t border-white/5 space-y-1.5 text-xs animate-fade-in">
+              <div class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                週ごとの小計
+              </div>
+              <div class="space-y-1">
+                {monthSummary.weeks.map((w, idx) => (
+                  <div
+                    key={idx}
+                    class="flex items-center justify-between px-2 py-1 rounded bg-stone-950/40 text-[11px]"
+                  >
+                    <span class="text-stone-400">
+                      第{idx + 1}週 ({month}/{w.startDay}〜{w.endDay}日)
+                    </span>
+                    <span
+                      class={`font-mono font-bold ${
+                        w.total > 0 ? 'text-sky-300' : 'text-stone-500'
+                      }`}
+                    >
+                      ¥{w.total.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 曜日ヘッダー */}
       <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-stone-400 py-1.5 border-b border-white/5">
         <span class="text-rose-400">日</span>
@@ -100,6 +188,10 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           const hasFutureAttended = daySessions.some(
             (s) => attendedSessionIds.includes(s.id) && !isSessionPast(s)
           );
+          const hasExpense = daySessions.some((s) => {
+            const exp = getSessionExpense(s.id);
+            return exp ? calculateExpenseTotal(exp) > 0 : false;
+          });
           const isSelected = selectedDate === dateStr;
 
           return (
@@ -110,7 +202,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                 if (hasLive) setSelectedDate(dateStr);
               }}
               aria-disabled={!hasLive}
-              class={`py-2 rounded-xl flex flex-col items-center justify-center transition-all select-none ${
+              class={`py-1.5 rounded-xl flex flex-col items-center justify-center transition-all select-none min-h-[44px] ${
                 isSelected
                   ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105 cursor-pointer'
                   : hasLive
@@ -124,17 +216,28 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
             >
               <span class="text-xs font-display">{day}</span>
               {hasLive ? (
-                <span
-                  class={`w-1.5 h-1.5 rounded-full mt-1 ${
-                    isSelected
-                      ? 'bg-stone-950'
-                      : isAttended
-                      ? hasFutureAttended
-                        ? 'bg-sky-400'
-                        : 'bg-emerald-400'
-                      : 'bg-rose-400 animate-pulse'
-                  }`}
-                />
+                <div class="flex items-center justify-center gap-0.5 mt-0.5">
+                  <span
+                    class={`w-1.5 h-1.5 rounded-full ${
+                      isSelected
+                        ? 'bg-stone-950'
+                        : isAttended
+                        ? hasFutureAttended
+                          ? 'bg-sky-400'
+                          : 'bg-emerald-400'
+                        : 'bg-rose-400 animate-pulse'
+                    }`}
+                  />
+                  {hasExpense && (
+                    <span
+                      class={`text-[9px] font-bold font-mono leading-none ${
+                        isSelected ? 'text-stone-950 font-black' : 'text-sky-300'
+                      }`}
+                    >
+                      ¥
+                    </span>
+                  )}
+                </div>
               ) : (
                 <span class="h-1.5 mt-1" />
               )}
@@ -150,6 +253,8 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
             selectedDaySessions.map((s) => {
               const attended = attendedSessionIds.includes(s.id);
               const isPast = isSessionPast(s);
+              const exp = getSessionExpense(s.id);
+              const expTotal = exp ? calculateExpenseTotal(exp) : 0;
               return (
                 <div
                   key={s.id}
@@ -167,6 +272,11 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                       {s.date} {s.session_name ? `[${s.session_name}]` : ''}
                     </span>
                     <div class="flex items-center gap-1.5">
+                      {expTotal > 0 && (
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/80 text-sky-300 border border-sky-500/30">
+                          ¥{expTotal.toLocaleString()}
+                        </span>
+                      )}
                       {attended && (
                         <span
                           class={`px-1.5 py-0.5 rounded text-xs font-bold border ${

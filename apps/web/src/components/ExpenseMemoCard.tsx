@@ -11,6 +11,8 @@ import {
   getSessionExpense,
   saveSessionExpense,
   deleteSessionExpense,
+  parseTicketFee,
+  isIncrementalFee,
 } from '../utils/expense';
 import { Icon } from './Icon';
 import { Wallet, ChevronDown, ChevronUp, Minus, Plus, Trash2 } from '../utils/icons';
@@ -18,13 +20,6 @@ import { Wallet, ChevronDown, ChevronUp, Minus, Plus, Trash2 } from '../utils/ic
 interface ExpenseMemoCardProps {
   session: Session;
   isAttended: boolean;
-}
-
-function parseFee(fee?: string | number | null): number {
-  if (fee === undefined || fee === null) return 0;
-  if (typeof fee === 'number') return fee;
-  const num = parseInt(fee.replace(/[^0-9]/g, ''), 10);
-  return isNaN(num) ? 0 : num;
 }
 
 export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
@@ -63,10 +58,13 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
     }
   };
 
-  const ticketPrices = (session.ticket?.prices || []).map((p) => ({
-    label: p.tier || 'チケット',
-    fee: parseFee(p.price),
-  })).filter((p) => p.fee > 0);
+  const ticketPrices = (session.ticket?.prices || [])
+    .filter((p) => !isIncrementalFee(p.price))
+    .map((p) => ({
+      label: p.tier || 'チケット',
+      fee: parseTicketFee(p.price),
+    }))
+    .filter((p) => p.fee > 0);
 
   const signedTotal = expense.chekiSignedCount * CHEKI_SIGNED_PRICE;
   const regularTotal = expense.chekiRegularCount * CHEKI_REGULAR_PRICE;
