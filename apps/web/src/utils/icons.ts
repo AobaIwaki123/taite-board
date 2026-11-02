@@ -14,6 +14,7 @@ export {
   ChevronDown,
   ChevronUp,
   Clock,
+  Crown,
   ExternalLink,
   Gift,
   Image,

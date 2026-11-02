@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
-import { resolveCurrentGroup, GroupConfig } from './config/group';
+import { resolveCurrentGroup, GroupConfig, isPortalMode } from './config/group';
 import { updatePageMetadata } from './utils/meta';
 import { resolveNextSession } from './utils/date';
 import { getAttendedSessionIds, toggleAttendedSessionId } from './utils/attendance';
@@ -12,8 +12,17 @@ import { CockpitView } from './components/CockpitView';
 import { ListView } from './components/ListView';
 import { CalendarView } from './components/CalendarView';
 import { LightboxModal } from './components/LightboxModal';
+import { PortalView } from './components/PortalView';
 
 export function App() {
+  if (isPortalMode()) {
+    return <PortalView />;
+  }
+
+  return <ScheduleApp />;
+}
+
+function ScheduleApp() {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [group, setGroup] = useState<GroupConfig>(resolveCurrentGroup());
   const [isFallback, setIsFallback] = useState(false);

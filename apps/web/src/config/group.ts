@@ -14,6 +14,7 @@ export interface GroupConfig {
   name: string;
   shortName: string;
   logoText?: string;
+  heroImage?: string;
   dataUrl: string;
   fallbackDataUrl: string;
   storagePrefix: string;
@@ -28,6 +29,7 @@ export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
     name: 'リボンクロック',
     shortName: 'RiNCENT#',
     logoText: '🎀',
+    heroImage: 'https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large',
     dataUrl: 'schedule.json',
     fallbackDataUrl: 'mock_schedule.json',
     storagePrefix: 'ribonclock_',
@@ -41,6 +43,7 @@ export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
     name: 'Dolly Kiss',
     shortName: 'ドリキス',
     logoText: '🎀',
+    heroImage: 'https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large',
     dataUrl: 'data/groups/dollykiss/schedule.json',
     fallbackDataUrl: 'schedule.json',
     storagePrefix: 'dollykiss_',
@@ -97,3 +100,36 @@ export function resolveCurrentGroup(): GroupConfig {
 
   return REGISTERED_GROUPS[DEFAULT_GROUP_ID];
 }
+
+/**
+ * Determines whether the app should render the multi-tenant portal view:
+ * 1. Hostname is taite.iorin.net
+ * 2. Query param ?view=portal is present
+ * 3. Hostname has no group subdomain (e.g. localhost) and ?group= is not provided
+ */
+export function isPortalMode(urlLocation?: { hostname: string; search: string }): boolean {
+  const loc = urlLocation || (typeof window !== 'undefined' ? window.location : null);
+  if (!loc) return false;
+
+  const hostname = (loc.hostname || '').toLowerCase();
+  if (hostname === 'taite.iorin.net') {
+    return true;
+  }
+
+  const searchParams = new URLSearchParams(loc.search || '');
+  if (searchParams.get('view') === 'portal') {
+    return true;
+  }
+
+  const hasGroupParam = Boolean(searchParams.get('group'));
+  if (!hasGroupParam) {
+    const parts = hostname.split('.');
+    const hasRegisteredSubdomain = parts.length >= 3 && Boolean(REGISTERED_GROUPS[parts[0].toLowerCase()]);
+    if (!hasRegisteredSubdomain) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
