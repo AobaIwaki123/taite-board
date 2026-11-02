@@ -5,9 +5,17 @@ interface HeaderProps {
   onLogoClick: () => void;
   isFallback: boolean;
   generatedAt?: string;
+  title?: string;
+  logoText?: string;
 }
 
-export function Header({ onLogoClick, isFallback, generatedAt }: HeaderProps) {
+export function Header({
+  onLogoClick,
+  isFallback,
+  generatedAt,
+  title = 'リボンクロック',
+  logoText = '🎀',
+}: HeaderProps) {
   const [isPopping, setIsPopping] = useState(false);
 
   const handleClick = () => {
@@ -32,10 +40,10 @@ export function Header({ onLogoClick, isFallback, generatedAt }: HeaderProps) {
             isPopping ? 'animate-ribbon-pop' : ''
           }`}
         >
-          🎀
+          {logoText}
         </span>
         <span class="text-base font-extrabold text-white tracking-wide group-hover:text-rose-300 transition-colors">
-          リボンクロック
+          {title}
         </span>
       </button>
 

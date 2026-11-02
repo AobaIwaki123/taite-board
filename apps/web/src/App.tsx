@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
+import { resolveCurrentGroup, GroupConfig } from './config/group';
 import { resolveNextSession } from './utils/date';
 import { getAttendedSessionIds, toggleAttendedSessionId } from './utils/attendance';
 import { getSessionDelayOffset, setSessionDelayOffset } from './utils/delay';
@@ -13,6 +14,7 @@ import { LightboxModal } from './components/LightboxModal';
 
 export function App() {
   const [data, setData] = useState<ScheduleData | null>(null);
+  const [group, setGroup] = useState<GroupConfig>(resolveCurrentGroup());
   const [isFallback, setIsFallback] = useState(false);
   const [activeTab, setActiveTab] = useState<TabName>('next');
   const [customSelectedSessionId, setCustomSelectedSessionId] = useState<string | null>(null);
@@ -41,9 +43,10 @@ export function App() {
   useEffect(() => {
     setAttendedSessionIds(getAttendedSessionIds());
     loadScheduleData()
-      .then(({ data: loadedData, isFallback: loadedFallback }) => {
+      .then(({ data: loadedData, isFallback: loadedFallback, group: loadedGroup }) => {
         setData(loadedData);
         setIsFallback(loadedFallback);
+        setGroup(loadedGroup);
       })
       .catch((err) => {
         console.warn('Initial load fallback', err);
@@ -146,6 +149,8 @@ export function App() {
           onLogoClick={handleResetToNextLive}
           isFallback={isFallback}
           generatedAt={data.generated_at}
+          title={group.name}
+          logoText={group.logoText}
         />
 
         {/* 3画面スライドカルーセル */}
