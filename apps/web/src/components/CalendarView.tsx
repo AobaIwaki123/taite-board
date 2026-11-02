@@ -155,6 +155,11 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
               </div>
             </div>
           )}
+
+          {/* ローカル保存の消失注意 */}
+          <div class="text-[10px] text-stone-300 leading-normal pt-1.5 border-t border-white/5">
+            ※ 参戦記録および収支データはお使いの端末（ブラウザ）にのみ保存されます。ブラウザ履歴の消去や機種変更で消失する可能性があります。
+          </div>
         </div>
       )}
 
@@ -199,7 +204,9 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
               key={dateStr}
               type="button"
               onClick={() => {
-                if (hasLive) setSelectedDate(dateStr);
+                if (hasLive) {
+                  setSelectedDate(isSelected ? null : dateStr);
+                }
               }}
               aria-disabled={!hasLive}
               class={`py-1.5 rounded-xl flex flex-col items-center justify-center transition-all select-none min-h-[44px] ${
@@ -267,11 +274,12 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                       : 'border-l-rose-500'
                   }`}
                 >
-                  <div class="flex items-center justify-between text-xs">
-                    <span class="font-display font-bold text-rose-300">
+                  {/* ヘッダー行: 日付・部数 と ステータスバッジ（参戦状況・金額） */}
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-display font-bold text-rose-300">
                       {s.date} {s.session_name ? `[${s.session_name}]` : ''}
                     </span>
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
                       {expTotal > 0 && (
                         <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/80 text-sky-300 border border-sky-500/30">
                           ¥{expTotal.toLocaleString()}
@@ -279,7 +287,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                       )}
                       {attended && (
                         <span
-                          class={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+                          class={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
                             isPast
                               ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
                               : 'bg-sky-950/80 text-sky-400 border-sky-500/30'
@@ -288,10 +296,17 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                           {isPast ? '参戦済' : '参戦予定'}
                         </span>
                       )}
-                      <span class="text-stone-300 text-xs">{s.venue.name}</span>
                     </div>
                   </div>
-                  <div class="text-sm font-bold text-white pt-0.5">{s.title}</div>
+
+                  {/* タイトル行 */}
+                  <div class="text-sm font-bold text-white pt-0.5 leading-snug">{s.title}</div>
+
+                  {/* 会場名行 */}
+                  <div class="text-xs text-stone-300 flex items-center gap-1">
+                    <span class="text-stone-500">会場:</span>
+                    <span class="truncate">{s.venue.name}</span>
+                  </div>
                   <div class="text-xs font-display text-stone-300 flex justify-between pt-1.5 border-t border-white/5">
                     <span>
                       出演: <strong class="text-white font-bold">{s.live.start_time}〜</strong>
