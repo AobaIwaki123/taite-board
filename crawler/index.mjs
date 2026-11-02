@@ -11,7 +11,12 @@ async function crawl() {
 
   const browser = await chromium.launch({
     headless: process.env.HEADLESS !== 'false',
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-blink-features=AutomationControlled'
+    ]
   });
 
   const context = await browser.newContext({
@@ -22,13 +27,49 @@ async function crawl() {
     timezoneId: 'Asia/Tokyo'
   });
 
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => undefined
+    });
+  });
+
+  if (process.env.X_AUTH_TOKEN) {
+    console.log('Injecting auth_token session cookie');
+    await context.addCookies([
+      {
+        name: 'auth_token',
+        value: process.env.X_AUTH_TOKEN,
+        domain: '.x.com',
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'None'
+      }
+    ]);
+    if (process.env.X_CT0) {
+      await context.addCookies([
+        {
+          name: 'ct0',
+          value: process.env.X_CT0,
+          domain: '.x.com',
+          path: '/',
+          secure: true,
+          sameSite: 'Lax'
+        }
+      ]);
+    }
+  }
+
   const page = await context.newPage();
   const capturedPosts = [];
 
   // GraphQL API Interception (ADR-0018)
   page.on('response', async (response) => {
     const url = response.url();
-    if (url.includes('/graphql/') && (url.includes('UserMedia') || url.includes('UserTweets'))) {
+    if (url.includes('/graphql/') || url.includes('/api/')) {
+      console.log(`[HTTP ${response.status()}] ${url.slice(0, 100)}`);
+    }
+    if (url.includes('/graphql/') && (url.includes('UserMedia') || url.includes('UserTweets') || url.includes('UserByScreenName') || url.includes('TweetDetail'))) {
       try {
         const json = await response.json();
         const instructions =
@@ -73,12 +114,15 @@ async function crawl() {
   const targetURL = `https://x.com/${TARGET_ACCOUNT}/media`;
   console.log(`Navigating to ${targetURL} ...`);
   try {
-    await page.goto(targetURL, {
-      waitUntil: 'networkidle',
+    const res = await page.goto(targetURL, {
+      waitUntil: 'domcontentloaded',
       timeout: 30000
     });
+    console.log(`HTTP Status: ${res?.status()}, URL: ${page.url()}, Title: ${await page.title()}`);
+    const html = await page.content();
+    console.log(`HTML Length: ${html.length}, Preview: ${html.slice(0, 200).replace(/\n/g, ' ')}`);
   } catch (err) {
-    console.log(`Navigation reached timeout or idle state: ${err.message}`);
+    console.log(`Navigation error: ${err.message}`);
   }
 
   await browser.close();
