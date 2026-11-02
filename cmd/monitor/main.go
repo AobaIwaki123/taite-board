@@ -19,22 +19,27 @@ func main() {
 	var (
 		logPath       string
 		intakesPath   string
+		dataDir       string
 		dashboardPort int
 		metricsPort   int
 	)
 
 	flag.StringVar(&logPath, "log-path", getEnv("LOG_PATH", "/var/log/ribonclock/access.log"), "Path to Nginx access log")
 	flag.StringVar(&intakesPath, "intakes-path", getEnv("INTAKES_PATH", "/var/log/ribonclock/intakes.json"), "Path to persisted intakes file")
+	flag.StringVar(&dataDir, "data-dir", getEnv("DATA_DIR", "data"), "Path to data directory for pipeline telemetry")
 	flag.IntVar(&dashboardPort, "port", 8082, "Port for access dashboard and JSON API")
 	flag.IntVar(&metricsPort, "metrics-port", 9090, "Port for Prometheus metrics")
 	flag.Parse()
 
 	ver := version.Get()
-	slog.Info("Starting Ribbon Clock Access Monitor", "version", ver, "logPath", logPath, "intakesPath", intakesPath, "dashboardPort", dashboardPort, "metricsPort", metricsPort)
+	slog.Info("Starting Ribbon Clock Access Monitor", "version", ver, "logPath", logPath, "intakesPath", intakesPath, "dataDir", dataDir, "dashboardPort", dashboardPort, "metricsPort", metricsPort)
 
 	collector := monitor.NewCollector(ver)
 	if intakesPath != "" {
 		collector.SetIntakesPath(intakesPath)
+	}
+	if dataDir != "" {
+		collector.SetDataDir(dataDir)
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

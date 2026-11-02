@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 )
 
 // LogEntry represents an anonymous Nginx access log entry.
@@ -47,8 +48,9 @@ type StatsSnapshot struct {
 	ByRoute        map[string]int64 `json:"by_route"`
 	ByStatus       map[string]int64 `json:"by_status"`
 	Hourly         []HourlyCount   `json:"hourly"`
-	RecentRequests []RequestRecord        `json:"recent_requests"`
+	RecentRequests []RequestRecord          `json:"recent_requests"`
 	RecentIntakes  []candidate.IntakeResult `json:"recent_intakes"`
+	Pipeline       telemetry.PipelineStats  `json:"pipeline"`
 }
 
 // Collector collects, aggregates, and stores access statistics in memory.
@@ -68,23 +70,59 @@ type Collector struct {
 	recentIntakes []candidate.IntakeResult // ring buffer (max 20)
 	maxIntakes    int
 	intakesPath   string
+
+	dataDir            string
+	pipelineStats      telemetry.PipelineStats
+	lastPipelineScan   time.Time
+	pipelineScanPeriod time.Duration
 }
 
 // NewCollector creates a new Collector instance.
 func NewCollector(version string) *Collector {
 	return &Collector{
-		version:       version,
-		startTime:     time.Now(),
-		byRouteStatus: make(map[string]int64),
-		byRoute:       make(map[string]int64),
-		byStatusGroup: make(map[string]int64),
-		hourly:        make(map[string]int64),
-		hourlyRoute:   make(map[string]int64),
-		recent:        make([]RequestRecord, 0, 50),
-		maxRecent:     50,
-		recentIntakes: make([]candidate.IntakeResult, 0, 20),
-		maxIntakes:    20,
+		version:            version,
+		startTime:          time.Now(),
+		byRouteStatus:      make(map[string]int64),
+		byRoute:            make(map[string]int64),
+		byStatusGroup:      make(map[string]int64),
+		hourly:             make(map[string]int64),
+		hourlyRoute:        make(map[string]int64),
+		recent:             make([]RequestRecord, 0, 50),
+		maxRecent:          50,
+		recentIntakes:      make([]candidate.IntakeResult, 0, 20),
+		maxIntakes:         20,
+		pipelineScanPeriod: 10 * time.Second,
 	}
+}
+
+// SetDataDir sets the repository data directory for reading pipeline telemetry.
+func (c *Collector) SetDataDir(path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.dataDir = path
+	c.refreshPipelineStatsLocked()
+}
+
+// SetPipelineStats explicitly injects pipeline telemetry (useful for testing or direct event push).
+func (c *Collector) SetPipelineStats(stats telemetry.PipelineStats) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pipelineStats = stats
+	c.lastPipelineScan = time.Now()
+}
+
+func (c *Collector) refreshPipelineStatsLocked() {
+	if c.dataDir == "" {
+		return
+	}
+	if time.Since(c.lastPipelineScan) < c.pipelineScanPeriod {
+		return
+	}
+	stats, err := telemetry.CollectPipelineStats(c.dataDir)
+	if err == nil {
+		c.pipelineStats = stats
+	}
+	c.lastPipelineScan = time.Now()
 }
 
 // SetIntakesPath sets the persistence path for intake items and loads existing records if present.
@@ -200,6 +238,10 @@ func (c *Collector) ProcessLine(line string) error {
 
 // Snapshot returns a copy of current aggregated statistics.
 func (c *Collector) Snapshot() StatsSnapshot {
+	c.mu.Lock()
+	c.refreshPipelineStatsLocked()
+	c.mu.Unlock()
+
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -282,6 +324,7 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		Hourly:         hourlyList,
 		RecentRequests: recentReversed,
 		RecentIntakes:  intakesCopy,
+		Pipeline:       c.pipelineStats,
 	}
 }
 
@@ -312,6 +355,34 @@ func (c *Collector) PrometheusMetrics() string {
 	sb.WriteString("\n# HELP ribonclock_monitor_uptime_seconds Uptime of the access monitor service.\n")
 	sb.WriteString("# TYPE ribonclock_monitor_uptime_seconds gauge\n")
 	sb.WriteString(fmt.Sprintf("ribonclock_monitor_uptime_seconds %d\n", int64(time.Since(c.startTime).Seconds())))
+
+	// Pipeline Ingestion & Cost Shield Funnel Metrics
+	sb.WriteString("\n# HELP ribonclock_pipeline_detected_posts_total Total raw posts detected across crawl runs.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_detected_posts_total counter\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_detected_posts_total %d\n", c.pipelineStats.DetectedPosts))
+
+	sb.WriteString("\n# HELP ribonclock_pipeline_filtered_posts_total Total posts filtered out by local pre-filter stage.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_filtered_posts_total counter\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_filtered_posts_total{stage=\"media\"} %d\n", c.pipelineStats.FilterBreakdown.Media))
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_filtered_posts_total{stage=\"age\"} %d\n", c.pipelineStats.FilterBreakdown.Age))
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_filtered_posts_total{stage=\"keyword\"} %d\n", c.pipelineStats.FilterBreakdown.Keyword))
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_filtered_posts_total{stage=\"duplicate\"} %d\n", c.pipelineStats.FilterBreakdown.Duplicate))
+
+	sb.WriteString("\n# HELP ribonclock_pipeline_ai_dispatched_total Total candidate posts dispatched to Cloud Run AI parser.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_ai_dispatched_total counter\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_ai_dispatched_total %d\n", c.pipelineStats.AIDispatched))
+
+	sb.WriteString("\n# HELP ribonclock_pipeline_ai_cache_hits_total Total AI parser invocations saved via fingerprint cache.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_ai_cache_hits_total counter\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_ai_cache_hits_total %d\n", c.pipelineStats.AICacheHits))
+
+	sb.WriteString("\n# HELP ribonclock_pipeline_promoted_sessions_total Total timetable sessions promoted to schedule.json.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_promoted_sessions_total gauge\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_promoted_sessions_total %d\n", c.pipelineStats.PromotedSessions))
+
+	sb.WriteString("\n# HELP ribonclock_pipeline_estimated_cost_saved_usd Cumulative estimated API cost saved in USD via local filtering.\n")
+	sb.WriteString("# TYPE ribonclock_pipeline_estimated_cost_saved_usd gauge\n")
+	sb.WriteString(fmt.Sprintf("ribonclock_pipeline_estimated_cost_saved_usd %.4f\n", c.pipelineStats.EstimatedCostSavedUSD))
 
 	return sb.String()
 }

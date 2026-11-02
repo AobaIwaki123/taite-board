@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 )
 
 func TestCollector_ProcessLine(t *testing.T) {
@@ -93,5 +94,39 @@ func TestCollector_IntakesPersistence(t *testing.T) {
 	}
 	if intakes[0].SourceID != "445566" {
 		t.Errorf("expected newest intake first (445566), got %s", intakes[0].SourceID)
+	}
+}
+
+func TestCollector_PipelineStats(t *testing.T) {
+	c := NewCollector("1.0.0")
+	c.SetPipelineStats(telemetry.PipelineStats{
+		DetectedPosts:    10,
+		FilteredPosts:    6,
+		FilterPassed:     4,
+		FilterBreakdown:  telemetry.FilterBreakdown{Media: 4, Keyword: 2},
+		AIDispatched:     4,
+		AICacheHits:      1,
+		PromotedSessions: 5,
+		SavedAPICalls:    7,
+		EstimatedCostSavedUSD: 0.0028,
+	})
+
+	snap := c.Snapshot()
+	if snap.Pipeline.DetectedPosts != 10 {
+		t.Errorf("expected 10 detected posts, got %d", snap.Pipeline.DetectedPosts)
+	}
+	if snap.Pipeline.FilteredPosts != 6 {
+		t.Errorf("expected 6 filtered posts, got %d", snap.Pipeline.FilteredPosts)
+	}
+
+	prom := c.PrometheusMetrics()
+	if !strings.Contains(prom, "ribonclock_pipeline_detected_posts_total 10") {
+		t.Errorf("missing detected posts counter in prometheus: %s", prom)
+	}
+	if !strings.Contains(prom, `ribonclock_pipeline_filtered_posts_total{stage="media"} 4`) {
+		t.Errorf("missing media filtered counter in prometheus: %s", prom)
+	}
+	if !strings.Contains(prom, "ribonclock_pipeline_promoted_sessions_total 5") {
+		t.Errorf("missing promoted sessions gauge in prometheus: %s", prom)
 	}
 }

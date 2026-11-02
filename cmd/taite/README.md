@@ -163,7 +163,20 @@ taite update-session -session 20261101-1 \
 
 ---
 
-### 7. `taite build`
+### 7. `taite stats`
+クローラーの検知件数、ローカル多段事前フィルターによる除外内訳、Cloud Run AI パーサーへのディスパッチ件数、`schedule.json` への昇格セッション数、およびローカル遮断によって節約された推定 API コストを ASCII ファネルまたは JSON で出力します（ADR-0018準拠）。
+
+```bash
+# ASCII ファネルサマリーの表示
+taite stats
+
+# JSON 出力（モニタリングや外部連携用）
+taite stats --json
+```
+
+---
+
+### 8. `taite build`
 フロントエンド（`apps/web/`）の TypeScript バンドルビルド（`scripts/build.sh` 経由で Vite ビルド）を実行します。
 
 ```bash
@@ -174,7 +187,7 @@ make web-build
 
 ---
 
-### 8. `taite version`
+### 9. `taite version`
 現在のアプリケーションのセマンティックバージョンを出力します（ADR-0015準拠）。
 
 ```bash
@@ -196,10 +209,19 @@ taite -v
   - `Post` および `RunManifest` 構造体の定義。
 - **`internal/fetch/`**:
   - 並列フェッチオーケストレータおよびローカルファイルへの不変保存処理。
+- **`internal/filter/`**:
+  - 多段ローカル事前フィルター（画像存在、投稿鮮度、除外/対象キーワード、重複フィンガープリント）。
+- **`internal/candidate/`**:
+  - 抽出候補イベント（`EventCandidate`）、証拠（`Evidence`）、ステータス遷移（`CandidateStatus`）。
+- **`internal/promote/`**:
+  - 候補 JSON の `schedule.json` への昇格、既存セッションへのマージ/追記、時系列自動ソートと Web 公開同期。
+- **`internal/telemetry/`**:
+  - インジェストファネル集計、フィルター除外内訳、Cloud Run 送信数、API コスト防御額の計算。
+- **`internal/monitor/`**:
+  - リアルタイムアクセスログ集計、Prometheus エクスポーター、Pico CSS ダッシュボード UI。
 - **`internal/validate/`**:
   - JSON Schema準拠のドメイン検証、時系列順序検査、同日公演インターバル検査ロジック。
 - **`internal/schedule/`**:
   - スケジュール JSON の SHA-256 同期保証（`sync.go`）、時系列決定論的ソート（`sort.go`）、安全なセッション追加（`add.go`）、セッション情報の決定論的更新（`update.go`）。
 - **`internal/version/`**:
   - ルートの `VERSION` ファイルを動的に解決するバージョンプロバイダー。
-  - スケジュール JSON の SHA-256 同期保証およびセッションの決定論的更新ロジック。
