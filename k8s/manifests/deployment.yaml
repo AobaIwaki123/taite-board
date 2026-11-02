@@ -22,7 +22,7 @@ spec:
         fsGroup: 65532
       containers:
         - name: web
-          image: ghcr.io/aobaiwaki123/taite-board:sha-9b923c6
+          image: ghcr.io/aobaiwaki123/taite-board:sha-77b5299
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -53,7 +53,7 @@ spec:
             - name: log-volume
               mountPath: /var/log/ribonclock
         - name: monitor
-          image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-9b923c6
+          image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-77b5299
           imagePullPolicy: IfNotPresent
           env:
             - name: AI_PARSER_URL
