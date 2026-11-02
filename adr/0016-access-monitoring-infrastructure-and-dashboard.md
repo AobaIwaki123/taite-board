@@ -45,7 +45,7 @@ Ribbon Clock (taite-board) は、Zero Telemetry（クライアント側での個
    - 重量級のログ基盤（Elasticsearch、Loki、Fluentd等）を導入せず、同一 Pod 内の `emptyDir` 共有ログと単一の軽量 Go バイナリ（`cmd/monitor`）によるサイドカー構成で完結させること。
 3. **二系統の可観測性提供（Prometheus + 独立ダッシュボード）**:
    - ポート 9090 で Prometheus 標準フォーマット（`ribonclock_http_requests_total`）を内部公開し、クラスタの Prometheus が 15 秒間隔で scrape。
-   - ポート 8082 で自己完結型のダークテーマ Web ダッシュボードを提供し、Cloudflare Tunnel 経由（`ribonclock-dashboard.aooba.net`）で即座にアクセス状況を閲覧可能にすること。
+   - ポート 8082 で自己完結型のダークテーマ Web ダッシュボードを提供し、Cloudflare Tunnel 経由（`ribonclock-dashboard.iorin.net`）で即座にアクセス状況を閲覧可能にすること。
 
 ---
 
@@ -78,7 +78,7 @@ Ribbon Clock (taite-board) は、Zero Telemetry（クライアント側での個
 - **`ribonclock_monitor_uptime_seconds`**: モニター稼働秒数
 
 ### 2. ダッシュボード機能仕様と出来合いUIライブラリ採用 (Tailscale `http://ribonclock-dashboard`)
-> **セキュリティ・プライバシー改定メモ（PR #115）**: 当初計画された外部一般公開 Ingress（`ribonclock-dashboard.aooba.net`）は、未認証での生アクセスログやインテーク履歴の露出を防ぐため完全廃止されました。現在は Tailscale 内部専用エンドポイント（`http://ribonclock-dashboard`）経由でのみアクセス可能です。
+> **セキュリティ・プライバシー改定メモ（PR #115）**: 当初計画された外部一般公開 Ingress（`ribonclock-dashboard.iorin.net`）は、未認証での生アクセスログやインテーク履歴の露出を防ぐため完全廃止されました。現在は Tailscale 内部専用エンドポイント（`http://ribonclock-dashboard`）経由でのみアクセス可能です。
 
 - **出来合いUIライブラリの採用 (Off-the-shelf Dashboard UI)**:
   - 手書きCSSや自作SVGチャートによるレイアウト崩れ・保守工数を根絶するため、**Pico CSS v2**（セマンティックHTML、軽量ダークモード）および **Chart.js v4**（時系列バーチャート、ルート円グラフ）を採用。

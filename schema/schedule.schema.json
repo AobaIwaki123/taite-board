@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://taite.aooba.net/schema/schedule.schema.json",
+  "$id": "https://ribonclock.iorin.net/schema/schedule.schema.json",
   "title": "TaiteBoardSchedule",
   "description": "Unified data contract for Ribbon Clock live timetable schedule",
   "type": "object",
