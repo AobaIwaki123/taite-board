@@ -2,6 +2,7 @@ import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
 import { isSessionPast, getSessionProgress, getTodayStr } from '../utils/date';
 import { Icon } from './Icon';
+import { ExpenseMemoCard } from './ExpenseMemoCard';
 import { PromotionBanner } from './PromotionBanner';
 import {
   Calendar,
@@ -505,6 +506,9 @@ export function CockpitView({
           </a>
         )}
       </div>
+
+      {/* 現場メモ・出費（簡易家計簿） */}
+      <ExpenseMemoCard session={session} isAttended={isAttended} />
 
       {/* 生誕祭クラファン・プロモーション枠 */}
       <PromotionBanner promotions={promotions} />

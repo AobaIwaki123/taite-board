@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/utils/date.test.ts"
+    "test": "node --experimental-strip-types --test src/utils/*.test.ts"
   },
   "dependencies": {
     "lucide": "^1.64.0",
