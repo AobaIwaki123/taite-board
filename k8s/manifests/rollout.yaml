@@ -1,5 +1,5 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: ribonclock
   namespace: ribonclock
@@ -7,9 +7,13 @@ metadata:
     app.kubernetes.io/name: ribonclock
 spec:
   replicas: 1
-  revisionHistoryLimit: 2
+  revisionHistoryLimit: 3
   strategy:
-    type: Recreate
+    blueGreen:
+      activeService: ribonclock
+      previewService: ribonclock-preview
+      autoPromotionEnabled: true
+      scaleDownDelaySeconds: 30
   selector:
     matchLabels:
       app.kubernetes.io/name: ribonclock
@@ -91,6 +95,4 @@ spec:
               mountPath: /var/log/ribonclock
       volumes:
         - name: log-volume
-          persistentVolumeClaim:
-            claimName: ribonclock-log-pvc
-
+          emptyDir: {}
