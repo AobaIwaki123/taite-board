@@ -17,10 +17,10 @@ try {
       if (!process.env.TARGET_ACCOUNT && g.x_account) {
         TARGET_ACCOUNT = g.x_account;
       }
-      if (!process.env.OUTPUT_DIR && GROUP !== 'rincent') {
+      if (!process.env.OUTPUT_DIR && GROUP !== 'rincent' && GROUP !== 'ribonclock') {
         OUTPUT_DIR = `data/groups/${GROUP}/runs`;
       }
-      if (!CHECKPOINT_FILE && GROUP !== 'rincent') {
+      if (!CHECKPOINT_FILE && GROUP !== 'rincent' && GROUP !== 'ribonclock') {
         CHECKPOINT_FILE = OUTPUT_DIR.startsWith('/var/log/ribonclock')
           ? `/var/log/ribonclock/groups/${GROUP}/checkpoint.json`
           : `data/groups/${GROUP}/checkpoint.json`;

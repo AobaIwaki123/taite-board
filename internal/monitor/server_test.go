@@ -217,7 +217,7 @@ func TestServer_Intake_Promote(t *testing.T) {
 	_ = os.WriteFile("data/generated/schedule.json", []byte(`{"target_group":{"name":"test"},"sessions":[]}`), 0644)
 
 	body, _ := json.Marshal(map[string]any{
-		"group":        "rincent",
+		"group":        "ribonclock",
 		"source_id":    "11223344",
 		"source_url":   "https://x.com/test/status/11223344",
 		"title":        "Girls Face in RING",
@@ -244,8 +244,8 @@ func TestServer_Intake_Promote(t *testing.T) {
 	if res["status"] != "success" {
 		t.Errorf("expected status=success, got %v", res["status"])
 	}
-	if res["domain"] != "rincent.iorin.net" {
-		t.Errorf("expected domain=rincent.iorin.net, got %v", res["domain"])
+	if res["domain"] != "ribonclock.iorin.net" {
+		t.Errorf("expected domain=ribonclock.iorin.net, got %v", res["domain"])
 	}
 }
 
@@ -277,7 +277,7 @@ func TestServer_Intake_Patch(t *testing.T) {
 	_ = os.WriteFile("data/generated/schedule.json", []byte(initialSchedule), 0644)
 
 	body, _ := json.Marshal(map[string]any{
-		"group":           "rincent",
+		"group":           "ribonclock",
 		"date":            "2026-11-21",
 		"source_url":      "https://x.com/Ribbon_Clock/status/999888",
 		"admission_bonus": "指名入場特典：宿題チェキ券",

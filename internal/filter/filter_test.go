@@ -371,6 +371,18 @@ func TestLoadRulesForGroup(t *testing.T) {
 
 	// Test with current data/groups.json
 	groupsJSON := "../../data/groups.json"
+	ribonRules := LoadRulesForGroup(groupsJSON, "ribonclock")
+	foundRibon := false
+	for _, kw := range ribonRules.TargetKeywords {
+		if kw == "リボクロ" {
+			foundRibon = true
+			break
+		}
+	}
+	if !foundRibon {
+		t.Errorf("expected 'リボクロ' in ribonclock target keywords, got: %v", ribonRules.TargetKeywords)
+	}
+
 	dollyRules := LoadRulesForGroup(groupsJSON, "dollykiss")
 	foundAlias := false
 	for _, kw := range dollyRules.TargetKeywords {

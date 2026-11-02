@@ -957,5 +957,6 @@
   ],
   "schema_version": 1,
   "generated_at": "2026-11-01T13:37:14.772Z",
-  "timezone": "Asia/Tokyo"
+  "timezone": "Asia/Tokyo",
+  "group_id": "ribonclock"
 }

@@ -364,7 +364,7 @@ func runFilter(args []string) {
 	fs := flag.NewFlagSet("filter", flag.ExitOnError)
 	inputPath := fs.String("in", "", "Path to raw post JSON or runs directory (defaults to group runs)")
 	candDir := fs.String("candidates", "", "Directory containing candidate JSONs for deduplication")
-	groupID := fs.String("group", os.Getenv("GROUP"), "Target group ID defined in data/groups.json (e.g. rincent, dollykiss)")
+	groupID := fs.String("group", os.Getenv("GROUP"), "Target group ID defined in data/groups.json (e.g. ribonclock, dollykiss)")
 	requireMedia := fs.Bool("media", true, "Require at least one image attached")
 	maxAge := fs.Int("age", 168, "Maximum allowed post age in hours (default 168 = 7 days, 0 = unlimited)")
 
@@ -375,7 +375,7 @@ func runFilter(args []string) {
 	resolvedIn := *inputPath
 	resolvedCand := *candDir
 
-	if targetGroup != "" && targetGroup != "rincent" {
+	if targetGroup != "" && targetGroup != "rincent" && targetGroup != "ribonclock" {
 		if resolvedIn == "" {
 			resolvedIn = filepath.Join("data", "groups", targetGroup, "runs")
 		}

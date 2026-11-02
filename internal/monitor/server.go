@@ -177,15 +177,20 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		}
 
 		group := strings.TrimSpace(req.Group)
-		if group == "" || group == "all" {
-			group = "rincent"
+		if group == "" || group == "all" || group == "rincent" {
+			group = "ribonclock"
 		}
 
 		filePath := "data/generated/schedule.json"
 		var syncTargets []string
-		if group == "rincent" {
+		if group == "ribonclock" {
 			filePath = "data/generated/schedule.json"
-			syncTargets = []string{"apps/web/public/schedule.json", "apps/web/dist/schedule.json"}
+			syncTargets = []string{
+				"apps/web/public/schedule.json",
+				"apps/web/dist/schedule.json",
+				"data/groups/ribonclock/schedule.json",
+				"apps/web/public/data/groups/ribonclock/schedule.json",
+			}
 		} else {
 			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
 			syncTargets = []string{
@@ -265,15 +270,20 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		}
 
 		group := strings.TrimSpace(req.Group)
-		if group == "" || group == "all" {
-			group = "rincent"
+		if group == "" || group == "all" || group == "rincent" {
+			group = "ribonclock"
 		}
 
 		filePath := "data/generated/schedule.json"
 		var syncTargets []string
-		if group == "rincent" {
+		if group == "ribonclock" {
 			filePath = "data/generated/schedule.json"
-			syncTargets = []string{"apps/web/public/schedule.json", "apps/web/dist/schedule.json"}
+			syncTargets = []string{
+				"apps/web/public/schedule.json",
+				"apps/web/dist/schedule.json",
+				"data/groups/ribonclock/schedule.json",
+				"apps/web/public/data/groups/ribonclock/schedule.json",
+			}
 		} else {
 			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
 			syncTargets = []string{
