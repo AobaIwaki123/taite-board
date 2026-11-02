@@ -36,6 +36,19 @@ export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
       accent: 'sky',
     },
   },
+  dollykiss: {
+    id: 'dollykiss',
+    name: 'Dolly Kiss',
+    shortName: 'ドリキス',
+    logoText: '🎀',
+    dataUrl: 'data/groups/dollykiss/schedule.json',
+    fallbackDataUrl: 'schedule.json',
+    storagePrefix: 'dollykiss_',
+    theme: {
+      primary: 'pink',
+      accent: 'purple',
+    },
+  },
   // 拡張用テンプレート (新規グループ追加時はここに設定を追加し data/groups/<id>/schedule.json を配置)
   sample: {
     id: 'sample',

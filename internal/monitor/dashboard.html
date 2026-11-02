@@ -159,6 +159,21 @@
       </nav>
     </header>
 
+    <!-- Multi-Group Switcher (ADR-0018 / Multi-Group Extension) -->
+    <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.65rem 1rem; border-radius: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.05em;">対象グループ:</span>
+        <div style="display: flex; gap: 6px;" id="group-buttons-container">
+          <button id="group-btn-rincent" class="" style="font-size: 0.75rem; padding: 0.25rem 0.65rem; margin-bottom: 0;" onclick="switchGroup('rincent')">リボンクロック (rincent)</button>
+          <button id="group-btn-dollykiss" class="outline" style="font-size: 0.75rem; padding: 0.25rem 0.65rem; margin-bottom: 0;" onclick="switchGroup('dollykiss')">Dolly Kiss (dollykiss)</button>
+          <button id="group-btn-all" class="outline" style="font-size: 0.75rem; padding: 0.25rem 0.65rem; margin-bottom: 0;" onclick="switchGroup('all')">全グループ鳥瞰</button>
+        </div>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--pico-muted-color); font-family: monospace;">
+        公開サブドメイン: <span id="current-group-domain" style="color: #38bdf8; font-weight: 700;">rincent.iorin.net</span>
+      </div>
+    </div>
+
     <!-- Key Metrics Cards -->
     <div class="grid" style="margin-bottom: 1.5rem;">
       <article style="padding: 1.25rem;">
@@ -912,8 +927,12 @@
     // ==========================================
     // Pipeline Conveyor & Data Journey Stream Logic
     // ==========================================
+    let currentSelectedGroup = 'rincent';
+
     const SAMPLE_STREAM_DATA = [
+      // Ribbon Clock (rincent)
       {
+        group: "rincent",
         id: "2119330614138921102",
         text: "11/4(水) 新宿Motionにて出番決定！出番 19:30-19:50 特典会 20:00-21:00",
         images: 2,
@@ -923,6 +942,7 @@
         stage4: { scheduled: true, title: "11/04 新宿Motion" }
       },
       {
+        group: "rincent",
         id: "2118991204893712011",
         text: "本日はレッスンありがとうございました！明日も頑張ります！",
         images: 0,
@@ -932,6 +952,7 @@
         stage4: null
       },
       {
+        group: "rincent",
         id: "2118801948210948194",
         text: "オンラインチェキ販売開始しました！チェキ券の購入はこちらから！",
         images: 1,
@@ -940,16 +961,61 @@
         stage3: null,
         stage4: null
       },
+      // Dolly Kiss (dollykiss)
       {
-        id: "2116002151944401001",
-        text: "過去ライブの御礼ポスト (Since ID Checkpoint Post)",
+        group: "dollykiss",
+        id: "3056160033199081220",
+        text: "11/3(火祝) ｢秋葉原アイドルサーキットvol.6｣ 出演決定！ANTHEM AKIBA 🎤18:40-19:00 📸19:30-20:30",
         images: 2,
-        stage1: "Xから取得",
-        stage2: { pass: false, reason: "スキップ: 調査済みの古い投稿" },
+        stage1: "X (@dollykiss_staff) から取得",
+        stage2: { pass: true, reason: "画像2枚あり・ドリキスキーワード一致" },
+        stage3: { extracted: true, live: "18:40〜19:00", benefit: "19:30〜20:30", venue: "ANTHEM AKIBA", conf: "100%" },
+        stage4: { scheduled: true, title: "11/03 秋葉原サーキット" }
+      },
+      {
+        group: "dollykiss",
+        id: "3070591408064939402",
+        text: "11/3(火祝) ｢アイドルマリアージュVol.79｣ ベルサール虎ノ門 🎤14:55-15:15 📸15:20-16:20",
+        images: 2,
+        stage1: "X (@dollykiss_staff) から取得",
+        stage2: { pass: true, reason: "画像2枚あり・ドリキスキーワード一致" },
+        stage3: { extracted: true, live: "14:55〜15:15", benefit: "15:20〜16:20", venue: "ベルサール虎ノ門", conf: "100%" },
+        stage4: { scheduled: true, title: "11/03 ベルサール虎ノ門" }
+      },
+      {
+        group: "dollykiss",
+        id: "3090101999999999999",
+        text: "ドリキスメンバーの定期SHOWROOM配信が始まりました！",
+        images: 0,
+        stage1: "X (@dollykiss_staff) から取得",
+        stage2: { pass: false, reason: "除外: 画像がありません（配信告知）" },
         stage3: null,
         stage4: null
       }
     ];
+
+    function switchGroup(groupId) {
+      currentSelectedGroup = groupId;
+      ['rincent', 'dollykiss', 'all'].forEach(g => {
+        const btn = document.getElementById(`group-btn-${g}`);
+        if (btn) {
+          if (g === groupId) {
+            btn.className = '';
+          } else {
+            btn.className = 'outline';
+          }
+        }
+      });
+
+      const domainSpan = document.getElementById('current-group-domain');
+      if (domainSpan) {
+        if (groupId === 'rincent') domainSpan.innerText = 'rincent.iorin.net (または ribonclock.iorin.net)';
+        else if (groupId === 'dollykiss') domainSpan.innerText = 'dollykiss.iorin.net';
+        else domainSpan.innerText = '*.iorin.net (全グループ鳥瞰)';
+      }
+
+      renderConveyorInitial();
+    }
 
     function renderConveyorInitial(data) {
       const s1Cards = document.getElementById('stage-1-cards');
@@ -959,27 +1025,34 @@
 
       if (!s1Cards || !s2Cards || !s3Cards || !s4Cards) return;
 
-      document.getElementById('stage-1-count').innerText = SAMPLE_STREAM_DATA.length + " 件";
-      document.getElementById('stage-2-count').innerText = SAMPLE_STREAM_DATA.filter(p => !p.stage2.pass).length + " 件";
-      document.getElementById('stage-3-count').innerText = SAMPLE_STREAM_DATA.filter(p => p.stage3).length + " 件";
-      document.getElementById('stage-4-count').innerText = SAMPLE_STREAM_DATA.filter(p => p.stage4).length + " 件";
+      const filtered = currentSelectedGroup === 'all'
+        ? SAMPLE_STREAM_DATA
+        : SAMPLE_STREAM_DATA.filter(p => p.group === currentSelectedGroup);
 
-      s1Cards.innerHTML = SAMPLE_STREAM_DATA.map(p => `
+      document.getElementById('stage-1-count').innerText = filtered.length + " 件";
+      document.getElementById('stage-2-count').innerText = filtered.filter(p => !p.stage2.pass).length + " 件";
+      document.getElementById('stage-3-count').innerText = filtered.filter(p => p.stage3).length + " 件";
+      document.getElementById('stage-4-count').innerText = filtered.filter(p => p.stage4).length + " 件";
+
+      s1Cards.innerHTML = filtered.map(p => `
         <div class="stream-card" id="s1-${p.id}">
-          <div style="font-weight:700; color:#38bdf8; font-family:monospace;">#${p.id.slice(-6)}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; color:#38bdf8; font-family:monospace;">#${p.id.slice(-6)}</span>
+            <span class="badge" style="background:rgba(255,255,255,0.08); font-size:0.6rem;">${p.group}</span>
+          </div>
           <div style="color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.text}</div>
           <div style="font-size:0.7rem; color:var(--pico-muted-color); margin-top:2px;">画像: ${p.images}枚 &bull; 告知ポスト</div>
         </div>
       `).join('');
 
-      s2Cards.innerHTML = SAMPLE_STREAM_DATA.map(p => `
+      s2Cards.innerHTML = filtered.map(p => `
         <div class="stream-card ${p.stage2.pass ? 'passed' : 'shielded'}" id="s2-${p.id}">
           <div style="font-weight:700; font-family:monospace;">#${p.id.slice(-6)}: ${p.stage2.pass ? '<span style="color:#10b981;">通過</span>' : '<span style="color:#fb7185;">足切り</span>'}</div>
           <div style="font-size:0.72rem; color:${p.stage2.pass ? '#a7f3d0' : '#fecdd3'};">${p.stage2.reason}</div>
         </div>
       `).join('');
 
-      s3Cards.innerHTML = SAMPLE_STREAM_DATA.filter(p => p.stage3).map(p => `
+      s3Cards.innerHTML = filtered.filter(p => p.stage3).map(p => `
         <div class="stream-card passed" id="s3-${p.id}">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <span style="font-weight:700; color:#f59e0b; font-family:monospace;">#${p.id.slice(-6)}</span>
@@ -990,11 +1063,11 @@
         </div>
       `).join('');
 
-      s4Cards.innerHTML = SAMPLE_STREAM_DATA.filter(p => p.stage4).map(p => `
+      s4Cards.innerHTML = filtered.filter(p => p.stage4).map(p => `
         <div class="stream-card passed" id="s4-${p.id}">
           <div style="font-weight:700; color:#10b981;">${p.stage4.title}</div>
           <div style="font-size:0.7rem; color:#a7f3d0;">カレンダー登録完了</div>
-          <div style="font-size:0.65rem; color:var(--pico-muted-color); margin-top:2px;">アプリ画面へ即時反映</div>
+          <div style="font-size:0.65rem; color:var(--pico-muted-color); margin-top:2px;">${p.group}.iorin.net へ即時反映</div>
         </div>
       `).join('');
     }
@@ -1013,8 +1086,9 @@
         badge.innerText = '処理中...';
       }
 
-      const stages = ['stage-1', 'stage-2', 'stage-3', 'stage-4'];
-      const targetPost = SAMPLE_STREAM_DATA[0]; // 11/04 新宿Motion 告知ポスト
+      // Pick target post based on selected group
+      const targetGroup = currentSelectedGroup === 'all' ? 'rincent' : currentSelectedGroup;
+      const targetPost = SAMPLE_STREAM_DATA.find(p => p.group === targetGroup && p.stage4) || SAMPLE_STREAM_DATA[0];
 
       // Reset styles
       document.querySelectorAll('.conveyor-stage').forEach(s => s.classList.remove('active'));
@@ -1024,7 +1098,8 @@
       document.getElementById('stage-1').classList.add('active');
       const c1 = document.getElementById(`s1-${targetPost.id}`);
       if (c1) c1.classList.add('highlight');
-      logLine.innerText = `[00:01] 取得: @Ribbon_Clock の新しい投稿（画像2枚付き）を検出しました。`;
+      const staffAccount = targetGroup === 'dollykiss' ? '@dollykiss_staff' : '@Ribbon_Clock';
+      logLine.innerText = `[00:01] 取得: ${staffAccount} の新しい投稿（画像${targetPost.images}枚付き）を検出しました。`;
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 2: Gatekeeper
@@ -1032,7 +1107,8 @@
       document.getElementById('stage-2').classList.add('active');
       const c2 = document.getElementById(`s2-${targetPost.id}`);
       if (c2) c2.classList.add('highlight');
-      logLine.innerText = `[00:02] 仕分け: 画像と「出番」キーワードを確認し、タイテ解析へ進めます（雑談ポストはここで除外）。`;
+      const keywordHint = targetGroup === 'dollykiss' ? 'グループ名・ライブ告知キーワード' : '画像と「出番」キーワード';
+      logLine.innerText = `[00:02] 仕分け: ${keywordHint}を確認し、タイテ解析へ進めます（雑談ポストはここで除外）。`;
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 3: Cloud Run Vertex AI Vision
@@ -1047,7 +1123,7 @@
       await new Promise(r => setTimeout(r, 1800));
       const laser = document.getElementById('temp-laser');
       if (laser) laser.remove();
-      logLine.innerText = `[00:04] 読取成功: 出番 19:30〜19:50 / 特典会 20:00〜21:00 / 会場: 新宿Motion を特定しました。`;
+      logLine.innerText = `[00:04] 読取成功: 出番 ${targetPost.stage3.live} / 特典会 ${targetPost.stage3.benefit} / 会場: ${targetPost.stage3.venue} を特定しました。`;
       await new Promise(r => setTimeout(r, 1200));
 
       // Step 4: Schedule Commit
@@ -1055,7 +1131,8 @@
       document.getElementById('stage-4').classList.add('active');
       const c4 = document.getElementById(`s4-${targetPost.id}`);
       if (c4) c4.classList.add('highlight');
-      logLine.innerText = `[00:05] カレンダー反映: 11/04 新宿Motion をスケジュールに登録し、次回ライブへ自動反映しました！`;
+      const destDomain = targetGroup === 'dollykiss' ? 'dollykiss.iorin.net' : 'rincent.iorin.net';
+      logLine.innerText = `[00:05] カレンダー反映: ${targetPost.stage4.title} をスケジュールに登録し、${destDomain} へ自動反映しました！`;
       await new Promise(r => setTimeout(r, 1500));
 
       document.getElementById('stage-4').classList.remove('active');

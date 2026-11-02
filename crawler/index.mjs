@@ -2,13 +2,41 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'Ribbon_Clock';
-const OUTPUT_DIR = process.env.OUTPUT_DIR || 'data/raw/runs';
-const CHECKPOINT_FILE =
-  process.env.CHECKPOINT_FILE ||
-  (OUTPUT_DIR.startsWith('/var/log/ribonclock')
+// Dynamic Group Configuration (ADR-0018 / Multi-Group Extension)
+let TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'Ribbon_Clock';
+let OUTPUT_DIR = process.env.OUTPUT_DIR || 'data/raw/runs';
+let CHECKPOINT_FILE = process.env.CHECKPOINT_FILE || '';
+const GROUP = process.env.GROUP || '';
+
+try {
+  const groupsData = await fs.readFile('data/groups.json', 'utf-8').catch(() => null);
+  if (groupsData) {
+    const config = JSON.parse(groupsData);
+    if (GROUP && config.groups && config.groups[GROUP]) {
+      const g = config.groups[GROUP];
+      if (!process.env.TARGET_ACCOUNT && g.x_account) {
+        TARGET_ACCOUNT = g.x_account;
+      }
+      if (!process.env.OUTPUT_DIR && GROUP !== 'rincent') {
+        OUTPUT_DIR = `data/groups/${GROUP}/runs`;
+      }
+      if (!CHECKPOINT_FILE && GROUP !== 'rincent') {
+        CHECKPOINT_FILE = OUTPUT_DIR.startsWith('/var/log/ribonclock')
+          ? `/var/log/ribonclock/groups/${GROUP}/checkpoint.json`
+          : `data/groups/${GROUP}/checkpoint.json`;
+      }
+    }
+  }
+} catch {
+  // Ignore fallback errors
+}
+
+if (!CHECKPOINT_FILE) {
+  CHECKPOINT_FILE = OUTPUT_DIR.startsWith('/var/log/ribonclock')
     ? '/var/log/ribonclock/checkpoint.json'
-    : 'data/checkpoint.json');
+    : 'data/checkpoint.json';
+}
+
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '10', 10);
 
 async function loadCheckpoint() {

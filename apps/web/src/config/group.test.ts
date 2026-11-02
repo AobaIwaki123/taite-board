@@ -12,6 +12,9 @@ test('resolveCurrentGroup returns default group when window is undefined', () =>
 test('REGISTERED_GROUPS contains valid default and template configurations', () => {
   assert.ok(REGISTERED_GROUPS.rincent);
   assert.equal(REGISTERED_GROUPS.rincent.storagePrefix, 'ribonclock_');
+  assert.ok(REGISTERED_GROUPS.dollykiss);
+  assert.equal(REGISTERED_GROUPS.dollykiss.storagePrefix, 'dollykiss_');
+  assert.equal(REGISTERED_GROUPS.dollykiss.name, 'Dolly Kiss');
   assert.ok(REGISTERED_GROUPS.sample);
   assert.equal(REGISTERED_GROUPS.sample.theme.primary, 'emerald');
 });
