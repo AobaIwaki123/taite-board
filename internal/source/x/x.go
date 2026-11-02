@@ -24,7 +24,7 @@ var (
 func normalizeMediaURL(raw string) string {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Host != "pbs.twimg.com" {
-		return raw
+		return ""
 	}
 
 	query := parsed.Query()
@@ -172,13 +172,17 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 	if err := json.Unmarshal(body, &result); err == nil {
 		for _, m := range result.MediaDetails {
 			if m.MediaURL != "" {
-				images = append(images, normalizeMediaURL(m.MediaURL))
+				if norm := normalizeMediaURL(m.MediaURL); norm != "" {
+					images = append(images, norm)
+				}
 			}
 		}
 		if len(images) == 0 {
 			for _, p := range result.Photos {
 				if p.URL != "" {
-					images = append(images, normalizeMediaURL(p.URL))
+					if norm := normalizeMediaURL(p.URL); norm != "" {
+						images = append(images, norm)
+					}
 				}
 			}
 		}
@@ -191,7 +195,9 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 		for _, m := range matches {
 			if !seen[m] {
 				seen[m] = true
-				images = append(images, normalizeMediaURL(m+".jpg"))
+				if norm := normalizeMediaURL(m + ".jpg"); norm != "" {
+					images = append(images, norm)
+				}
 			}
 		}
 	}
@@ -240,7 +246,9 @@ func (c *Client) fetchFxTwitterImages(ctx context.Context, statusID string) []st
 	if err := json.Unmarshal(body, &fxResult); err == nil {
 		for _, p := range fxResult.Tweet.Media.Photos {
 			if p.URL != "" {
-				images = append(images, normalizeMediaURL(p.URL))
+				if norm := normalizeMediaURL(p.URL); norm != "" {
+					images = append(images, norm)
+				}
 			}
 		}
 	}
