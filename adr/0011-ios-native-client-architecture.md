@@ -101,7 +101,7 @@ taite-board は、ライブ会場や移動中でも次の出演時刻、特典�
 
 ## 参照
 
-- [iOS ネイティブクライアント設計案](../docs/ios-native-design.md)
+- [マルチグループ展開・機能再利用および推し活コンパニオンアプリ設計構想](../docs/multi-group-hub-and-reusable-architecture.md)
 - [ADR-0001: Web・ネイティブ共通の schedule.json データ契約](0001-schedule-json-data-contract.md)
 - [ADR-0005: 静的 JSON 配信](0005-static-json-distribution.md)
 - [ADR-0008: クライアント側のキャッシュとデータ鮮度](0008-client-offline-cache-and-freshness.md)

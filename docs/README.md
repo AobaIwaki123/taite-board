@@ -36,16 +36,20 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 
 画像の検討経緯と未確認事項は [`note/06_web-share-asset-decision-log.md`](../note/06_web-share-asset-decision-log.md) を参照してください。
 
-## データ intake とリリース
+## データ intake と昇格パイプライン
 
-端末から URL・画像を候補 JSON に変換する skill と、名寄せ・検証・PR・GitOps デプロイまでの初期手順は [`manual-ingest-release.md`](manual-ingest-release.md) にまとめています。候補は公開用 JSON へ自動昇格せず、人間レビューを通してから反映します。
+X告知の巡回、ローカル多段前処理フィルター（メディア有無・キーワード・指紋重複排除）、および Cloud Run AI パーサーと手動承認による `schedule.json` への昇格手順は [`automated-crawler-and-promotion-pipeline.md`](automated-crawler-and-promotion-pipeline.md) に集約されています。候補データは自動で本番公開されず、決定論的検証と人間レビューを通してから安全に昇格（`taite promote`）されます。
 
 ## プライバシー配慮型アクセス集計
 
 クライアント計測を追加せず、Nginx の匿名ログを必要なときだけ集計して Discord へ通知する案は [`privacy-preserving-access-counting.md`](privacy-preserving-access-counting.md) にまとめています。初期案では origin request count のみを扱い、個人単位の追跡や raw log の Discord 送信は行いません。
 
-## 設計資料
+## 設計資料一覧
 
-- [自宅オーケストレーターと Cloud Run AI パーサー設計案](home-orchestrator-cloud-run-ai-parser.md)
-- [マルチグループ展開・機能再利用および推し活コンパニオンアプリ設計構想](multi-group-hub-and-reusable-architecture.md)
+- [全体アーキテクチャ設計書](architecture.md)
 - [X告知自動巡回・多段前処理フィルター・昇格パイプライン詳細設計書](automated-crawler-and-promotion-pipeline.md)
+- [マルチグループ展開・機能再利用および推し活コンパニオンアプリ設計構想](multi-group-hub-and-reusable-architecture.md)
+- [プライバシー配慮型アクセス集計設計](privacy-preserving-access-counting.md)
+- [開発者ガイド](development.md)
+- [Kubernetes デプロイ・GitOps ガイド](deployment.md)
+- [フロントエンド設計・TypeScript 規約](frontend-guidelines.md)

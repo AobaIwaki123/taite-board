@@ -143,6 +143,29 @@ var DefaultRules = FilterRules{
 - 連続スクロールや大量ページネーションは行わず、直近 10 件のメディアのみを検査
 - ユーザーエージェント、Viewport、言語設定（`ja-JP`）を正規の macOS Chrome 環境と一致させて偽装
 
+### 3.3 冪等性とキャッシュキー（無駄な AI 再解析の完全抑止）
+
+Cloud Run への呼び出し判定において、入力ポストの指紋（`raw_fingerprint`）および解析仕様ハッシュ（`parse_cache_key`）を算出し、完全に同一の入力・同一のプロンプトバージョンの場合はローカルキャッシュ（`data/candidate/`）を再利用して HTTP リクエスト自体を発生させない。
+
+~~~text
+raw_fingerprint = SHA-256(
+  source
+  + source_id
+  + normalized_text
+  + ordered_media_sha256_list
+)
+
+parse_cache_key = SHA-256(
+  raw_fingerprint
+  + candidate_schema_version
+  + parser_version
+  + model_id
+  + prompt_version
+)
+~~~
+
+同一 `parse_cache_key` の候補ファイルが既に存在する場合、AIパーサーをスキップして既存の candidate を即時再利用する。パーサーやモデル・プロンプトのバージョンが更新された場合のみキーが変化し、必要最小限の再解析が行われる。
+
 ---
 
 ## 4. ベテランエンジニア観点によるセルフレビュー (System Design Review)
