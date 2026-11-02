@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Session } from '../types/schedule';
+import { isSessionPast } from '../utils/date';
 import { Icon } from './Icon';
 import { ChevronLeft, ChevronRight } from '../utils/icons';
 
@@ -96,6 +97,9 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           const daySessions = sessions.filter((s) => s.date === dateStr);
           const hasLive = daySessions.length > 0;
           const isAttended = daySessions.some((s) => attendedSessionIds.includes(s.id));
+          const hasFutureAttended = daySessions.some(
+            (s) => attendedSessionIds.includes(s.id) && !isSessionPast(s)
+          );
           const isSelected = selectedDate === dateStr;
 
           return (
@@ -111,7 +115,9 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                   ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105 cursor-pointer'
                   : hasLive
                   ? isAttended
-                    ? 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 cursor-pointer'
+                    ? hasFutureAttended
+                      ? 'bg-sky-950/50 border border-sky-500/60 text-white font-bold hover:bg-sky-900/60 cursor-pointer'
+                      : 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 cursor-pointer'
                     : 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 cursor-pointer'
                   : 'bg-stone-900/30 text-stone-600 cursor-default'
               }`}
@@ -123,7 +129,9 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                     isSelected
                       ? 'bg-stone-950'
                       : isAttended
-                      ? 'bg-emerald-400'
+                      ? hasFutureAttended
+                        ? 'bg-sky-400'
+                        : 'bg-emerald-400'
                       : 'bg-rose-400 animate-pulse'
                   }`}
                 />
@@ -141,12 +149,17 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           selectedDaySessions.length > 0 ? (
             selectedDaySessions.map((s) => {
               const attended = attendedSessionIds.includes(s.id);
+              const isPast = isSessionPast(s);
               return (
                 <div
                   key={s.id}
                   onClick={() => onSelectSession(s.id)}
                   class={`soft-card rounded-xl p-3 space-y-1.5 border-l-4 cursor-pointer hover:border-rose-400/40 transition-all active:scale-[0.99] ${
-                    attended ? 'border-l-emerald-500' : 'border-l-rose-500'
+                    attended
+                      ? isPast
+                        ? 'border-l-emerald-500'
+                        : 'border-l-sky-500'
+                      : 'border-l-rose-500'
                   }`}
                 >
                   <div class="flex items-center justify-between text-xs">
@@ -155,8 +168,14 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                     </span>
                     <div class="flex items-center gap-1.5">
                       {attended && (
-                        <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                          参戦済
+                        <span
+                          class={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+                            isPast
+                              ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
+                              : 'bg-sky-950/80 text-sky-400 border-sky-500/30'
+                          }`}
+                        >
+                          {isPast ? '参戦済' : '参戦予定'}
                         </span>
                       )}
                       <span class="text-stone-300 text-xs">{s.venue.name}</span>

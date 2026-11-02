@@ -238,37 +238,60 @@ export function CockpitView({
 
       {/* 公演ヘッダーカード */}
       <div class="soft-card rounded-2xl p-4 space-y-2 shadow-md">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5 text-xs text-rose-400 font-bold">
-            <Icon icon={Calendar} class="w-3.5 h-3.5" />
-            <span>
+        <div class="flex items-center justify-between gap-1.5 min-w-0">
+          <div class="flex items-center gap-1.5 text-xs text-rose-400 font-bold shrink-0">
+            <Icon icon={Calendar} class="w-3.5 h-3.5 shrink-0" />
+            <span class="whitespace-nowrap">
               {session.date} ({session.day_of_week || ''})
             </span>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button
-              onClick={() => onToggleAttended(session.id)}
-              class={`flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold transition-all border ${
-                isAttended
-                  ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300 shadow-sm'
-                  : 'bg-stone-900/80 border-white/10 text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              <Icon
-                icon={isAttended ? CheckCircle2 : Check}
-                class={`w-3.5 h-3.5 ${isAttended ? 'text-emerald-400' : 'text-stone-500'}`}
-              />
-              <span>{isAttended ? '参戦済 ✓' : '参戦チェック'}</span>
-            </button>
-            {isNextLive ? (
-              <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30">
-                ★ 直近
-              </span>
-            ) : isSessionPast(session, new Date(), 0, delayMinutes) ? (
-              <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10">
-                公演終了
-              </span>
-            ) : null}
+          <div class="flex items-center gap-1.5 shrink-0">
+            {(() => {
+              const isPast = isSessionPast(session, new Date(), 0, delayMinutes);
+              return (
+                <>
+                  <button
+                    onClick={() => onToggleAttended(session.id)}
+                    class={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold transition-all border shrink-0 ${
+                      isAttended
+                        ? isPast
+                          ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300 shadow-sm'
+                          : 'bg-sky-950/80 border-sky-500/40 text-sky-300 shadow-sm'
+                        : 'bg-stone-900/80 border-white/10 text-stone-400 hover:text-stone-200'
+                    }`}
+                  >
+                    <Icon
+                      icon={isAttended ? CheckCircle2 : Check}
+                      class={`w-3.5 h-3.5 shrink-0 ${
+                        isAttended
+                          ? isPast
+                            ? 'text-emerald-400'
+                            : 'text-sky-400'
+                          : 'text-stone-500'
+                      }`}
+                    />
+                    <span class="whitespace-nowrap">
+                      {isAttended
+                        ? isPast
+                          ? '参戦済 ✓'
+                          : '参戦予定 ✓'
+                        : isPast
+                        ? '参戦チェック'
+                        : '参戦予定'}
+                    </span>
+                  </button>
+                  {isNextLive ? (
+                    <span class="text-xs font-bold text-rose-400 bg-rose-500/15 px-2 py-0.5 rounded border border-rose-500/30 shrink-0 whitespace-nowrap">
+                      ★ 直近
+                    </span>
+                  ) : isPast ? (
+                    <span class="text-xs font-bold text-stone-400 bg-stone-800/80 px-2 py-0.5 rounded border border-white/10 shrink-0 whitespace-nowrap">
+                      公演終了
+                    </span>
+                  ) : null}
+                </>
+              );
+            })()}
           </div>
         </div>
 
