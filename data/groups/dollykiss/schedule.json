@@ -1,4 +1,7 @@
 {
+  "schema_version": 1,
+  "generated_at": "2026-11-02T14:17:46.125152+00:00",
+  "timezone": "Asia/Tokyo",
   "target_group": {
     "name": "Dolly Kiss",
     "short_name": "ドリキス",
@@ -43,7 +46,8 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large",
-      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2115639770944586018"
+      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2115639770944586018",
+      "id": "dollykiss-20261103-1"
     },
     {
       "title": "＠JAM×アイドル横丁presents 秋葉原アイドルサーキットvol.6",
@@ -77,7 +81,357 @@
         ]
       },
       "image_url": "https://pbs.twimg.com/media/HUtrcHvbMAAjFhe.jpg?name=large",
-      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2111019330574127141"
+      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2111019330574127141",
+      "id": "dollykiss-20261103-2"
+    },
+    {
+      "title": "POLAROID",
+      "date": "2026-11-07",
+      "day_of_week": "土",
+      "venue": {
+        "name": "WITH HARAJUKU HALL",
+        "map_query": "WITH HARAJUKU HALL",
+        "map_url": "https://maps.google.com/?q=WITH HARAJUKU HALL"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：20秒動画券1枚",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/261107_POLAROID",
+        "prices": [
+          {
+            "tier": "前方5,000円",
+            "price": "前方5,000円"
+          },
+          {
+            "tier": "一般2,000円",
+            "price": "一般2,000円"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/9a94/2026-10-19/0-1792374670120.jpg",
+      "source_timetree_id": "3070591680375932040",
+      "id": "dollykiss-20261107-1"
+    },
+    {
+      "title": "スパドキフェスティバルVol.119",
+      "date": "2026-11-07",
+      "day_of_week": "土",
+      "venue": {
+        "name": "横浜ランドマークホール",
+        "map_query": "横浜ランドマークホール",
+        "map_url": "https://maps.google.com/?q=横浜ランドマークホール"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：写メ券1枚",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/supadoki_119",
+        "prices": null
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/f965/2026-10-24/0-1792814417971.jpg",
+      "source_timetree_id": "3070591781928421152",
+      "id": "dollykiss-20261107-2"
+    },
+    {
+      "title": "アイドルアラモードプチVol.142",
+      "date": "2026-11-08",
+      "day_of_week": "日",
+      "venue": {
+        "name": "横浜ランドマークホール",
+        "map_query": "横浜ランドマークホール",
+        "map_url": "https://maps.google.com/?q=横浜ランドマークホール"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：30秒動画券1枚",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/alamodepetite_142",
+        "prices": null
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/44fa/2026-10-28/0-1793175730099.jpg",
+      "source_timetree_id": "3070592077853345279",
+      "id": "dollykiss-20261108-1"
+    },
+    {
+      "title": "MARQUEE祭mini Vol.357",
+      "date": "2026-11-14",
+      "day_of_week": "土",
+      "venue": {
+        "name": "Spotify O-nest",
+        "map_query": "Spotify O-nest",
+        "map_url": "https://maps.google.com/?q=Spotify O-nest"
+      },
+      "live": {
+        "start_time": "19:50",
+        "end_time": "20:10"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "20:45",
+        "end_time": "21:45",
+        "booth": "ブースAB"
+      },
+      "admission_bonus": "指名入場特典：メンバー全員と囲み写メ1枚+10秒動画券1枚",
+      "ticket": {
+        "platform": "イープラス",
+        "url": "https://eplus.jp/sf/word/0000131445",
+        "prices": [
+          {
+            "tier": "前売3,000円",
+            "price": "前売3,000円"
+          },
+          {
+            "tier": "当日3,500円（各税込・",
+            "price": "当日3,500円（各税込・"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/5dfa/2026-10-03/0-1791002842899.jpg",
+      "source_timetree_id": "3068845096323762061",
+      "id": "dollykiss-20261114-1"
+    },
+    {
+      "title": "TIF学園「学園祭2026 秋」",
+      "date": "2026-11-15",
+      "day_of_week": "日",
+      "venue": {
+        "name": "ベルサール渋谷ガーデン",
+        "map_query": "ベルサール渋谷ガーデン",
+        "map_url": "https://maps.google.com/?q=ベルサール渋谷ガーデン"
+      },
+      "live": {
+        "start_time": "12:05",
+        "end_time": "12:25"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "13:30",
+        "end_time": "14:45",
+        "booth": "ベルサールB1 ⑤"
+      },
+      "admission_bonus": "指名入場特典：写メ券1枚+15秒動画券1枚",
+      "ticket": {
+        "platform": "TicketVillage",
+        "url": "https://ticketvillage.jp/events/13884",
+        "prices": [
+          {
+            "tier": "優先エリア10,000円",
+            "price": "優先エリア10,000円"
+          },
+          {
+            "tier": "一般エリア5,000円",
+            "price": "一般エリア5,000円"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/2ff8/2026-10-05/0-1791210575048.jpg",
+      "source_timetree_id": "3050046939641136736",
+      "id": "dollykiss-20261115-1"
+    },
+    {
+      "title": "アイドルマリアージュVol.82",
+      "date": "2026-11-21",
+      "day_of_week": "土",
+      "venue": {
+        "name": "ベルサール虎ノ門",
+        "map_query": "ベルサール虎ノ門",
+        "map_url": "https://maps.google.com/?q=ベルサール虎ノ門"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：20秒動画券1枚",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/dolmariage_82",
+        "prices": [
+          {
+            "tier": "前方エリア5,000円",
+            "price": "前方エリア5,000円"
+          },
+          {
+            "tier": "一般エリア3,000円（当日各＋500円・各チケット",
+            "price": "一般エリア3,000円（当日各＋500円・各チケット"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/244f/2026-10-31/0-1793447744732.jpg",
+      "source_timetree_id": "3070592357294654735",
+      "id": "dollykiss-20261121-1"
+    },
+    {
+      "title": "マンスリーナビゲーターGIRLS LIVE",
+      "date": "2026-11-22",
+      "day_of_week": "日",
+      "venue": {
+        "name": "J-SQUARE品川",
+        "map_query": "J-SQUARE品川",
+        "map_url": "https://maps.google.com/?q=J-SQUARE品川"
+      },
+      "live": {
+        "start_time": "13:30",
+        "end_time": "14:00"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "通常"
+      },
+      "admission_bonus": "指名入場特典：写メ券1枚+私物サイン",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/2CKWET0p56CMkyy3SGDn",
+        "prices": [
+          {
+            "tier": "3,500円 当日+500円",
+            "price": "3,500円 当日+500円"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/1603/2026-08-15/0-1786788776366.jpg",
+      "source_timetree_id": "3033288798706583269",
+      "id": "dollykiss-20261122-1"
+    },
+    {
+      "title": "アイドルアラモードプチVol.143",
+      "date": "2026-11-22",
+      "day_of_week": "日",
+      "venue": {
+        "name": "ベルサール虎ノ門",
+        "map_query": "ベルサール虎ノ門",
+        "map_url": "https://maps.google.com/?q=ベルサール虎ノ門"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：写メ券1枚+20秒動画券1枚",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/alamodepetite_143",
+        "prices": null
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/e1d3/2026-10-31/0-1793447811390.jpg",
+      "source_timetree_id": "3087103695776892131",
+      "id": "dollykiss-20261122-2"
+    },
+    {
+      "title": "ギガ盛りMAX 前夜祭＠新橋",
+      "date": "2026-11-23",
+      "day_of_week": "月祝",
+      "venue": {
+        "name": "ZEAL THEATER 新橋",
+        "map_query": "ZEAL THEATER 新橋",
+        "map_url": "https://maps.google.com/?q=ZEAL THEATER 新橋"
+      },
+      "live": {
+        "start_time": "--:--",
+        "end_time": "--:--"
+      },
+      "benefit": {
+        "type": "未定",
+        "start_time": "--:--",
+        "end_time": "--:--",
+        "booth": "告知待ち"
+      },
+      "admission_bonus": "指名入場特典：写メ券1枚",
+      "ticket": {
+        "platform": "LivePocket",
+        "url": "https://livepocket.jp/e/x8-ap",
+        "prices": [
+          {
+            "tier": "前方エリア4,000円",
+            "price": "前方エリア4,000円"
+          },
+          {
+            "tier": "一般エリア2,500円（当日各＋500円・別途1D 700円",
+            "price": "一般エリア2,500円（当日各＋500円・別途1D 700円"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/bac2/2026-10-28/0-1793175801062.jpg",
+      "source_timetree_id": "3070592760316937940",
+      "id": "dollykiss-20261123-1"
+    },
+    {
+      "title": "MARQUEE祭mini Vol.360",
+      "date": "2026-12-12",
+      "day_of_week": "土",
+      "venue": {
+        "name": "Spotify O-nest",
+        "map_query": "Spotify O-nest",
+        "map_url": "https://maps.google.com/?q=Spotify O-nest"
+      },
+      "live": {
+        "start_time": "13:30",
+        "end_time": "13:50"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "14:45",
+        "end_time": "15:45",
+        "booth": "ホール内"
+      },
+      "admission_bonus": "指名入場特典：私物サイン券1枚+10秒動画券1枚",
+      "ticket": {
+        "platform": "イープラス",
+        "url": "https://eplus.jp/sf/word/0000131445",
+        "prices": [
+          {
+            "tier": "前売3,000円",
+            "price": "前売3,000円"
+          },
+          {
+            "tier": "当日3,500円（各税込・",
+            "price": "当日3,500円（各税込・"
+          }
+        ]
+      },
+      "image_url": "https://attachments.timetreeapp.com/public_event/344e/2026-10-31/0-1793447662306.jpg",
+      "source_timetree_id": "3089353726634477393",
+      "id": "dollykiss-20261212-1"
     }
   ]
 }
