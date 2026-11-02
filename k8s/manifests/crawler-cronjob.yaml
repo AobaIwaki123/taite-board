@@ -44,6 +44,18 @@ spec:
                   value: "/data/raw/runs"
                 - name: MAX_POSTS
                   value: "10"
+                - name: X_AUTH_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: ribonclock-crawler
+                      key: X_AUTH_TOKEN
+                      optional: true
+                - name: X_CT0
+                  valueFrom:
+                    secretKeyRef:
+                      name: ribonclock-crawler
+                      key: X_CT0
+                      optional: true
               volumeMounts:
                 - name: shared-data
                   mountPath: /data
