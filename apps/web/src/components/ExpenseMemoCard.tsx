@@ -341,6 +341,11 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
               </button>
             )}
           </div>
+
+          {/* ローカル保存に関する注意書き */}
+          <div class="text-[10px] text-stone-300 leading-relaxed bg-stone-900/60 p-2 rounded-lg border border-white/5">
+            ※ 入力内容は端末のブラウザ内（ローカルストレージ）にのみ保存されます。サーバーには送信されません。ブラウザ履歴の消去や機種変更で消失する可能性があります。
+          </div>
         </div>
       )}
     </div>
