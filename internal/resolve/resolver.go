@@ -64,6 +64,10 @@ var (
 	benefitTimeRegex = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\s\n\r]+)`)
 	genericTimeRegex = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+
+	admissionBonusRegex = regexp.MustCompile(`(?i)(?:入場特典|お目当て特典|指名入場特典|動員特典|来場特典|🎁|🎀入場特典決定🎀)\s*[:：]?\s*([^\n\r]+)`)
+	photoSongRegex      = regexp.MustCompile(`(?i)(?:(?:撮影可能曲|撮可曲|撮影曲|撮可)\s*[:：]?\s*[【『「｢]([^】』」｣\n\r]+)[】』」｣])|(?:[【『「｢]([^】』」｣\n\r]+)[】』」｣]\s*(?:のみ)?\s*(?:動画|静止画|写真)?\s*(?:の)?\s*(?:撮影可能|撮影OK|撮可))`)
+	photoGeneralRegex   = regexp.MustCompile(`(?i)(?:全曲)?(?:動画|静止画|写真)(?:の)?(?:撮影可能|撮影OK|撮可)`)
 )
 
 // NormalizeText standardizes full-width digits, punctuation, and whitespace into standard ASCII.
@@ -218,7 +222,76 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 		}
 	}
 
-	// 6. Evaluate NeedsAI
+	// 6. Extract Admission Bonus & Photo Regulations (Patch Detection)
+	if m := admissionBonusRegex.FindStringSubmatch(text); len(m) > 1 {
+		bonus := strings.TrimSpace(m[1])
+		bonus = strings.TrimPrefix(bonus, "🎁")
+		bonus = strings.TrimSpace(bonus)
+		if bonus != "" {
+			cand.AdmissionBonus = bonus
+			evidences = append(evidences, candidate.Evidence{
+				Field:      "admission_bonus",
+				Source:     "text",
+				Quote:      m[0],
+				Confidence: 0.9,
+			})
+		}
+	}
+
+	// Photo song extraction (e.g. 『シャイニーデイズ』のみ動画撮影可能 / 撮影可能曲：【未来へのファンファーレ】動画撮影OK)
+	if m := photoSongRegex.FindStringSubmatch(text); len(m) > 1 {
+		song := m[1]
+		if song == "" && len(m) > 2 {
+			song = m[2]
+		}
+		cand.PhotoSong = strings.TrimSpace(song)
+		allowed := true
+		cand.PhotoAllowed = &allowed
+
+		matchLine := m[0]
+		for _, line := range strings.Split(text, "\n") {
+			if strings.Contains(line, m[0]) || (cand.PhotoSong != "" && strings.Contains(line, cand.PhotoSong)) {
+				matchLine = line
+				break
+			}
+		}
+
+		if strings.Contains(matchLine, "動画") {
+			cand.PhotoDevice = "video_ok"
+		} else {
+			cand.PhotoDevice = "photo_ok"
+		}
+		evidences = append(evidences, candidate.Evidence{
+			Field:      "photo_song",
+			Source:     "text",
+			Quote:      strings.TrimSpace(matchLine),
+			Confidence: 0.95,
+		})
+	} else if m := photoGeneralRegex.FindStringSubmatch(text); len(m) > 0 {
+		allowed := true
+		cand.PhotoAllowed = &allowed
+		if strings.Contains(m[0], "全曲") {
+			cand.PhotoSong = "全曲"
+		}
+		if strings.Contains(m[0], "動画") {
+			cand.PhotoDevice = "video_ok"
+		} else {
+			cand.PhotoDevice = "photo_ok"
+		}
+		evidences = append(evidences, candidate.Evidence{
+			Field:      "photo_allowed",
+			Source:     "text",
+			Quote:      m[0],
+			Confidence: 0.9,
+		})
+	}
+
+	// If no live start time but perk or photo info is present, mark as patch
+	if cand.LiveStartRaw == "" && (cand.AdmissionBonus != "" || cand.PhotoSong != "" || cand.PhotoAllowed != nil) {
+		cand.IsPatch = true
+	}
+
+	// 7. Evaluate NeedsAI
 	// If timetable image exists and live start time is missing or incomplete:
 	needsAI := false
 	if len(images) > 0 {

@@ -97,6 +97,11 @@ export function ListView({ sessions, attendedSessionIds = [], onSelectSession }:
                         {sessionTag}
                       </span>
                     )}
+                    {session.photo?.allowed_songs && session.photo.allowed_songs.length > 0 && (
+                      <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-xs border border-amber-500/30">
+                        📸 撮可: {session.photo.allowed_songs[0]}
+                      </span>
+                    )}
                   </div>
                 </div>
 

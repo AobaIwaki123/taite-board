@@ -17,6 +17,9 @@ type UpdateSessionOptions struct {
 	PhotoRule         string
 	PhotoRawText      string
 	PhotoAvailable    *bool
+	PhotoSong         string
+	PhotoDevice       string
+	AdmissionBonus    string
 	SourceTweetURL    string
 	UpdateOfficialURL bool
 	SpecialNotes      string
@@ -66,7 +69,7 @@ func UpdateSession(opts UpdateSessionOptions) error {
 			found = true
 
 			// 1. Update Photo Rule if specified
-			if opts.PhotoRule != "" {
+			if opts.PhotoRule != "" || opts.PhotoSong != "" || opts.PhotoAvailable != nil {
 				available := true
 				if opts.PhotoAvailable != nil {
 					available = *opts.PhotoAvailable
@@ -75,14 +78,29 @@ func UpdateSession(opts UpdateSessionOptions) error {
 				if rawText == "" {
 					rawText = opts.PhotoRule
 				}
-				sMap["photo"] = map[string]interface{}{
+				if rawText == "" && opts.PhotoSong != "" {
+					rawText = fmt.Sprintf("撮可: %s", opts.PhotoSong)
+				}
+				photoMap := map[string]interface{}{
 					"available": available,
 					"rule":      opts.PhotoRule,
 					"raw_text":  rawText,
 				}
+				if opts.PhotoSong != "" {
+					photoMap["allowed_songs"] = []string{opts.PhotoSong}
+				}
+				if opts.PhotoDevice != "" {
+					photoMap["device"] = opts.PhotoDevice
+				}
+				sMap["photo"] = photoMap
 			}
 
-			// 2. Update Special Notes if specified
+			// 2. Update Admission Bonus if specified
+			if opts.AdmissionBonus != "" {
+				sMap["admission_bonus"] = opts.AdmissionBonus
+			}
+
+			// 3. Update Special Notes if specified
 			if opts.SpecialNotes != "" {
 				existing, _ := sMap["special_notes"].(string)
 				if existing == "" {

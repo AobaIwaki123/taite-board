@@ -119,7 +119,7 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		fp := candidate.ComputeRawFingerprint(post.Source, post.SourceID, post.Text, post.Images)
 
 		status := candidate.StatusSkippedDeterministic
-		if cand.Date != "" && cand.LiveStartRaw != "" {
+		if (cand.Date != "" && cand.LiveStartRaw != "") || cand.IsPatch {
 			status = candidate.StatusCompleted
 		} else if needsAI {
 			status = candidate.StatusNeedsReview
@@ -236,6 +236,130 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 			"group":      group,
 			"domain":     fmt.Sprintf("%s.iorin.net", group),
 			"message":    fmt.Sprintf("Session %s successfully committed to %s.iorin.net", sessionID, group),
+		})
+	})
+
+	// 7. Intake Patch API (Update perks, photo rules, and special notes on an existing session)
+	type patchRequest struct {
+		Group          string `json:"group"`
+		SessionID      string `json:"session_id"`
+		Date           string `json:"date"`
+		AdmissionBonus string `json:"admission_bonus"`
+		PhotoSong      string `json:"photo_song"`
+		PhotoDevice    string `json:"photo_device"`
+		PhotoRule      string `json:"photo_rule"`
+		SpecialNotes   string `json:"special_notes"`
+		SourceURL      string `json:"source_url"`
+	}
+
+	mux.HandleFunc("/api/intake/patch", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req patchRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, fmt.Sprintf("invalid json body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		group := strings.TrimSpace(req.Group)
+		if group == "" || group == "all" {
+			group = "rincent"
+		}
+
+		filePath := "data/generated/schedule.json"
+		var syncTargets []string
+		if group == "rincent" {
+			filePath = "data/generated/schedule.json"
+			syncTargets = []string{"apps/web/public/schedule.json", "apps/web/dist/schedule.json"}
+		} else {
+			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
+			syncTargets = []string{
+				fmt.Sprintf("apps/web/public/data/groups/%s/schedule.json", group),
+				fmt.Sprintf("apps/web/dist/data/groups/%s/schedule.json", group),
+			}
+		}
+
+		// Resolve target Session ID if empty
+		sessionID := strings.TrimSpace(req.SessionID)
+		if sessionID == "" {
+			rawBytes, err := os.ReadFile(filePath)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("reading schedule file: %v", err), http.StatusInternalServerError)
+				return
+			}
+			var schedDoc struct {
+				CurrentNextID string `json:"current_next_id"`
+				Sessions      []struct {
+					ID   string `json:"id"`
+					Date string `json:"date"`
+				} `json:"sessions"`
+			}
+			_ = json.Unmarshal(rawBytes, &schedDoc)
+
+			if req.Date != "" {
+				for _, s := range schedDoc.Sessions {
+					if s.Date == req.Date {
+						sessionID = s.ID
+						break
+					}
+				}
+			}
+			if sessionID == "" && schedDoc.CurrentNextID != "" {
+				sessionID = schedDoc.CurrentNextID
+			}
+			if sessionID == "" && len(schedDoc.Sessions) > 0 {
+				sessionID = schedDoc.Sessions[0].ID
+			}
+		}
+
+		if sessionID == "" {
+			http.Error(w, "target session not found in schedule", http.StatusNotFound)
+			return
+		}
+
+		photoRule := req.PhotoRule
+		if photoRule == "" && req.PhotoSong != "" {
+			photoRule = fmt.Sprintf("撮可: %s", req.PhotoSong)
+		}
+		var photoAvailable *bool
+		if photoRule != "" || req.PhotoSong != "" {
+			t := true
+			photoAvailable = &t
+		}
+
+		err := schedule.UpdateSession(schedule.UpdateSessionOptions{
+			SessionID:         sessionID,
+			PhotoRule:         photoRule,
+			PhotoSong:         req.PhotoSong,
+			PhotoDevice:       req.PhotoDevice,
+			PhotoAvailable:    photoAvailable,
+			AdmissionBonus:    req.AdmissionBonus,
+			SpecialNotes:      req.SpecialNotes,
+			SourceTweetURL:    req.SourceURL,
+			UpdateOfficialURL: false,
+			FilePath:          filePath,
+			SyncTargets:       syncTargets,
+		})
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": fmt.Sprintf("failed to update session: %v", err),
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":     "success",
+			"session_id": sessionID,
+			"group":      group,
+			"domain":     fmt.Sprintf("%s.iorin.net", group),
+			"message":    fmt.Sprintf("Perks & photo regulations updated on session %s (%s.iorin.net)", sessionID, group),
 		})
 	})
 
