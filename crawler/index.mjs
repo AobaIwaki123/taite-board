@@ -4,10 +4,40 @@ import path from 'node:path';
 
 const TARGET_ACCOUNT = process.env.TARGET_ACCOUNT || 'Ribbon_Clock';
 const OUTPUT_DIR = process.env.OUTPUT_DIR || 'data/raw/runs';
+const CHECKPOINT_FILE =
+  process.env.CHECKPOINT_FILE ||
+  (OUTPUT_DIR.startsWith('/var/log/ribonclock')
+    ? '/var/log/ribonclock/checkpoint.json'
+    : 'data/checkpoint.json');
 const MAX_POSTS = parseInt(process.env.MAX_POSTS || '10', 10);
+
+async function loadCheckpoint() {
+  try {
+    const data = await fs.readFile(CHECKPOINT_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+async function saveCheckpoint(checkpoint) {
+  try {
+    await fs.mkdir(path.dirname(CHECKPOINT_FILE), { recursive: true });
+    await fs.writeFile(CHECKPOINT_FILE, JSON.stringify(checkpoint, null, 2) + '\n');
+    console.log(`Checkpoint saved: latest_since_id=${checkpoint.latest_since_id}`);
+  } catch (err) {
+    console.warn(`Failed to save checkpoint to ${CHECKPOINT_FILE}: ${err.message}`);
+  }
+}
 
 async function crawl() {
   console.log(`Starting headless crawler for @${TARGET_ACCOUNT} (max: ${MAX_POSTS})`);
+
+  const checkpoint = await loadCheckpoint();
+  const sinceId = checkpoint?.latest_since_id ? BigInt(checkpoint.latest_since_id) : null;
+  if (sinceId) {
+    console.log(`Checkpoint active: since_id=${sinceId.toString()} (stops when reaching or older than this ID)`);
+  }
 
   const browser = await chromium.launch({
     headless: process.env.HEADLESS !== 'false',
@@ -62,6 +92,7 @@ async function crawl() {
 
   const page = await context.newPage();
   const capturedPosts = [];
+  let reachedSinceId = false;
 
   // GraphQL API Interception (ADR-0018)
   page.on('response', async (response) => {
@@ -86,6 +117,13 @@ async function crawl() {
             const legacy = tweetResult.legacy || tweetResult.tweet?.legacy;
             const restId = tweetResult.rest_id || tweetResult.tweet?.rest_id;
             if (!legacy || !restId) continue;
+
+            // Check if we hit already processed checkpoint (Snowflake ID comparison)
+            if (sinceId && BigInt(restId) <= sinceId) {
+              console.log(`Reached since_id (${restId} <= ${sinceId.toString()}). Halting further ingestion.`);
+              reachedSinceId = true;
+              continue;
+            }
 
             const mediaEntities = legacy.extended_entities?.media || legacy.entities?.media || [];
             const images = mediaEntities
@@ -119,8 +157,16 @@ async function crawl() {
       timeout: 30000
     });
     console.log(`HTTP Status: ${res?.status()}, URL: ${page.url()}, Title: ${await page.title()}`);
-    const html = await page.content();
-    console.log(`HTML Length: ${html.length}, Preview: ${html.slice(0, 200).replace(/\n/g, ' ')}`);
+
+    // Scroll down up to 5 times to trigger pagination until since_id is reached or MAX_POSTS captured
+    for (let scroll = 0; scroll < 5; scroll++) {
+      if (reachedSinceId || capturedPosts.length >= MAX_POSTS) {
+        break;
+      }
+      console.log(`Scrolling page (iteration ${scroll + 1}/5) to load further tweets...`);
+      await page.evaluate(() => window.scrollBy(0, 1500));
+      await page.waitForTimeout(2000);
+    }
   } catch (err) {
     console.log(`Navigation error: ${err.message}`);
   }
@@ -138,10 +184,10 @@ async function crawl() {
     }
   }
 
-  console.log(`Captured ${uniquePosts.length} post(s) from @${TARGET_ACCOUNT}`);
+  console.log(`Captured ${uniquePosts.length} new post(s) from @${TARGET_ACCOUNT}`);
 
   if (uniquePosts.length === 0) {
-    console.log('No posts captured in this cycle. Exiting.');
+    console.log('No new posts captured in this cycle (all existing or caught by since_id). Exiting.');
     return;
   }
 
@@ -157,10 +203,15 @@ async function crawl() {
   await fs.mkdir(postsDir, { recursive: true });
 
   const savedPaths = [];
+  let newMaxSinceId = checkpoint?.latest_since_id || '';
   for (const p of uniquePosts) {
     const postFile = path.join(postsDir, `${p.source_id}.json`);
     await fs.writeFile(postFile, JSON.stringify(p, null, 2) + '\n');
     savedPaths.push(postFile);
+
+    if (!newMaxSinceId || BigInt(p.source_id) > BigInt(newMaxSinceId)) {
+      newMaxSinceId = p.source_id;
+    }
   }
 
   const manifest = {
@@ -177,6 +228,13 @@ async function crawl() {
   const manifestFile = path.join(runDir, 'manifest.json');
   await fs.writeFile(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
   console.log(`Run ${runId} saved with ${savedPaths.length} post(s) in ${runDir}`);
+
+  // Save updated checkpoint
+  await saveCheckpoint({
+    latest_since_id: newMaxSinceId,
+    updated_at: now.toISOString(),
+    processed_ids: Array.from(new Set([...(checkpoint?.processed_ids || []), ...uniquePosts.map((p) => p.source_id)]))
+  });
 }
 
 crawl().catch((err) => {

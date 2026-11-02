@@ -67,6 +67,10 @@ func CollectPipelineStats(dataDir string) (PipelineStats, error) {
 	runsDirCandidates := []string{
 		filepath.Join(dataDir, "raw", "runs"),
 		filepath.Join(dataDir, "runs"),
+		"/var/log/ribonclock/runs",
+	}
+	if customRunsDir := os.Getenv("RUNS_DIR"); customRunsDir != "" {
+		runsDirCandidates = append([]string{customRunsDir}, runsDirCandidates...)
 	}
 	seenFingerprints := make(map[string]bool)
 

@@ -281,3 +281,84 @@ func TestLoadExistingFingerprints(t *testing.T) {
 		t.Errorf("unexpected fingerprint found")
 	}
 }
+
+func TestCheckpoint_SaveAndLoad(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "checkpoint-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	cpPath := filepath.Join(tempDir, "checkpoint.json")
+
+	// Initially nil
+	cp, err := LoadCheckpoint(cpPath)
+	if err != nil {
+		t.Fatalf("unexpected error loading non-existent checkpoint: %v", err)
+	}
+	if cp != nil {
+		t.Fatalf("expected nil checkpoint, got %+v", cp)
+	}
+
+	// Save
+	newCP := &Checkpoint{
+		LatestSinceID: "2116817522318250115",
+		ProcessedIDs:  []string{"2116817522318250115", "2116002151944401001"},
+	}
+	if err := SaveCheckpoint(cpPath, newCP); err != nil {
+		t.Fatalf("failed to save checkpoint: %v", err)
+	}
+
+	// Load
+	loaded, err := LoadCheckpoint(cpPath)
+	if err != nil {
+		t.Fatalf("failed to load checkpoint: %v", err)
+	}
+	if loaded == nil || loaded.LatestSinceID != "2116817522318250115" {
+		t.Errorf("expected latest_since_id 2116817522318250115, got %v", loaded)
+	}
+	if len(loaded.ProcessedIDs) != 2 {
+		t.Errorf("expected 2 processed_ids, got %d", len(loaded.ProcessedIDs))
+	}
+}
+
+func TestLoadKnownDeduplicationKeys_ScheduleAndCheckpoint(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "dedup-keys-test-*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	schedPath := filepath.Join(tempDir, "schedule.json")
+	schedJSON := `{
+		"sessions": [
+			{
+				"source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194",
+				"source_refs": [{"source_id": "2112891667640656194"}]
+			}
+		]
+	}`
+	_ = os.WriteFile(schedPath, []byte(schedJSON), 0644)
+
+	cpPath := filepath.Join(tempDir, "checkpoint.json")
+	cpJSON := `{
+		"latest_since_id": "2116002151944401001",
+		"processed_ids": ["2116002151944401001", "2115639776422625284"]
+	}`
+	_ = os.WriteFile(cpPath, []byte(cpJSON), 0644)
+
+	keys, err := LoadKnownDeduplicationKeys("", schedPath, cpPath)
+	if err != nil {
+		t.Fatalf("failed to load deduplication keys: %v", err)
+	}
+
+	if !keys["2112891667640656194"] {
+		t.Errorf("expected post id from schedule to be indexed")
+	}
+	if !keys["2116002151944401001"] {
+		t.Errorf("expected post id from checkpoint to be indexed")
+	}
+	if !keys["2115639776422625284"] {
+		t.Errorf("expected processed_id from checkpoint to be indexed")
+	}
+}

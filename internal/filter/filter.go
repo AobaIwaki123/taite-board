@@ -119,17 +119,19 @@ func Evaluate(post *raw.Post, rules FilterRules, existingFingerprints map[string
 		}
 	}
 
-	// Stage 5: Deduplication Check via SHA-256 Raw Fingerprint
-	if existingFingerprints != nil && existingFingerprints[fingerprint] {
-		shortFP := fingerprint
-		if len(shortFP) > 12 {
-			shortFP = shortFP[:12]
-		}
-		return FilterResult{
-			Passed:      false,
-			Stage:       StageDuplicate,
-			Reason:      fmt.Sprintf("duplicate raw fingerprint already processed (%s)", shortFP),
-			Fingerprint: fingerprint,
+	// Stage 5: Deduplication Check via SHA-256 Raw Fingerprint or Source ID
+	if existingFingerprints != nil {
+		if existingFingerprints[fingerprint] || (post.SourceID != "" && existingFingerprints[post.SourceID]) {
+			shortFP := fingerprint
+			if len(shortFP) > 12 {
+				shortFP = shortFP[:12]
+			}
+			return FilterResult{
+				Passed:      false,
+				Stage:       StageDuplicate,
+				Reason:      fmt.Sprintf("duplicate raw fingerprint or post ID already processed (%s)", shortFP),
+				Fingerprint: fingerprint,
+			}
 		}
 	}
 
@@ -154,42 +156,137 @@ func CalculateParseCacheKey(post *raw.Post, schemaVer int, parserVer, modelID, p
 	return candidate.ComputeParseCacheKey(fp, schemaVer, parserVer, modelID, promptVer)
 }
 
-// LoadExistingFingerprints scans a directory for existing candidate JSON files and indexes their fingerprints.
-func LoadExistingFingerprints(dir string) (map[string]bool, error) {
-	fps := make(map[string]bool)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fps, nil
+// Checkpoint tracks the cursor of the latest processed post ID and indexed processed history.
+type Checkpoint struct {
+	LatestSinceID string   `json:"latest_since_id"`
+	UpdatedAt     string   `json:"updated_at"`
+	ProcessedIDs  []string `json:"processed_ids,omitempty"`
+}
+
+// LoadCheckpoint reads the checkpoint file from disk if it exists.
+func LoadCheckpoint(path string) (*Checkpoint, error) {
+	if path == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var cp Checkpoint
+	if err := json.Unmarshal(data, &cp); err != nil {
+		return nil, err
+	}
+	return &cp, nil
+}
+
+// SaveCheckpoint writes the checkpoint atomically to disk.
+func SaveCheckpoint(path string, cp *Checkpoint) error {
+	if path == "" || cp == nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	cp.UpdatedAt = time.Now().Format(time.RFC3339)
+	data, err := json.MarshalIndent(cp, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmpFile := fmt.Sprintf("%s.tmp.%d", path, time.Now().UnixNano())
+	if err := os.WriteFile(tmpFile, append(data, '\n'), 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmpFile, path)
+}
+
+// LoadKnownDeduplicationKeys loads known fingerprints and post IDs across candidate dir, schedule.json, and checkpoint.
+func LoadKnownDeduplicationKeys(candDir, schedulePath, checkpointPath string) (map[string]bool, error) {
+	keys := make(map[string]bool)
+
+	// 1. Scan candidate directory
+	if candDir != "" {
+		if _, err := os.Stat(candDir); err == nil {
+			_ = filepath.WalkDir(candDir, func(path string, d fs.DirEntry, err error) error {
+				if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
+					return nil
+				}
+				data, err := os.ReadFile(path)
+				if err != nil {
+					return nil
+				}
+				var intake candidate.IntakeResult
+				if err := json.Unmarshal(data, &intake); err == nil {
+					if intake.RawFingerprint != "" {
+						keys[intake.RawFingerprint] = true
+					}
+					if intake.SourceID != "" {
+						keys[intake.SourceID] = true
+					}
+				}
+				return nil
+			})
+		}
 	}
 
-	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
-			return nil
-		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil // Skip unreadable files
-		}
-
-		// Try parsing as IntakeResult
-		var intake candidate.IntakeResult
-		if err := json.Unmarshal(data, &intake); err == nil && intake.RawFingerprint != "" {
-			fps[intake.RawFingerprint] = true
-			return nil
-		}
-
-		// Try parsing generic JSON map for raw_fingerprint field
-		var generic map[string]interface{}
-		if err := json.Unmarshal(data, &generic); err == nil {
-			if fp, ok := generic["raw_fingerprint"].(string); ok && fp != "" {
-				fps[fp] = true
+	// 2. Scan schedule.json (Master schedule)
+	if schedulePath != "" {
+		if data, err := os.ReadFile(schedulePath); err == nil {
+			var doc struct {
+				Sessions []struct {
+					SourceTweetURL string `json:"source_tweet_url"`
+					SourceRefs     []struct {
+						SourceID string `json:"source_id"`
+					} `json:"source_refs"`
+				} `json:"sessions"`
+			}
+			if err := json.Unmarshal(data, &doc); err == nil {
+				for _, s := range doc.Sessions {
+					for _, ref := range s.SourceRefs {
+						if ref.SourceID != "" {
+							keys[ref.SourceID] = true
+						}
+					}
+					if s.SourceTweetURL != "" {
+						// Extract numeric status ID from URL
+						parts := strings.Split(strings.TrimRight(s.SourceTweetURL, "/"), "/")
+						if len(parts) > 0 {
+							last := parts[len(parts)-1]
+							if len(last) > 8 && strings.Trim(last, "0123456789") == "" {
+								keys[last] = true
+							}
+						}
+					}
+				}
 			}
 		}
-		return nil
-	})
+	}
 
-	return fps, err
+	// 3. Scan checkpoint file
+	if checkpointPath != "" {
+		if cp, err := LoadCheckpoint(checkpointPath); err == nil && cp != nil {
+			if cp.LatestSinceID != "" {
+				keys[cp.LatestSinceID] = true
+			}
+			for _, id := range cp.ProcessedIDs {
+				if id != "" {
+					keys[id] = true
+				}
+			}
+		}
+	}
+
+	return keys, nil
+}
+
+// LoadExistingFingerprints scans a directory for existing candidate JSON files and indexes their fingerprints.
+func LoadExistingFingerprints(dir string) (map[string]bool, error) {
+	schedulePath := "data/generated/schedule.json"
+	checkpointPath := "data/checkpoint.json"
+	if _, err := os.Stat("/var/log/ribonclock/checkpoint.json"); err == nil {
+		checkpointPath = "/var/log/ribonclock/checkpoint.json"
+	}
+	return LoadKnownDeduplicationKeys(dir, schedulePath, checkpointPath)
 }
