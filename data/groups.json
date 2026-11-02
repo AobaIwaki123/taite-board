@@ -1,14 +1,15 @@
 {
-  "default_group": "rincent",
+  "default_group": "ribonclock",
   "groups": {
-    "rincent": {
-      "id": "rincent",
+    "ribonclock": {
+      "id": "ribonclock",
       "name": "リボンクロック",
-      "short_name": "RiNCENT#",
+      "short_name": "リボクロ",
       "x_account": "Ribbon_Clock",
-      "aliases": ["リボンクロック", "リボクロ"],
+      "aliases": ["リボンクロック", "リボクロ", "Ribbon_Clock", "ribonclock"],
       "timetree_id": "",
-      "data_path": "data/curated/schedule.json",
+      "data_path": "data/groups/ribonclock/schedule.json",
+      "heroImage": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
       "theme": {
         "primary": "rose",
         "accent": "sky"

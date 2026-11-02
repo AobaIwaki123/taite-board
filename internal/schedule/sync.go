@@ -14,6 +14,8 @@ func DefaultSyncTargets(rootDir string) []string {
 	return []string{
 		filepath.Join(rootDir, "apps", "web", "public", "schedule.json"),
 		filepath.Join(rootDir, "apps", "web", "public", "mock_schedule.json"),
+		filepath.Join(rootDir, "data", "groups", "ribonclock", "schedule.json"),
+		filepath.Join(rootDir, "apps", "web", "public", "data", "groups", "ribonclock", "schedule.json"),
 	}
 }
 

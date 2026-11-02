@@ -21,17 +21,22 @@ export interface GroupConfig {
   theme: GroupTheme;
 }
 
-export const DEFAULT_GROUP_ID = 'rincent';
+export const DEFAULT_GROUP_ID = 'ribonclock';
+
+// 後方互換エイリアスマップ (旧識別子 rincent などを ribonclock にマッピング)
+export const GROUP_ALIASES: Record<string, string> = {
+  rincent: 'ribonclock',
+};
 
 export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
-  rincent: {
-    id: 'rincent',
+  ribonclock: {
+    id: 'ribonclock',
     name: 'リボンクロック',
-    shortName: 'RiNCENT#',
+    shortName: 'リボクロ',
     logoText: '🎀',
     heroImage: 'https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large',
-    dataUrl: 'schedule.json',
-    fallbackDataUrl: 'mock_schedule.json',
+    dataUrl: 'data/groups/ribonclock/schedule.json',
+    fallbackDataUrl: 'schedule.json',
     storagePrefix: 'ribonclock_',
     theme: {
       primary: 'rose',
@@ -69,10 +74,20 @@ export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
 };
 
 /**
+ * Resolves a group identifier, taking backward compatibility aliases into account.
+ */
+export function resolveGroupId(rawId?: string | null): string | undefined {
+  if (!rawId) return undefined;
+  const normalized = rawId.toLowerCase();
+  const aliased = GROUP_ALIASES[normalized] || normalized;
+  return REGISTERED_GROUPS[aliased] ? aliased : undefined;
+}
+
+/**
  * Resolves active group configuration dynamically:
  * 1. Checks URL search query (?group=xxx)
- * 2. Checks subdomain (e.g. rincent.iorin.net -> rincent)
- * 3. Falls back to DEFAULT_GROUP_ID ('rincent')
+ * 2. Checks subdomain (e.g. ribonclock.iorin.net or legacy rincent.iorin.net -> ribonclock)
+ * 3. Falls back to DEFAULT_GROUP_ID ('ribonclock')
  */
 export function resolveCurrentGroup(): GroupConfig {
   if (typeof window !== 'undefined' && window.location) {
@@ -80,8 +95,9 @@ export function resolveCurrentGroup(): GroupConfig {
       // 1. Query parameter
       const params = new URLSearchParams(window.location.search);
       const groupParam = params.get('group');
-      if (groupParam && REGISTERED_GROUPS[groupParam]) {
-        return REGISTERED_GROUPS[groupParam];
+      const resolvedFromParam = resolveGroupId(groupParam);
+      if (resolvedFromParam && REGISTERED_GROUPS[resolvedFromParam]) {
+        return REGISTERED_GROUPS[resolvedFromParam];
       }
 
       // 2. Subdomain check (e.g. <subdomain>.iorin.net)
@@ -89,8 +105,9 @@ export function resolveCurrentGroup(): GroupConfig {
       const parts = hostname.split('.');
       if (parts.length >= 3) {
         const sub = parts[0].toLowerCase();
-        if (REGISTERED_GROUPS[sub]) {
-          return REGISTERED_GROUPS[sub];
+        const resolvedFromSub = resolveGroupId(sub);
+        if (resolvedFromSub && REGISTERED_GROUPS[resolvedFromSub]) {
+          return REGISTERED_GROUPS[resolvedFromSub];
         }
       }
     } catch {
@@ -124,7 +141,8 @@ export function isPortalMode(urlLocation?: { hostname: string; search: string })
   const hasGroupParam = Boolean(searchParams.get('group'));
   if (!hasGroupParam) {
     const parts = hostname.split('.');
-    const hasRegisteredSubdomain = parts.length >= 3 && Boolean(REGISTERED_GROUPS[parts[0].toLowerCase()]);
+    const sub = parts.length >= 3 ? parts[0].toLowerCase() : '';
+    const hasRegisteredSubdomain = Boolean(resolveGroupId(sub));
     if (!hasRegisteredSubdomain) {
       return true;
     }
@@ -132,4 +150,3 @@ export function isPortalMode(urlLocation?: { hostname: string; search: string })
 
   return false;
 }
-

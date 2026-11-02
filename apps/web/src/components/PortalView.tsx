@@ -98,7 +98,7 @@ export function PortalView() {
           const defaultTranslateY = index * PEEK_OFFSET_PX;
           const translateY = isActive ? 0 : defaultTranslateY;
           const zIndex = isActive ? 30 : 10 - index;
-          const displayName = group.id === 'rincent' ? 'RiNCENT#' : group.name;
+          const displayName = group.name;
 
           return (
             <div
