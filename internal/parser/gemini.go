@@ -92,9 +92,9 @@ type geminiContent struct {
 }
 
 type geminiRequest struct {
-	Contents          []geminiContent    `json:"contents"`
-	SystemInstruction *geminiContent     `json:"system_instruction,omitempty"`
-	GenerationConfig  map[string]any     `json:"generationConfig,omitempty"`
+	Contents          []geminiContent `json:"contents"`
+	SystemInstruction *geminiContent  `json:"systemInstruction,omitempty"`
+	GenerationConfig  map[string]any  `json:"generationConfig,omitempty"`
 }
 
 type geminiResponse struct {
@@ -202,9 +202,11 @@ If a time or venue is not found, leave as empty string. Do not hallucinate.`,
 			},
 		},
 		GenerationConfig: map[string]any{
-			"response_mime_type": "application/json",
-			"temperature":        0.1,
+			"temperature": 0.1,
 		},
+	}
+	if c.APIKey != "" {
+		geminiReq.GenerationConfig["response_mime_type"] = "application/json"
 	}
 
 	reqBody, err := json.Marshal(geminiReq)
