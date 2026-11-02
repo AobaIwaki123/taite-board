@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/fetch"
+	"github.com/AobaIwaki123/taite-board/internal/filter"
+	"github.com/AobaIwaki123/taite-board/internal/promote"
+	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 	"github.com/AobaIwaki123/taite-board/internal/version"
@@ -28,6 +32,10 @@ func main() {
 	switch subcommand {
 	case "fetch":
 		runFetch(os.Args[2:])
+	case "filter":
+		runFilter(os.Args[2:])
+	case "promote":
+		runPromote(os.Args[2:])
 	case "validate":
 		runValidate(os.Args[2:])
 	case "sync":
@@ -67,6 +75,8 @@ Usage:
 
 The commands are:
   fetch           Fetch raw post snapshots from external URLs (ADR-0002)
+  filter          Evaluate raw posts with multi-stage local pre-filter (ADR-0018)
+  promote         Promote candidate JSON to schedule.json with validation & sync (ADR-0018)
   validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
   sync            Synchronize data/generated/schedule.json to apps/web/public/
   sort            Sort all sessions chronologically (date, live.start_time, id) and sync
@@ -343,5 +353,150 @@ func runBuild(args []string) {
 	if err := cmd.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Build error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func runFilter(args []string) {
+	fs := flag.NewFlagSet("filter", flag.ExitOnError)
+	inputPath := fs.String("in", "data/raw/runs", "Path to raw post JSON or runs directory")
+	candDir := fs.String("candidates", "data/candidate", "Directory containing candidate JSONs for deduplication")
+	requireMedia := fs.Bool("media", true, "Require at least one image attached")
+	maxAge := fs.Int("age", 168, "Maximum allowed post age in hours (default 168 = 7 days, 0 = unlimited)")
+
+	_ = fs.Parse(args)
+
+	existingFingerprints, err := filter.LoadExistingFingerprints(*candDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to load existing candidate fingerprints: %v\n", err)
+	}
+
+	rules := filter.DefaultRules
+	rules.RequireMedia = *requireMedia
+	rules.MaxAgeHours = *maxAge
+
+	// Collect posts to evaluate
+	var posts []*raw.Post
+	info, err := os.Stat(*inputPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error accessing input path %s: %v\n", *inputPath, err)
+		os.Exit(1)
+	}
+
+	if info.IsDir() {
+		_ = filepath.WalkDir(*inputPath, func(path string, d os.DirEntry, err error) error {
+			if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".json") || d.Name() == "manifest.json" {
+				return nil
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
+			var p raw.Post
+			if err := json.Unmarshal(data, &p); err == nil && p.SourceID != "" {
+				posts = append(posts, &p)
+			}
+			return nil
+		})
+	} else {
+		data, err := os.ReadFile(*inputPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", *inputPath, err)
+			os.Exit(1)
+		}
+		var p raw.Post
+		if err := json.Unmarshal(data, &p); err != nil {
+			fmt.Fprintf(os.Stderr, "Error unmarshaling %s: %v\n", *inputPath, err)
+			os.Exit(1)
+		}
+		posts = append(posts, &p)
+	}
+
+	if len(posts) == 0 {
+		fmt.Printf("No raw posts found to evaluate in %s\n", *inputPath)
+		return
+	}
+
+	fmt.Printf("=== Evaluating %d Raw Post(s) via Multi-Stage Filter ===\n", len(posts))
+	now := time.Now()
+	passedCount := 0
+	skippedCount := 0
+
+	for _, p := range posts {
+		res := filter.Evaluate(p, rules, existingFingerprints, now)
+		snippet := strings.ReplaceAll(p.Text, "\n", " ")
+		runes := []rune(snippet)
+		if len(runes) > 40 {
+			snippet = string(runes[:40]) + "..."
+		}
+
+		if res.Passed {
+			passedCount++
+			fmt.Printf("  PASS  [%s] %s\n", p.SourceID, snippet)
+		} else {
+			skippedCount++
+			fmt.Printf("  SKIP  [%s] [%s] %s (Text: %s)\n", p.SourceID, res.Stage, res.Reason, snippet)
+		}
+	}
+
+	fmt.Printf("\nSummary: Total=%d | Passed=%d | Skipped=%d\n", len(posts), passedCount, skippedCount)
+}
+
+func runPromote(args []string) {
+	fs := flag.NewFlagSet("promote", flag.ExitOnError)
+	targetFile := fs.String("target", "data/generated/schedule.json", "Target schedule.json file path")
+	entitiesFile := fs.String("entities", "data/curated/entities.json", "Curated entities dictionary path")
+	dryRun := fs.Bool("dry-run", false, "Preview promotion changes without writing files")
+	noSync := fs.Bool("no-sync", false, "Do not synchronize to web public targets")
+
+	_ = fs.Parse(args)
+
+	candFile := ""
+	if fs.NArg() > 0 {
+		candFile = fs.Arg(0)
+	}
+
+	if candFile == "" {
+		fmt.Fprintln(os.Stderr, "Error: candidate file argument is required: taite promote <candidate_file>")
+		fs.Usage()
+		os.Exit(1)
+	}
+
+	var syncTargets []string
+	if !*noSync && !*dryRun {
+		syncTargets = schedule.DefaultSyncTargets("")
+	}
+
+	opts := promote.PromoteOptions{
+		CandidateFile:       candFile,
+		TargetScheduleFile:  *targetFile,
+		CuratedEntitiesFile: *entitiesFile,
+		SyncTargets:         syncTargets,
+		NoSync:              *noSync || *dryRun,
+		DryRun:              *dryRun,
+	}
+
+	res, err := promote.PromoteCandidate(opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Promotion failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	modeStr := ""
+	if *dryRun {
+		modeStr = " (DRY-RUN)"
+	}
+	fmt.Printf("=== Candidate Promotion Summary%s ===\n", modeStr)
+	fmt.Printf("Status: SUCCESS (%d added, %d updated)\n\n", res.TotalAdded, res.TotalUpdated)
+	fmt.Println("Sessions:")
+	for _, s := range res.Sessions {
+		fmt.Printf("  [%s] %-12s | %s %-5s | %-16s | %s\n", s.Action, s.ID, s.Date, s.LiveTime, s.Venue, s.Title)
+	}
+
+	if !*dryRun {
+		fmt.Printf("\n✓ Schedule file updated: %s\n", *targetFile)
+		if len(syncTargets) > 0 {
+			fmt.Printf("✓ Auto-synced to %d web public target(s)\n", len(syncTargets))
+		}
+		fmt.Println("✓ Validation PASSED (All ADR-0001 schema requirements met)")
 	}
 }

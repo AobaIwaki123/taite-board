@@ -246,6 +246,26 @@ func padTime(t string) string {
 	return fmt.Sprintf("%02d:%02d", h, m)
 }
 
+// ResolveVenueName resolves a raw venue string against canonical entities.
+func (r *Resolver) ResolveVenueName(venueName string) (canonicalID, displayName string) {
+	if venueName == "" {
+		return "", ""
+	}
+	norm := NormalizeText(venueName)
+	for _, v := range r.entities.Entities.Venues {
+		if NormalizeText(v.Name) == norm {
+			return v.CanonicalID, v.Name
+		}
+		for _, alias := range v.Aliases {
+			if strings.EqualFold(NormalizeText(alias), norm) || strings.Contains(norm, NormalizeText(alias)) {
+				return v.CanonicalID, v.Name
+			}
+		}
+	}
+	slug := strings.ToLower(strings.ReplaceAll(venueName, " ", "-"))
+	return fmt.Sprintf("venue:%s", slug), venueName
+}
+
 // CleanWhitespace trims extra spacing and preserves newlines.
 func CleanWhitespace(s string) string {
 	lines := strings.Split(s, "\n")
