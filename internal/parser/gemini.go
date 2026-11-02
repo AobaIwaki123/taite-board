@@ -266,7 +266,8 @@ If a time or venue is not found, leave as empty string. Do not hallucinate.`,
 		return nil, fmt.Errorf("gemini returned no candidates")
 	}
 
-	jsonText := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	rawText := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	jsonText := cleanJSONText(rawText)
 	var out extractedOutput
 	if err := json.Unmarshal([]byte(jsonText), &out); err != nil {
 		return nil, fmt.Errorf("parsing extracted json from gemini: %w (content: %s)", err, jsonText)
@@ -308,6 +309,19 @@ If a time or venue is not found, leave as empty string. Do not hallucinate.`,
 			OutputTokens: geminiResp.UsageMetadata.CandidatesTokenCount,
 		},
 	}, nil
+}
+
+func cleanJSONText(raw string) string {
+	s := strings.TrimSpace(raw)
+	if strings.HasPrefix(s, "```json") {
+		s = strings.TrimPrefix(s, "```json")
+	} else if strings.HasPrefix(s, "```") {
+		s = strings.TrimPrefix(s, "```")
+	}
+	if strings.HasSuffix(s, "```") {
+		s = strings.TrimSuffix(s, "```")
+	}
+	return strings.TrimSpace(s)
 }
 
 func (c *GeminiClient) fetchImage(ctx context.Context, imageURL string) ([]byte, string, error) {
