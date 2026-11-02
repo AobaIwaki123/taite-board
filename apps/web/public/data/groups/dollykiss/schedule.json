@@ -1,0 +1,83 @@
+{
+  "target_group": {
+    "name": "Dolly Kiss",
+    "short_name": "ドリキス",
+    "official_x": "https://x.com/DollyKiss_staff",
+    "canonical_id": "group:dollykiss"
+  },
+  "sessions": [
+    {
+      "title": "アイドルマリアージュVol.79",
+      "date": "2026-11-03",
+      "day_of_week": "火祝",
+      "venue": {
+        "name": "ベルサール虎ノ門",
+        "map_query": "ベルサール虎ノ門",
+        "map_url": "https://maps.google.com/?q=ベルサール虎ノ門"
+      },
+      "live": {
+        "start_time": "14:55",
+        "end_time": "15:15"
+      },
+      "benefit": {
+        "type": "並行",
+        "start_time": "15:20",
+        "end_time": "16:20",
+        "booth": "B"
+      },
+      "admission_bonus": "指名入場特典：10秒動画券1枚（2本回し特典：10秒間写メ撮り放題券1枚）",
+      "ticket": {
+        "platform": "TicketDive",
+        "url": "https://ticketdive.com/event/idolmariage_79",
+        "prices": [
+          {
+            "tier": "前方エリア",
+            "price": "¥5,000",
+            "amount": 5000
+          },
+          {
+            "tier": "一般エリア",
+            "price": "¥3,000",
+            "amount": 3000
+          }
+        ]
+      },
+      "image_url": "https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large",
+      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2115639770944586018"
+    },
+    {
+      "title": "＠JAM×アイドル横丁presents 秋葉原アイドルサーキットvol.6",
+      "date": "2026-11-03",
+      "day_of_week": "火祝",
+      "venue": {
+        "name": "ANTHEM AKIBA",
+        "map_query": "ANTHEM AKIBA",
+        "map_url": "https://maps.google.com/?q=ANTHEM AKIBA"
+      },
+      "live": {
+        "start_time": "18:40",
+        "end_time": "19:00"
+      },
+      "benefit": {
+        "type": "別会場",
+        "start_time": "19:30",
+        "end_time": "20:30",
+        "booth": "通運会館E"
+      },
+      "admission_bonus": "指名入場特典：30秒動画券1枚（2本回し特典：10秒間写メ撮り放題券1枚）",
+      "ticket": {
+        "platform": "atjam",
+        "url": "https://atjam.jp/ticket",
+        "prices": [
+          {
+            "tier": "通常チケット",
+            "price": "¥7,500",
+            "amount": 7500
+          }
+        ]
+      },
+      "image_url": "https://pbs.twimg.com/media/HUtrcHvbMAAjFhe.jpg?name=large",
+      "source_tweet_url": "https://x.com/DollyKiss_staff/status/2111019330574127141"
+    }
+  ]
+}
