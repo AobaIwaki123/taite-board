@@ -4,7 +4,7 @@
 外部SNSや告知画像から抽出・名寄せされた確定スケジュールデータを静的JSONとして配信し、モバイルブラウザ向けに表示します。
 
 - **本番URL**: [https://ribonclock.iorin.net/](https://ribonclock.iorin.net/)
-- **アクセス監視ダッシュボード**: [https://ribonclock-dashboard.aooba.net/](https://ribonclock-dashboard.aooba.net/)
+- **アクセス監視＆パイプラインダッシュボード**: `http://ribonclock-dashboard`（Tailscale専用・未認証露出防止）
 - **ローカル開発URL**: `http://localhost:8089/index.html`
 
 ---
@@ -44,7 +44,7 @@ URL共有時のカードとアプリアイコンは、カレンダーとリボ�
 6. **プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード (ADR-0016)**:
    - Nginx の共有匿名アクセスログを Go 製サイドカー（`cmd/monitor`）がリアルタイム集計。
    - クラスタの Prometheus 向けに `/metrics`（`ServiceMonitor`）を公開し、時系列推移を収集。
-   - 外部 Ingress（`https://ribonclock-dashboard.aooba.net/`）経由で累計アクセス、ルート別比率、24時間推移、リアルタイムアクセスフィードを即座に確認可能。
+   - Tailscale 内部エンドポイント（`http://ribonclock-dashboard`）経由で累計アクセス、ルート別比率、24時間推移、パイプラインファネル、リアルタイムアクセスフィードをセキュアに確認可能（一般公開 Ingress はプライバシー保護のため廃止済み）。
 
 ---
 

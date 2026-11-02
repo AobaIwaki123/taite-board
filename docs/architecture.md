@@ -382,7 +382,7 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - **クライアント基盤**: iOSネイティブ版は二重保守防止のため凍結し、モバイルWeb（Preact PWA + Service Worker）に一本化（ADR-0011, ADR-0014）。将来の推し活コンパニオンアプリ（Screen Time 制限・チェキツイ管理）は独立アプリとしてスコープ分離。
 - **スケジュールデータのガバナンス**: 人手編集による順序狂いやID重複を防ぐため、Go CLI（`taite sort`, `taite add-session`, `taite update-session`）による自動化・機械的検証（順序・インターバル検査）を確立（ADR-0014）。
 - **リリース管理とバージョニング**: リポジトリ直下の `VERSION` ファイルとワンコマンドスクリプト（`./scripts/release.sh`）により、軽量な SemVer バージョニングと Git リリースタグ発行、アプリ画面最下部へのバージョン表示を確立（ADR-0015）。
-- **アクセス可観測性とダッシュボード**: Nginx 共有ログを監視する Go サイドカー（`cmd/monitor`）により、Prometheus メトリクス公開（`/metrics`）とリアルタイム Web ダッシュボード（`ribonclock-dashboard.aooba.net`）を両立（ADR-0016）。
+- **アクセス可観測性とダッシュボード**: Nginx 共有ログを監視する Go サイドカー（`cmd/monitor`）により、Prometheus メトリクス公開（`/metrics`）と Tailscale 経由のセキュアなリアルタイム Web ダッシュボード（`http://ribonclock-dashboard`）を両立。外部一般公開 Ingress はプライバシー保護のため廃止済み（ADR-0016）。
 - **公開形式と配信**: `schedule.json` に固定し、Kubernetes + ArgoCD + Cloudflare Tunnel 経由で静的配信（ADR-0005, ADR-0009）。
 - **タイポグラフィとUI構造ガバナンス**: 任意フォントサイズ指定による描画崩れを抑止し、`--text-label`, `--text-meta` 等のグローバルトークンによる認知的ガバナンスを確立（ADR-0017）。
 - **告知巡回と昇格パイプライン**: 自宅k8sヘッドレスPlaywright巡回、ローカル多段前処理フィルター（メディア・キーワード・指紋重複排除）、Cloud Run AIパーサー、およびセミオート昇格CLI（`taite promote`）による構造を確定（ADR-0018, `docs/automated-crawler-and-promotion-pipeline.md`）。
