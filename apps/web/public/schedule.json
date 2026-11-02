@@ -12,7 +12,7 @@
     "color_code": "#ef4444",
     "birthday_title": "神楽あゆ生誕祭 2026（20th Anniversary）",
     "crowdfunding_url": "https://x.com/Ribbon_Clock/status/2114643208710033610",
-    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg\u0026name=large",
+    "banner_image": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
     "canonical_id": "member:ribbon-clock:ayu-kagura"
   },
   "promotions": [
@@ -24,7 +24,7 @@
       "subtitle": "初めての生誕祭、そして20歳という大切な節目🎀 クラファン開催中♡",
       "cta_label": "CAMPFIREで支援する ↗",
       "cta_url": "https://camp-fire.jp/projects/983246/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
-      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
       "deadline": "2026-11-22",
       "priority": 100,
       "active": true
@@ -99,7 +99,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVIjWywaQAE3BM9?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2112891667640656194",
       "images": [
         {
@@ -132,7 +132,7 @@
       "date": "2026-11-01",
       "day_of_week": "日",
       "id": "20261101-1",
-      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYs_pwacAADw5Q?format=jpg&name=large",
       "images": [
         {
           "label": "フライヤー (1/2)",
@@ -207,7 +207,7 @@
       "date": "2026-11-01",
       "day_of_week": "日",
       "id": "20261101-2",
-      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVeSDfQbEAAs_A5?format=jpg&name=large",
       "images": [
         {
           "label": "フライヤー (1/2)",
@@ -541,9 +541,19 @@
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TicketDive",
-        "url": "https://ticketdive.com/event/alamodepetite_142"
+        "url": "https://ticketdive.com/event/alamodepetite_142",
+        "prices": [
+          {
+            "tier": "前方エリア",
+            "price": "¥6,000"
+          },
+          {
+            "tier": "通常エリア",
+            "price": "¥3,000"
+          }
+        ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYEoC_agAAWg3T?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113918424439296285",
       "images": [
         {
@@ -588,7 +598,17 @@
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TicketDive",
-        "url": "https://ticketdive.com/event/261109_PF"
+        "url": "https://ticketdive.com/event/261109_PF",
+        "prices": [
+          {
+            "tier": "前方エリア",
+            "price": "¥2,000"
+          },
+          {
+            "tier": "通常エリア",
+            "price": "¥0 (無料)"
+          }
+        ]
       },
       "image_url": "https://pbs.twimg.com/media/HU6lnM-bgAEkjW5.jpg?name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2111808264258089266",
@@ -635,9 +655,23 @@
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TicketDive",
-        "url": "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y"
+        "url": "https://ticketdive.com/event/MOiMYfBRs7rtfnVauQ0Y",
+        "prices": [
+          {
+            "tier": "前方エリア",
+            "price": "¥3,000"
+          },
+          {
+            "tier": "通常エリア",
+            "price": "¥1,000"
+          },
+          {
+            "tier": "当日券",
+            "price": "各+¥1,000 (+1D)"
+          }
+        ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVYsxgNawAAsqxL?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2114295917075460118",
       "images": [
         {
@@ -755,7 +789,7 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg\u0026name=large",
+      "image_url": "https://pbs.twimg.com/media/HVUljLHbwAACpZZ?format=jpg&name=large",
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/2113948622446571638",
       "images": [
         {
