@@ -65,7 +65,7 @@ URL やフライヤー画像を taite-board の公開データへ反映する前
      --require-session
    ```
 
-6. 検証結果と未解決項目をユーザーへ報告する。候補 JSON を `data/generated/schedule.json` にコピーしたり、候補だけで本番公開したりしない。公開には [docs/manual-ingest-release.md](../../../docs/manual-ingest-release.md) のレビュー手順を使う。
+6. 検証結果と未解決項目をユーザーへ報告する。候補 JSON を `data/generated/schedule.json` にコピーしたり、候補だけで本番公開したりしない。公開には [docs/automated-crawler-and-promotion-pipeline.md](../../../docs/automated-crawler-and-promotion-pipeline.md) の昇格（`taite promote`）手順を使う。
 
 ## Script と Skill の責務分割 (Separation of Responsibilities)
 

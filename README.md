@@ -115,12 +115,14 @@ taite-board/
 │   └── access-report.Dockerfile # アクセス集計CronJobコンテナ定義
 ├── docs/                      # 開発・アーキテクチャドキュメント
 │   ├── README.md              # ブランドアセット比較
-│   ├── home-orchestrator-cloud-run-ai-parser.md # 自宅処理とCloud Run AIパーサー設計
 │   ├── architecture.md        # アーキテクチャ設計書
+│   ├── automated-crawler-and-promotion-pipeline.md # X告知自動巡回・多段前処理・昇格パイプライン設計
+│   ├── multi-group-hub-and-reusable-architecture.md # マルチグループ展開・コンパニオンアプリ設計構想
+│   ├── privacy-preserving-access-counting.md # プライバシー配慮型アクセス集計設計
 │   ├── development.md         # 開発者ガイド
 │   ├── deployment.md          # デプロイ・Kubernetesガイド
 │   └── frontend-guidelines.md # フロントエンド設計・TypeScript規約
-├── adr/                       # アーキテクチャ決定記録 (0001〜0016)
+├── adr/                       # アーキテクチャ決定記録 (0001〜0018)
 │   └── README.md              # ADR 作成ガイドライン
 ├── scripts/
 │   ├── release.sh             # SemVer バンプ・検証・タグ打ち・GitHub Release 自動化

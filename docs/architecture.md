@@ -1,4 +1,4 @@
-# taite-board アーキテクチャ設計（Draft）
+# taite-board アーキテクチャ設計書
 
 ## 1. この文書の位置づけ
 
@@ -373,16 +373,22 @@ DB、APIサーバー、キュー、マイクロサービスは、静的なschedu
 - [ADR-0014: 画像オフラインキャッシュとGo CLIデータガバナンス](../adr/0014-offline-image-cache-and-cli-data-governance.md)
 - [ADR-0015: 軽量セマンティックバージョニングとリリースタグ運用](../adr/0015-lightweight-semantic-versioning-and-release-management.md)
 - [ADR-0016: プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード](../adr/0016-access-monitoring-infrastructure-and-dashboard.md)
+- [ADR-0017: グローバルタイポグラフィトークンと構造的ガバナンス](../adr/0017-global-typography-tokens-and-structural-governance.md)
+- [ADR-0018: 自宅k8sヘッドレス巡回と多段前処理による告知自動取得パイプライン](../adr/0018-automated-x-crawler-and-multi-stage-pipeline.md)
 
 ## 14. 解決済みおよび未決定事項の整理
 
 ### 解決済み事項
-- **クライアント基盤**: iOSネイティブ版は二重保守防止のため凍結し、モバイルWeb（Preact PWA + Service Worker）に一本化（ADR-0011, ADR-0014）。
+- **クライアント基盤**: iOSネイティブ版は二重保守防止のため凍結し、モバイルWeb（Preact PWA + Service Worker）に一本化（ADR-0011, ADR-0014）。将来の推し活コンパニオンアプリ（Screen Time 制限・チェキツイ管理）は独立アプリとしてスコープ分離。
 - **スケジュールデータのガバナンス**: 人手編集による順序狂いやID重複を防ぐため、Go CLI（`taite sort`, `taite add-session`, `taite update-session`）による自動化・機械的検証（順序・インターバル検査）を確立（ADR-0014）。
 - **リリース管理とバージョニング**: リポジトリ直下の `VERSION` ファイルとワンコマンドスクリプト（`./scripts/release.sh`）により、軽量な SemVer バージョニングと Git リリースタグ発行、アプリ画面最下部へのバージョン表示を確立（ADR-0015）。
 - **アクセス可観測性とダッシュボード**: Nginx 共有ログを監視する Go サイドカー（`cmd/monitor`）により、Prometheus メトリクス公開（`/metrics`）とリアルタイム Web ダッシュボード（`ribonclock-dashboard.aooba.net`）を両立（ADR-0016）。
 - **公開形式と配信**: `schedule.json` に固定し、Kubernetes + ArgoCD + Cloudflare Tunnel 経由で静的配信（ADR-0005, ADR-0009）。
+- **タイポグラフィとUI構造ガバナンス**: 任意フォントサイズ指定による描画崩れを抑止し、`--text-label`, `--text-meta` 等のグローバルトークンによる認知的ガバナンスを確立（ADR-0017）。
+- **告知巡回と昇格パイプライン**: 自宅k8sヘッドレスPlaywright巡回、ローカル多段前処理フィルター（メディア・キーワード・指紋重複排除）、Cloud Run AIパーサー、およびセミオート昇格CLI（`taite promote`）による構造を確定（ADR-0018, `docs/automated-crawler-and-promotion-pipeline.md`）。
+- **マルチテナント・拡張設計**: ドメイン・パスに基づくグループ動的分離、コアロジックのSDKモジュール化（`apps/web/src/core/index.ts`）、ポータルハブ構想を策定（`docs/multi-group-hub-and-reusable-architecture.md`）。
 
-### 未決定事項
-- 名寄せ対象をグループ・会場・チケットサービスからどこまで広げるか。
-- 画像内タイテ解析（OCR / マルチモーダルLLM）による自動候補抽出パイプラインの本格統合。
+### 未決定事項・今後の推進課題
+- **ローカル多段前処理フィルターの実装と統合**: `internal/filter` のキーワード・メディア・指紋重複判定ユニットテストとCLI組み込み。
+- **昇格コマンド `taite promote` の実装**: `data/candidate/` の対話的差分確認と `schedule.json` への安全なマージ。
+- **ポータルハブ（`iorin.net`）およびコンパニオンアプリ（チェキツイ・Screen Time）の個別起票**: 本体の運用安定化後に別Workspaceまたはサブディレクトリで順次プロトタイピング。
