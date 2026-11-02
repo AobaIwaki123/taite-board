@@ -72,6 +72,7 @@ type Collector struct {
 	intakesPath   string
 
 	dataDir            string
+	stateFilePath      string
 	pipelineStats      telemetry.PipelineStats
 	lastPipelineScan   time.Time
 	pipelineScanPeriod time.Duration
@@ -100,7 +101,15 @@ func (c *Collector) SetDataDir(path string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.dataDir = path
-	c.refreshPipelineStatsLocked()
+	c.doRefreshPipelineStatsLocked()
+}
+
+// SetStateFilePath sets the persistence path for pipeline state retention across restarts.
+func (c *Collector) SetStateFilePath(path string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.stateFilePath = path
+	c.doRefreshPipelineStatsLocked()
 }
 
 // SetPipelineStats explicitly injects pipeline telemetry (useful for testing or direct event push).
@@ -112,13 +121,17 @@ func (c *Collector) SetPipelineStats(stats telemetry.PipelineStats) {
 }
 
 func (c *Collector) refreshPipelineStatsLocked() {
-	if c.dataDir == "" {
+	if c.dataDir == "" && c.stateFilePath == "" {
 		return
 	}
 	if time.Since(c.lastPipelineScan) < c.pipelineScanPeriod {
 		return
 	}
-	stats, err := telemetry.CollectPipelineStats(c.dataDir)
+	c.doRefreshPipelineStatsLocked()
+}
+
+func (c *Collector) doRefreshPipelineStatsLocked() {
+	stats, err := telemetry.CollectAndPersist(c.dataDir, c.stateFilePath)
 	if err == nil {
 		c.pipelineStats = stats
 	}

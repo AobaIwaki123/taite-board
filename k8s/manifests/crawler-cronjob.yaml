@@ -41,7 +41,7 @@ spec:
                 - name: TARGET_ACCOUNT
                   value: "Ribbon_Clock"
                 - name: OUTPUT_DIR
-                  value: "/data/raw/runs"
+                  value: "/var/log/ribonclock/runs"
                 - name: MAX_POSTS
                   value: "10"
                 - name: X_AUTH_TOKEN
@@ -58,7 +58,7 @@ spec:
                       optional: true
               volumeMounts:
                 - name: shared-data
-                  mountPath: /data
+                  mountPath: /var/log/ribonclock
               resources:
                 requests:
                   cpu: 100m
@@ -74,4 +74,4 @@ spec:
           volumes:
             - name: shared-data
               persistentVolumeClaim:
-                claimName: ribonclock-pvc
+                claimName: ribonclock-log-pvc

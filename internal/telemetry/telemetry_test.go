@@ -122,3 +122,47 @@ func TestCollectPipelineStats(t *testing.T) {
 		t.Errorf("ASCII funnel missing cloud run dispatched: %s", ascii)
 	}
 }
+
+func TestCollectAndPersist(t *testing.T) {
+	tempDir := t.TempDir()
+	stateFile := filepath.Join(tempDir, "state", "pipeline_state.json")
+
+	// Initial empty scan should write empty or return empty
+	stats, err := CollectAndPersist(tempDir, stateFile)
+	if err != nil {
+		t.Fatalf("unexpected error on empty collect: %v", err)
+	}
+	if stats.TotalRuns != 0 {
+		t.Errorf("expected 0 runs on empty dir, got %d", stats.TotalRuns)
+	}
+
+	// Persist mock stats directly to state file
+	mockStats := PipelineStats{
+		TotalRuns:     5,
+		DetectedPosts: 15,
+		FilteredPosts: 12,
+		FilterPassed:  3,
+		LastRun: &CrawlRunRecord{
+			RunID:      "20261102T120000+0900",
+			InputCount: 4,
+			Filtered:   3,
+			Passed:     1,
+			Status:     "Candidates Extracted",
+		},
+	}
+	if err := SavePipelineState(stateFile, mockStats); err != nil {
+		t.Fatalf("failed to save pipeline state: %v", err)
+	}
+
+	// Now CollectAndPersist on empty dataDir should fall back to stateFile
+	recovered, err := CollectAndPersist(tempDir, stateFile)
+	if err != nil {
+		t.Fatalf("failed to recover from stateFile: %v", err)
+	}
+	if recovered.TotalRuns != 5 {
+		t.Errorf("expected 5 recovered runs, got %d", recovered.TotalRuns)
+	}
+	if recovered.LastRun == nil || recovered.LastRun.RunID != "20261102T120000+0900" {
+		t.Errorf("failed to recover LastRun record")
+	}
+}
