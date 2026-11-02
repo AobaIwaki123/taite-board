@@ -79,6 +79,8 @@ AI対話時における「コマンドを打つたびに処理が停止するオ
    # 例: ./scripts/ship.sh "feat(schedule): update photo rules" "Summary of changes"
    ```
    - 途中で対話型コマンドを複数回打つことを禁止し、出荷パイプラインに処理を委譲します。
+4. **機能追加・バグ修正時の適宜バージョニング (`scripts/release.sh`)**:
+   - 機能追加（`minor`）やバグ修正（`patch`）の実装・PRマージ完了後は、バージョン番号を放置せず、`./scripts/release.sh [patch|minor|major]` を実行して `VERSION` および `apps/web/package.json` の更新、Git タグ（`vX.Y.Z`）の付与、および GitHub Release の発行を適宜実施します。
 
 ---
 

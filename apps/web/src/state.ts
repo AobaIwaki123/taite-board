@@ -3,13 +3,18 @@
  */
 
 import { ScheduleData } from './types/schedule';
+import { resolveCurrentGroup, GroupConfig } from './config/group';
 
 export interface LoadScheduleResult {
   data: ScheduleData;
   isFallback: boolean;
+  group: GroupConfig;
 }
 
-export async function loadScheduleData(): Promise<LoadScheduleResult> {
+export async function loadScheduleData(customGroup?: GroupConfig): Promise<LoadScheduleResult> {
+  const group = customGroup || resolveCurrentGroup();
+  const cacheKey = `${group.storagePrefix}cached_schedule`;
+
   // Purge any residual telemetry keys for privacy governance (Zero Telemetry)
   try {
     localStorage.removeItem('taite_visitor_id');
@@ -24,15 +29,15 @@ export async function loadScheduleData(): Promise<LoadScheduleResult> {
   let isFallback = false;
 
   try {
-    // schedule.json を優先取得 (フォールバックとして mock_schedule.json も試行)
-    let res = await fetch('schedule.json?t=' + Date.now()).catch(() => null);
+    // group.dataUrl を優先取得 (フォールバックとして group.fallbackDataUrl も試行)
+    let res = await fetch(`${group.dataUrl}?t=${Date.now()}`).catch(() => null);
     if (!res || !res.ok) {
-      res = await fetch('mock_schedule.json?t=' + Date.now()).catch(() => null);
+      res = await fetch(`${group.fallbackDataUrl}?t=${Date.now()}`).catch(() => null);
     }
     if (res && res.ok) {
       data = (await res.json()) as ScheduleData;
       try {
-        localStorage.setItem('taite_cached_schedule', JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       } catch {
         // ignore
       }
@@ -43,7 +48,7 @@ export async function loadScheduleData(): Promise<LoadScheduleResult> {
     console.warn('Network load failed, falling back to local cache', e);
     isFallback = true;
     try {
-      const cached = localStorage.getItem('taite_cached_schedule');
+      const cached = localStorage.getItem(cacheKey);
       if (cached) {
         data = JSON.parse(cached) as ScheduleData;
       }
@@ -56,5 +61,5 @@ export async function loadScheduleData(): Promise<LoadScheduleResult> {
     throw new Error('Fatal: No schedule data available');
   }
 
-  return { data, isFallback };
+  return { data, isFallback, group };
 }

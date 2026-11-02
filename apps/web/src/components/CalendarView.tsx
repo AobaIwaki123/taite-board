@@ -117,9 +117,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
               </div>
             </div>
             <div class="p-1.5 rounded-lg bg-stone-950/60 border border-white/5">
-              <div class="text-[10px] text-stone-400">
-                チェキ ({monthSummary.chekiSignedCount + monthSummary.chekiRegularCount}枚)
-              </div>
+              <div class="text-[10px] text-stone-400">チェキ代</div>
               <div class="font-mono font-bold text-stone-200">
                 ¥{monthSummary.chekiTotal.toLocaleString()}
               </div>
