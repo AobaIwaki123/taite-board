@@ -60,10 +60,13 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
 
   const ticketPrices = (session.ticket?.prices || [])
     .filter((p) => !isIncrementalFee(p.price))
-    .map((p) => ({
-      label: p.tier || 'チケット',
-      fee: parseTicketFee(p.price),
-    }))
+    .map((p) => {
+      const fee = typeof p.amount === 'number' ? p.amount : parseTicketFee(p.price);
+      return {
+        label: p.tier || 'チケット',
+        fee,
+      };
+    })
     .filter((p) => p.fee > 0);
 
   const signedTotal = expense.chekiSignedCount * CHEKI_SIGNED_PRICE;

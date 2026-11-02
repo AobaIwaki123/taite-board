@@ -477,7 +477,9 @@ export function CockpitView({
                   class="px-2 py-0.5 rounded-lg bg-stone-950 border border-white/10 text-xs"
                 >
                   <span class="text-stone-400 mr-1">{p.tier}:</span>
-                  <strong class="text-rose-300 font-bold">{p.price}</strong>
+                  <strong class="text-rose-300 font-bold">
+                    {p.price || (typeof p.amount === 'number' ? `¥${p.amount.toLocaleString()}` : '')}
+                  </strong>
                 </span>
               ))}
             </div>
