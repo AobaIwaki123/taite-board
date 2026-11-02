@@ -95,6 +95,113 @@
       </article>
     </div>
 
+    <!-- Pipeline Funnel & Cost Protection Card -->
+    <article style="margin-bottom: 2rem; border: 1px solid rgba(56, 189, 248, 0.25);">
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.05rem; color: #38bdf8; display: flex; align-items: center; gap: 6px;">
+            Pipeline Funnel & Cost Protection
+          </strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            End-to-end telemetry: Crawl detection, multi-stage pre-filtering, Cloud Run AI parser dispatches, and schedule promotion.
+          </small>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">Cost Shield Active</span>
+          <span id="pipeline-last-scanned" class="badge" style="background: rgba(255, 255, 255, 0.08); color: var(--pico-muted-color);">Scanned: -</span>
+        </div>
+      </header>
+
+      <!-- Funnel Metrics 4-Column Grid -->
+      <div class="grid" style="margin-top: 1rem; margin-bottom: 1.25rem;">
+        <div style="background: rgba(255, 255, 255, 0.02); padding: 0.85rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <div style="font-size: 0.75rem; color: var(--pico-muted-color); text-transform: uppercase;">1. Crawl Detected</div>
+          <div id="stat-pipe-detected" style="font-size: 1.6rem; font-weight: 800; font-family: monospace; color: #38bdf8;">-</div>
+          <div style="font-size: 0.72rem; color: var(--pico-muted-color);">Total posts from runs</div>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); padding: 0.85rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <div style="font-size: 0.75rem; color: var(--pico-muted-color); text-transform: uppercase;">2. Filter Shielded</div>
+          <div id="stat-pipe-filtered" style="font-size: 1.6rem; font-weight: 800; font-family: monospace; color: #fb7185;">-</div>
+          <div id="stat-pipe-filtered-sub" style="font-size: 0.72rem; color: var(--pico-muted-color);">Discarded locally</div>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); padding: 0.85rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <div style="font-size: 0.75rem; color: var(--pico-muted-color); text-transform: uppercase;">3. AI Parser / Passed</div>
+          <div id="stat-pipe-ai" style="font-size: 1.6rem; font-weight: 800; font-family: monospace; color: #f59e0b;">-</div>
+          <div id="stat-pipe-ai-sub" style="font-size: 0.72rem; color: var(--pico-muted-color);">Cloud Run vision</div>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); padding: 0.85rem; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <div style="font-size: 0.75rem; color: var(--pico-muted-color); text-transform: uppercase;">4. Promoted Sessions</div>
+          <div id="stat-pipe-promoted" style="font-size: 1.6rem; font-weight: 800; font-family: monospace; color: #10b981;">-</div>
+          <div style="font-size: 0.72rem; color: var(--pico-muted-color);">Active in schedule.json</div>
+        </div>
+      </div>
+
+      <!-- Funnel Progress & Cost Protection Banner -->
+      <div style="background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 8px;">
+          <span style="font-size: 0.85rem; font-weight: 600; color: #e2e8f0;">Local Pre-Filter Breakdown</span>
+          <span id="stat-pipe-cost" style="font-size: 0.82rem; font-family: monospace; color: #10b981; font-weight: 600;">
+            Estimated Saved: $0.0000 USD (0 calls shielded)
+          </span>
+        </div>
+
+        <!-- Filter Tags Breakdown -->
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 0.75rem;">
+          <span class="badge" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">
+            Media Check: <strong id="filter-media-count">0</strong>
+          </span>
+          <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+            Keyword / Noise: <strong id="filter-keyword-count">0</strong>
+          </span>
+          <span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+            Age Expired: <strong id="filter-age-count">0</strong>
+          </span>
+          <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+            Duplicate Check: <strong id="filter-dup-count">0</strong>
+          </span>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+            AI Cache Hits: <strong id="filter-cache-count">0</strong>
+          </span>
+        </div>
+
+        <!-- Progress Bar (Funnel Efficiency) -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="flex: 1; height: 8px; background: rgba(255,255,255,0.08); border-radius: 9999px; overflow: hidden; display: flex;">
+            <div id="bar-shielded" style="width: 0%; background: #fb7185; height: 100%; transition: width 0.3s ease;" title="Filtered Locally"></div>
+            <div id="bar-passed" style="width: 0%; background: #10b981; height: 100%; transition: width 0.3s ease;" title="Passed Pre-Filter"></div>
+          </div>
+          <span id="shield-efficiency-rate" style="font-size: 0.75rem; font-family: monospace; color: var(--pico-muted-color); white-space: nowrap;">0% Shielded</span>
+        </div>
+      </div>
+
+      <!-- Recent Crawl Runs Accordion -->
+      <details id="pipeline-runs-details">
+        <summary style="font-size: 0.82rem; color: var(--pico-muted-color); cursor: pointer;">
+          Recent Crawler Runs (<span id="pipeline-runs-count">0</span>)
+        </summary>
+        <div style="overflow-x: auto; margin-top: 0.5rem;">
+          <table class="striped" style="font-size: 0.8rem; font-family: monospace; margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th scope="col">Run ID</th>
+                <th scope="col">Fetched At (JST)</th>
+                <th scope="col">Detected</th>
+                <th scope="col">Filtered</th>
+                <th scope="col">Passed</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="pipeline-runs-tbody">
+              <tr><td colspan="6" style="text-align:center; color:var(--pico-muted-color);">No crawler runs recorded yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </article>
+
     <!-- X Timetable Ingest & AI Pipeline Card -->
     <article style="margin-bottom: 2rem; border: 1px solid rgba(244, 63, 94, 0.25);">
       <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
@@ -346,6 +453,73 @@
                 </div>
               </div>
             `).join('');
+          }
+        }
+
+        // Update Pipeline Funnel Telemetry
+        if (data.pipeline) {
+          const pipe = data.pipeline;
+          const detected = Number(pipe.detected_posts || 0);
+          const filtered = Number(pipe.filtered_posts || 0);
+          const passed = Number(pipe.filter_passed || 0);
+          const aiCalls = Number(pipe.ai_dispatched || 0);
+          const promoted = Number(pipe.promoted_sessions || 0);
+
+          document.getElementById('stat-pipe-detected').innerText = detected.toLocaleString();
+          document.getElementById('stat-pipe-filtered').innerText = filtered.toLocaleString();
+          document.getElementById('stat-pipe-ai').innerText = aiCalls.toLocaleString();
+          document.getElementById('stat-pipe-promoted').innerText = promoted.toLocaleString();
+
+          const filterRate = detected > 0 ? (filtered / detected * 100).toFixed(0) : 0;
+          document.getElementById('stat-pipe-filtered-sub').innerText = filterRate + '% blocked locally';
+
+          const costSaved = Number(pipe.estimated_cost_saved_usd || 0).toFixed(4);
+          const savedCalls = Number(pipe.saved_api_calls || 0);
+          document.getElementById('stat-pipe-cost').innerText =
+            `Estimated Saved: $${costSaved} USD (${savedCalls} calls shielded)`;
+
+          if (pipe.last_scanned_at) {
+            const scanTime = new Date(pipe.last_scanned_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('pipeline-last-scanned').innerText = 'Scanned: ' + scanTime;
+          }
+
+          // Breakdown badges
+          if (pipe.filter_breakdown) {
+            document.getElementById('filter-media-count').innerText = pipe.filter_breakdown.media || 0;
+            document.getElementById('filter-keyword-count').innerText = pipe.filter_breakdown.keyword || 0;
+            document.getElementById('filter-age-count').innerText = pipe.filter_breakdown.age || 0;
+            document.getElementById('filter-dup-count').innerText = pipe.filter_breakdown.duplicate || 0;
+          }
+          document.getElementById('filter-cache-count').innerText = pipe.ai_cache_hits || 0;
+
+          // Progress bar & efficiency
+          const shieldRate = detected > 0 ? Math.round((filtered / detected) * 100) : 0;
+          const passRate = detected > 0 ? Math.round((passed / detected) * 100) : 0;
+          document.getElementById('bar-shielded').style.width = shieldRate + '%';
+          document.getElementById('bar-passed').style.width = passRate + '%';
+          document.getElementById('shield-efficiency-rate').innerText = shieldRate + '% Shielded';
+
+          // Crawler runs table
+          if (pipe.recent_runs) {
+            document.getElementById('pipeline-runs-count').innerText = pipe.recent_runs.length;
+            const runsTbody = document.getElementById('pipeline-runs-tbody');
+            if (pipe.recent_runs.length > 0) {
+              runsTbody.innerHTML = pipe.recent_runs.map(run => {
+                const timeStr = run.fetched_at ? new Date(run.fetched_at).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+                return `
+                  <tr>
+                    <td><code>${run.run_id}</code></td>
+                    <td>${timeStr}</td>
+                    <td><span style="color:#38bdf8; font-weight:700;">${run.input_count || (run.filtered + run.passed)}</span></td>
+                    <td><span style="color:#fb7185; font-weight:700;">${run.filtered}</span></td>
+                    <td><span style="color:#10b981; font-weight:700;">${run.passed}</span></td>
+                    <td><span class="badge ${run.passed > 0 ? 'badge-200' : 'badge-304'}">${run.passed > 0 ? 'Candidates Found' : 'Filtered / Clean'}</span></td>
+                  </tr>
+                `;
+              }).join('');
+            } else {
+              runsTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--pico-muted-color);">No crawler runs recorded yet.</td></tr>';
+            }
           }
         }
 

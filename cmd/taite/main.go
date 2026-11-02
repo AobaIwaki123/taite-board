@@ -17,6 +17,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/promote"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
+	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 	"github.com/AobaIwaki123/taite-board/internal/version"
 )
@@ -42,6 +43,8 @@ func main() {
 		runSync(os.Args[2:])
 	case "sort":
 		runSort(os.Args[2:])
+	case "stats":
+		runStats(os.Args[2:])
 	case "add-session":
 		runAddSession(os.Args[2:])
 	case "session":
@@ -80,6 +83,7 @@ The commands are:
   validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
   sync            Synchronize data/generated/schedule.json to apps/web/public/
   sort            Sort all sessions chronologically (date, live.start_time, id) and sync
+  stats           Display ingestion funnel telemetry, filter metrics, and cost savings
   add-session     Add a new session with auto ID derivation (YYYYMMDD-N) and auto-sort
   update-session  Update session photo rules, notes, official tweet URL, and auto-sync
   build           Build web client bundle via Vite
@@ -499,4 +503,29 @@ func runPromote(args []string) {
 		}
 		fmt.Println("✓ Validation PASSED (All ADR-0001 schema requirements met)")
 	}
+}
+
+func runStats(args []string) {
+	fs := flag.NewFlagSet("stats", flag.ExitOnError)
+	dataDir := fs.String("data-dir", "data", "Base path to data repository")
+	jsonOutput := fs.Bool("json", false, "Output telemetry metrics as raw JSON")
+	_ = fs.Parse(args)
+
+	stats, err := telemetry.CollectPipelineStats(*dataDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error collecting pipeline telemetry: %v\n", err)
+		os.Exit(1)
+	}
+
+	if *jsonOutput {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(stats); err != nil {
+			fmt.Fprintf(os.Stderr, "Error encoding telemetry JSON: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	fmt.Print(telemetry.FormatASCIIFunnel(stats))
 }
