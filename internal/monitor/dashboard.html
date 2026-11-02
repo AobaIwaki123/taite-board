@@ -858,17 +858,104 @@
         ${aiActionHtml}
 
         <div style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-          <strong style="font-size: 0.85rem; color: #f43f5e; display: block; margin-bottom: 6px;">Extracted Candidate Parameters:</strong>
-          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 0.78rem;">
-            <div><span style="color:var(--pico-muted-color);">Date:</span> <strong>${c.date || 'TBD'}</strong></div>
-            <div><span style="color:var(--pico-muted-color);">Venue:</span> <strong>${c.venue_raw || 'Unknown'}</strong></div>
-            <div><span style="color:var(--pico-muted-color);">Live Time:</span> <strong id="cand-live-time">${c.live_start_raw || '--:--'} - ${c.live_end_raw || '--:--'}</strong></div>
-            <div><span style="color:var(--pico-muted-color);">Benefit Time:</span> <strong id="cand-benefit-time">${c.benefit_start_raw || '--:--'} - ${c.benefit_end_raw || '--:--'}</strong></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+            <strong style="font-size: 0.85rem; color: #f43f5e;">抽出されたスケジュール情報:</strong>
+            <span style="font-size: 0.75rem; color: var(--pico-muted-color);">対象: <strong id="cand-target-group" style="color: #38bdf8;">${currentSelectedGroup === 'all' ? 'rincent' : currentSelectedGroup}.iorin.net</strong></span>
           </div>
+          <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 0.78rem;">
+            <div><span style="color:var(--pico-muted-color);">日付:</span> <strong id="cand-date">${c.date || '未定'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">会場:</span> <strong id="cand-venue">${c.venue_raw || '未定'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">出番時刻:</span> <strong id="cand-live-time">${c.live_start_raw || '--:--'} - ${c.live_end_raw || '--:--'}</strong></div>
+            <div><span style="color:var(--pico-muted-color);">特典会時刻:</span> <strong id="cand-benefit-time">${c.benefit_start_raw || '--:--'} - ${c.benefit_end_raw || '--:--'}</strong></div>
+          </div>
+
+          <!-- Commit to Schedule Action -->
+          <div id="intake-commit-container" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="font-size: 0.75rem; color: #94a3b8;">
+              この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' ? 'rincent' : currentSelectedGroup}.iorin.net</span> のカレンダーへ即時登録します。
+            </div>
+            <button type="button" id="btn-commit-schedule" onclick="commitIntakeToSchedule()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; margin-bottom: 0; background: #10b981; border-color: #10b981; color: #fff; font-weight: 700;">
+              本番カレンダーへ反映する
+            </button>
+          </div>
+          <div id="intake-commit-result" style="display: none; margin-top: 0.65rem; padding: 0.6rem; border-radius: 6px; font-size: 0.8rem;"></div>
+
           <div style="margin-top: 6px; font-size: 0.7rem; color: var(--pico-muted-color); font-family: monospace; word-break: break-all;">
             Fingerprint: ${item.raw_fingerprint}
           </div>
         </div>
+      `;
+
+      // Store current intake for commit
+      window.__currentIntake = item;
+    }
+
+    async function commitIntakeToSchedule() {
+      const item = window.__currentIntake;
+      if (!item) return;
+
+      const btn = document.getElementById('btn-commit-schedule');
+      const resultDiv = document.getElementById('intake-commit-result');
+      if (btn) btn.disabled = true;
+
+      const targetGroup = currentSelectedGroup === 'all' ? 'rincent' : currentSelectedGroup;
+      const c = item.candidate || {};
+
+      // Parse first line of text as default event title
+      const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const titleCandidate = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || 'ライブ出演';
+
+      const payload = {
+        group: targetGroup,
+        source_id: item.source_id,
+        source_url: item.url,
+        author: item.author,
+        title: titleCandidate.replace(/[『』｢｣]/g, '').trim(),
+        date: document.getElementById('cand-date')?.innerText !== '未定' ? document.getElementById('cand-date').innerText : c.date,
+        venue: document.getElementById('cand-venue')?.innerText !== '未定' ? document.getElementById('cand-venue').innerText : c.venue_raw,
+        live_start: (document.getElementById('cand-live-time')?.innerText || '').split('-')[0]?.trim() || c.live_start_raw,
+        live_end: (document.getElementById('cand-live-time')?.innerText || '').split('-')[1]?.trim() || c.live_end_raw,
+        benefit_start: (document.getElementById('cand-benefit-time')?.innerText || '').split('-')[0]?.trim() || c.benefit_start_raw,
+        benefit_end: (document.getElementById('cand-benefit-time')?.innerText || '').split('-')[1]?.trim() || c.benefit_end_raw,
+        booth: c.benefit_booth_raw || '',
+        image_url: item.images && item.images.length > 0 ? item.images[0] : '',
+        admission_bonus: lines.find(l => l.includes('特典') || l.includes('🎁')) || ''
+      };
+
+      try {
+        const res = await fetch('/api/intake/promote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to commit to schedule');
+        }
+
+        if (resultDiv) {
+          resultDiv.style.display = 'block';
+          resultDiv.style.background = 'rgba(16, 185, 129, 0.15)';
+          resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          resultDiv.style.color = '#a7f3d0';
+          resultDiv.innerHTML = `
+            <div><strong>カレンダーへ登録完了しました！</strong> (Session ID: <code>${data.session_id}</code>)</div>
+            <div style="margin-top: 4px;">公開ページ: <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> に即時反映されています。</div>
+          `;
+        }
+        await refreshTelemetry();
+      } catch (err) {
+        if (resultDiv) {
+          resultDiv.style.display = 'block';
+          resultDiv.style.background = 'rgba(244, 63, 94, 0.15)';
+          resultDiv.style.border = '1px solid rgba(244, 63, 94, 0.3)';
+          resultDiv.style.color = '#fecdd3';
+          resultDiv.innerText = 'カレンダー登録エラー: ' + err.message;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
       `;
     }
 
@@ -1013,6 +1100,14 @@
         else if (groupId === 'dollykiss') domainSpan.innerText = 'dollykiss.iorin.net';
         else domainSpan.innerText = '*.iorin.net (全グループ鳥瞰)';
       }
+
+      const candTargetGroup = document.getElementById('cand-target-group');
+      if (candTargetGroup) {
+        candTargetGroup.innerText = (groupId === 'all' ? 'rincent' : groupId) + '.iorin.net';
+      }
+      document.querySelectorAll('.commit-dest-label').forEach(el => {
+        el.innerText = (groupId === 'all' ? 'rincent' : groupId) + '.iorin.net';
+      });
 
       renderConveyorInitial();
     }

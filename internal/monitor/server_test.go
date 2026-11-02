@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
@@ -199,5 +200,51 @@ func TestServer_AIParse_Mock(t *testing.T) {
 	snap := collector.Snapshot()
 	if snap.Pipeline.AIDispatched != 1 {
 		t.Errorf("expected AIDispatched=1 in snapshot pipeline, got %d", snap.Pipeline.AIDispatched)
+	}
+}
+
+func TestServer_Intake_Promote(t *testing.T) {
+	collector := NewCollector("test-v1")
+	handler := NewHandler(collector)
+
+	// Create temp schedule file
+	tmpDir := t.TempDir()
+	origWd, _ := os.Getwd()
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origWd) }()
+
+	_ = os.MkdirAll("data/generated", 0755)
+	_ = os.WriteFile("data/generated/schedule.json", []byte(`{"target_group":{"name":"test"},"sessions":[]}`), 0644)
+
+	body, _ := json.Marshal(map[string]any{
+		"group":        "rincent",
+		"source_id":    "11223344",
+		"source_url":   "https://x.com/test/status/11223344",
+		"title":        "Girls Face in RING",
+		"date":         "2026-11-21",
+		"venue":        "渋谷RING",
+		"live_start":   "20:20",
+		"live_end":     "20:40",
+		"benefit_start": "21:10",
+		"benefit_end":   "22:10",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var res map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if res["status"] != "success" {
+		t.Errorf("expected status=success, got %v", res["status"])
+	}
+	if res["domain"] != "rincent.iorin.net" {
+		t.Errorf("expected domain=rincent.iorin.net, got %v", res["domain"])
 	}
 }

@@ -18,4 +18,24 @@ spec:
                 name: ribonclock
                 port:
                   name: http
+    - host: rincent.iorin.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ribonclock
+                port:
+                  name: http
+    - host: dollykiss.iorin.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ribonclock
+                port:
+                  name: http
 
