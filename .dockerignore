@@ -2,8 +2,6 @@
 .github
 .worktrees
 AGENTS.md
-data/raw
-data/candidate
 data/input
 note
 scripts
