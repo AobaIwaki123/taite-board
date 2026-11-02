@@ -12,7 +12,9 @@ FROM alpine:3.20
 
 RUN apk add --no-cache tzdata ca-certificates
 
+WORKDIR /app
 COPY --from=builder /bin/monitor /bin/monitor
+COPY data ./data
 
 USER 65532:65532
 
