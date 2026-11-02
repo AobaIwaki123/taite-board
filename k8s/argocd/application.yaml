@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ribonclock
+  name: taite-board
   namespace: argocd
   annotations:
     argocd-image-updater.argoproj.io/image-list: web=ghcr.io/aobaiwaki123/taite-board,monitor=ghcr.io/aobaiwaki123/taite-board-monitor
