@@ -96,7 +96,53 @@
 
 ---
 
-## 5. 参考文献・一次情報源
+## 5. 検証結果と実証記録（E2E Verification Report）
+
+2026年11月2日、Dolly Kiss を検証対象としたマルチグループ拡張および E2E パイプラインの完全実証が完了しました。
+
+### 5.1. 実績サマリー
+
+| フェーズ | 検証項目 | 結果 | 判定 |
+|---|---|---|---|
+| **Phase 1** | マルチグループ基盤（`groups.json`、設定、管理画面セレクター） | 実装完了・全単体テスト通過 | PASS |
+| **Phase 2** | 完全キーレス・ゼロコストでの公式告知ポスト取得（`taite fetch`） | `auth_token` 不使用・画像付き公式告知2件取得 | PASS |
+| **Phase 3** | 静的フィルタ足切り ＆ Cloud Run Vertex AI 推論 | 画像なし引用ポスト除外・出番特典会自動抽出 | PASS |
+| **Phase 4** | TimeTree 公式データ（`lui_17707`）との機械的自動照合 | 10/10 フィールド完全一致（一致率 100.0%） | PASS |
+| **Phase 5** | `dollykiss.iorin.net` 専用データ配置と PWA レンダリング | ピンク/パープルテーマ・出番カウントダウン描画確認 | PASS |
+
+### 5.2. TimeTree Ground Truth 照合スコア（`verify-dollykiss.py` 実測）
+
+```text
+============================================================
+Dolly Kiss AI Parse vs TimeTree Ground Truth Verification Report
+============================================================
+Timestamp: 2026-11-02T20:57:48.473750
+Target Group: Dolly Kiss (lui_17707 / @DollyKiss_staff)
+
+Event: ＠JAM×アイドル横丁presents 秋葉原アイドルサーキットvol.6 (Source: 2111019330574127141)
+  Status: completed (Model: gemini-2.5-flash-image)
+  - Date          : Expected='2026-11-03' | Actual='2026-11-03' -> [MATCH]
+  - Venue         : Expected='ANTHEM AKIBA' | Actual='ANTHEM AKIBA' -> [MATCH]
+  - Live Start    : Expected='18:40' | Actual='18:40' -> [MATCH]
+  - Live End      : Expected='19:00' | Actual='19:00' -> [MATCH]
+
+Event: アイドルマリアージュVol.79 (Source: 2115639770944586018)
+  Status: completed (Model: gemini-2.5-flash-image)
+  - Date          : Expected='2026-11-03' | Actual='2026-11-03' -> [MATCH]
+  - Venue         : Expected='ベルサール虎ノ門' | Actual='ベルサール虎ノ門' -> [MATCH]
+  - Live Start    : Expected='14:55' | Actual='14:55' -> [MATCH]
+  - Live End      : Expected='15:15' | Actual='15:15' -> [MATCH]
+  - Benefit Start : Expected='15:20' | Actual='15:20' -> [MATCH]
+  - Benefit End   : Expected='16:20' | Actual='16:20' -> [MATCH]
+
+============================================================
+Summary: 10/10 fields matched exactly (100.0% accuracy)
+============================================================
+```
+
+---
+
+## 6. 参考文献・一次情報源
 
 - [Dolly Kiss 公式 X アカウント (@dollykiss_staff)](https://x.com/dollykiss_staff)
 - [Dolly Kiss 公式 TimeTree 公開カレンダー (lui_17707)](https://timetreeapp.com/public_calendars/lui_17707)
