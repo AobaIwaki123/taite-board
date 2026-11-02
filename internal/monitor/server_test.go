@@ -143,6 +143,15 @@ func TestServer_Intake_FetchError(t *testing.T) {
 
 func TestServer_AIParse_Mock(t *testing.T) {
 	collector := NewCollector("test-v1")
+	// Pre-populate an intake item waiting for AI
+	collector.AddIntake(candidate.IntakeResult{
+		Source:   "x",
+		SourceID: "12345",
+		Text:     "タイテ画像です",
+		NeedsAI:  true,
+		Status:   candidate.StatusNeedsReview,
+	})
+
 	handler := NewHandler(collector)
 
 	body, _ := json.Marshal(map[string]any{
@@ -169,5 +178,26 @@ func TestServer_AIParse_Mock(t *testing.T) {
 	}
 	if res.Status != candidate.StatusCompleted {
 		t.Errorf("expected completed, got %s", res.Status)
+	}
+
+	// Verify intake in collector was updated with AI extracted parameters
+	recent := collector.RecentIntakes()
+	if len(recent) != 1 {
+		t.Fatalf("expected 1 recent intake, got %d", len(recent))
+	}
+	if recent[0].Candidate.LiveStartRaw != "18:30" {
+		t.Errorf("expected updated live start 18:30 in collector, got %s", recent[0].Candidate.LiveStartRaw)
+	}
+	if recent[0].NeedsAI != false {
+		t.Errorf("expected needs_ai=false after AI parse")
+	}
+	if recent[0].Status != candidate.StatusCompleted {
+		t.Errorf("expected status=completed after AI parse, got %s", recent[0].Status)
+	}
+
+	// Verify pipeline AI dispatched count
+	snap := collector.Snapshot()
+	if snap.Pipeline.AIDispatched != 1 {
+		t.Errorf("expected AIDispatched=1 in snapshot pipeline, got %d", snap.Pipeline.AIDispatched)
 	}
 }
