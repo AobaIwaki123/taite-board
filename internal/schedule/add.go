@@ -24,6 +24,7 @@ type AddSessionOptions struct {
 	ImageURL         string
 	SourceTweetURL   string
 	SpecialNotes     string
+	AdmissionBonus   string
 	FilePath         string
 	SyncTargets      []string
 }
@@ -138,7 +139,7 @@ func AddSession(opts AddSessionOptions) (string, error) {
 		"benefit":          benefit,
 		"photo":            nil,
 		"special_notes":    opts.SpecialNotes,
-		"admission_bonus":  nil,
+		"admission_bonus":  opts.AdmissionBonus,
 		"ticket":           ticket,
 		"image_url":        opts.ImageURL,
 		"source_tweet_url": opts.SourceTweetURL,

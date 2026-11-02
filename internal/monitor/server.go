@@ -16,6 +16,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
+	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/source/x"
 )
 
@@ -118,7 +119,9 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		fp := candidate.ComputeRawFingerprint(post.Source, post.SourceID, post.Text, post.Images)
 
 		status := candidate.StatusSkippedDeterministic
-		if needsAI {
+		if cand.Date != "" && cand.LiveStartRaw != "" {
+			status = candidate.StatusCompleted
+		} else if needsAI {
 			status = candidate.StatusNeedsReview
 		}
 
@@ -141,6 +144,99 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(result)
+	})
+
+	// 6. Intake Promote API (Commit candidate to schedule.json)
+	type promoteRequest struct {
+		Group          string `json:"group"`
+		SourceID       string `json:"source_id"`
+		SourceURL      string `json:"source_url"`
+		Author         string `json:"author"`
+		Title          string `json:"title"`
+		Date           string `json:"date"`
+		Venue          string `json:"venue"`
+		LiveStart      string `json:"live_start"`
+		LiveEnd        string `json:"live_end"`
+		BenefitStart   string `json:"benefit_start"`
+		BenefitEnd     string `json:"benefit_end"`
+		Booth          string `json:"booth"`
+		ImageURL       string `json:"image_url"`
+		AdmissionBonus string `json:"admission_bonus"`
+	}
+
+	mux.HandleFunc("/api/intake/promote", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req promoteRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, fmt.Sprintf("invalid json body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		group := strings.TrimSpace(req.Group)
+		if group == "" || group == "all" {
+			group = "rincent"
+		}
+
+		filePath := "data/generated/schedule.json"
+		var syncTargets []string
+		if group == "rincent" {
+			filePath = "data/generated/schedule.json"
+			syncTargets = []string{"apps/web/public/schedule.json", "apps/web/dist/schedule.json"}
+		} else {
+			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
+			syncTargets = []string{
+				fmt.Sprintf("apps/web/public/data/groups/%s/schedule.json", group),
+				fmt.Sprintf("apps/web/dist/data/groups/%s/schedule.json", group),
+			}
+		}
+
+		title := strings.TrimSpace(req.Title)
+		if title == "" {
+			title = fmt.Sprintf("ライブ出演 (%s)", req.Date)
+		}
+
+		venue := strings.TrimSpace(req.Venue)
+		if venue == "" {
+			venue = "未定"
+		}
+
+		sessionID, err := schedule.AddSession(schedule.AddSessionOptions{
+			Date:             req.Date,
+			Title:            title,
+			VenueName:        venue,
+			LiveStartTime:    req.LiveStart,
+			LiveEndTime:      req.LiveEnd,
+			BenefitStartTime: req.BenefitStart,
+			BenefitEndTime:   req.BenefitEnd,
+			Booth:            req.Booth,
+			ImageURL:         req.ImageURL,
+			SourceTweetURL:   req.SourceURL,
+			AdmissionBonus:   req.AdmissionBonus,
+			FilePath:         filePath,
+			SyncTargets:      syncTargets,
+		})
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error": fmt.Sprintf("failed to add session: %v", err),
+			})
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":     "success",
+			"session_id": sessionID,
+			"group":      group,
+			"domain":     fmt.Sprintf("%s.iorin.net", group),
+			"message":    fmt.Sprintf("Session %s successfully committed to %s.iorin.net", sessionID, group),
+		})
 	})
 
 	// 6. AI Parser Proxy (forwards to Cloud Run)
