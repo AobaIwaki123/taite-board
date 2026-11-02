@@ -1,0 +1,13 @@
+{
+  "name": "taite-crawler",
+  "version": "1.0.0",
+  "description": "Headless Chromium Playwright crawler for idol announcement tweets (ADR-0018)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}

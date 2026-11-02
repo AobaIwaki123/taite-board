@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ribonclock-crawler
+  namespace: ribonclock
+  labels:
+    app.kubernetes.io/name: ribonclock-crawler
+spec:
+  # Run twice daily at 12:00 and 22:00 JST (03:00 and 13:00 UTC)
+  schedule: "0 3,13 * * *"
+  # Suspended by default until deployed on home cluster
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ribonclock-crawler
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: ribonclock-crawler
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: crawler
+              image: ghcr.io/aobaiwaki123/taite-board-crawler:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: TARGET_ACCOUNT
+                  value: "Ribbon_Clock"
+                - name: OUTPUT_DIR
+                  value: "/data/raw/runs"
+                - name: MAX_POSTS
+                  value: "10"
+              volumeMounts:
+                - name: shared-data
+                  mountPath: /data
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1024Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          volumes:
+            - name: shared-data
+              persistentVolumeClaim:
+                claimName: ribonclock-pvc
