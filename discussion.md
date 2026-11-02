@@ -25,7 +25,7 @@
 | **Step 4** | **Kubernetes / GitOps デプロイ** | マルチステージ Dockerfile、Nginx 設定、ArgoCD 自動同期、Cloudflare Tunnel (ADR-0009) | 完了 |
 | **Step 5** | **地下会場オフラインキャッシュ & CLIデータガバナンス** | Service Worker による画像 Cache-First、Go CLI による自動整列・安全なセッション追加・重複検査 (ADR-0014) | 完了 |
 | **Step 6** | **クローラー・OCR自動抽出強化** | Tailscale モバイル Intake、k8s ゼロコスト取得、決定論的名寄せ（internal/resolve）、Cloud Run AI パーサー（Gemini 2.5 Flash Vision）の構築 (note/11) | 完了 |
-| **Step 7** | **候補確定パイプラインと定期クローラー** | candidate の公開 schedule 昇格自動化とアカウント定期巡回 CronJob | 進行中 |
+| **Step 7** | **候補確定パイプラインと定期クローラー** | candidate の公開 schedule 昇格自動化とアカウント定期巡回 CronJob 設計策定 (ADR-0018) | 設計完了・実装前レビュー |
 | **Step 8** | **進行状況厳密化 & テレメトリ永続化** | 分単位カウントダウン表示、終了セッションの即時自動送り（graceHours=0）、Ceph RBD PVC によるログ・インテーク完全永続化 (note/12) | 完了 |
 | **Step 9** | **GCP コストガバナンス & クリーンアップ** | Artifact Registry 自動クリーンアップポリシー（最新2件保持）、Cloud Run スケール・トゥ・ゼロ、コスト実測スクリプト整備 (note/13) | 完了 |
 | **Step 10** | **家計簿・月間収支集計 & 複数グループ展開構想** | チェキ・チケット代の現場簡易家計簿、カレンダー月間・週別収支集計、マルチグループハブおよび推し活コンパニオンアプリ設計策定 (docs/multi-group-hub...) | 完了 |

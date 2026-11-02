@@ -88,3 +88,5 @@ YYYY-MM-DD
 | [ADR-0014](0014-offline-image-cache-and-cli-data-governance.md) | 画像オフラインキャッシュとGo CLIデータガバナンス | Accepted | 2026-11-01 |
 | [ADR-0015](0015-lightweight-semantic-versioning-and-release-management.md) | 軽量セマンティックバージョニングとリリースタグ運用 | Accepted | 2026-11-01 |
 | [ADR-0016](0016-access-monitoring-infrastructure-and-dashboard.md) | プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード | Accepted | 2026-11-01 |
+| [ADR-0017](0017-global-typography-tokens-and-structural-governance.md) | グローバルタイポグラフィトークンと構造的ガバナンス | Accepted | 2026-11-01 |
+| [ADR-0018](0018-automated-x-crawler-and-multi-stage-pipeline.md) | 自宅k8sヘッドレス巡回と多段前処理による告知自動取得パイプライン | Proposed | 2026-11-02 |
