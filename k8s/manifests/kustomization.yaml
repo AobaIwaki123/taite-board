@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: ribonclock
+
 resources:
+  - base
   - namespace.yaml
-  - rollout.yaml
-  - service.yaml
-  - service-preview.yaml
   - ingress.yaml
   - servicemonitor.yaml
   - grafana-dashboard.yaml
