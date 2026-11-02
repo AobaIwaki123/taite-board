@@ -66,6 +66,7 @@ export interface PhotoRule {
 export interface TicketPrice {
   tier?: string;
   price?: string;
+  amount?: number;
 }
 
 export interface TicketInfo {

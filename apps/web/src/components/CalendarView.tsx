@@ -3,8 +3,6 @@ import { Session } from '../types/schedule';
 import { isSessionPast } from '../utils/date';
 import {
   calculateMonthExpenseSummary,
-  calculateExpenseTotal,
-  getSessionExpense,
 } from '../utils/expense';
 import { Icon } from './Icon';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Wallet } from '../utils/icons';
@@ -193,10 +191,6 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           const hasFutureAttended = daySessions.some(
             (s) => attendedSessionIds.includes(s.id) && !isSessionPast(s)
           );
-          const hasExpense = daySessions.some((s) => {
-            const exp = getSessionExpense(s.id);
-            return exp ? calculateExpenseTotal(exp) > 0 : false;
-          });
           const isSelected = selectedDate === dateStr;
 
           return (
@@ -223,7 +217,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
             >
               <span class="text-xs font-display">{day}</span>
               {hasLive ? (
-                <div class="flex items-center justify-center gap-0.5 mt-0.5">
+                <div class="flex items-center justify-center mt-0.5">
                   <span
                     class={`w-1.5 h-1.5 rounded-full ${
                       isSelected
@@ -235,15 +229,6 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                         : 'bg-rose-400 animate-pulse'
                     }`}
                   />
-                  {hasExpense && (
-                    <span
-                      class={`text-[9px] font-bold font-mono leading-none ${
-                        isSelected ? 'text-stone-950 font-black' : 'text-sky-300'
-                      }`}
-                    >
-                      ¥
-                    </span>
-                  )}
                 </div>
               ) : (
                 <span class="h-1.5 mt-1" />
@@ -260,8 +245,6 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
             selectedDaySessions.map((s) => {
               const attended = attendedSessionIds.includes(s.id);
               const isPast = isSessionPast(s);
-              const exp = getSessionExpense(s.id);
-              const expTotal = exp ? calculateExpenseTotal(exp) : 0;
               return (
                 <div
                   key={s.id}
@@ -274,17 +257,12 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                       : 'border-l-rose-500'
                   }`}
                 >
-                  {/* ヘッダー行: 日付・部数 と ステータスバッジ（参戦状況・金額） */}
+                  {/* ヘッダー行: 日付・部数 と ステータスバッジ（参戦状況） */}
                   <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-display font-bold text-rose-300">
                       {s.date} {s.session_name ? `[${s.session_name}]` : ''}
                     </span>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                      {expTotal > 0 && (
-                        <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950/80 text-sky-300 border border-sky-500/30">
-                          ¥{expTotal.toLocaleString()}
-                        </span>
-                      )}
                       {attended && (
                         <span
                           class={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${

@@ -148,7 +148,8 @@
                   "type": "object",
                   "properties": {
                     "tier": { "type": "string" },
-                    "price": { "type": "string" }
+                    "price": { "type": "string" },
+                    "amount": { "type": "integer" }
                   }
                 }
               }
