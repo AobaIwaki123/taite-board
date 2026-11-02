@@ -362,3 +362,24 @@ func TestLoadKnownDeduplicationKeys_ScheduleAndCheckpoint(t *testing.T) {
 		t.Errorf("expected processed_id from checkpoint to be indexed")
 	}
 }
+
+func TestLoadRulesForGroup(t *testing.T) {
+	rules := LoadRulesForGroup("testdata/does_not_exist.json", "dollykiss")
+	if len(rules.TargetKeywords) == 0 {
+		t.Errorf("expected fallback default keywords")
+	}
+
+	// Test with current data/groups.json
+	groupsJSON := "../../data/groups.json"
+	dollyRules := LoadRulesForGroup(groupsJSON, "dollykiss")
+	foundAlias := false
+	for _, kw := range dollyRules.TargetKeywords {
+		if kw == "ドリキス" {
+			foundAlias = true
+			break
+		}
+	}
+	if !foundAlias {
+		t.Errorf("expected 'ドリキス' in dollykiss target keywords, got: %v", dollyRules.TargetKeywords)
+	}
+}

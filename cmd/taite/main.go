@@ -362,32 +362,57 @@ func runBuild(args []string) {
 
 func runFilter(args []string) {
 	fs := flag.NewFlagSet("filter", flag.ExitOnError)
-	inputPath := fs.String("in", "data/raw/runs", "Path to raw post JSON or runs directory")
-	candDir := fs.String("candidates", "data/candidate", "Directory containing candidate JSONs for deduplication")
+	inputPath := fs.String("in", "", "Path to raw post JSON or runs directory (defaults to group runs)")
+	candDir := fs.String("candidates", "", "Directory containing candidate JSONs for deduplication")
+	groupID := fs.String("group", os.Getenv("GROUP"), "Target group ID defined in data/groups.json (e.g. rincent, dollykiss)")
 	requireMedia := fs.Bool("media", true, "Require at least one image attached")
 	maxAge := fs.Int("age", 168, "Maximum allowed post age in hours (default 168 = 7 days, 0 = unlimited)")
 
 	_ = fs.Parse(args)
 
-	existingFingerprints, err := filter.LoadExistingFingerprints(*candDir)
+	// Resolve group-specific paths and rules
+	targetGroup := strings.TrimSpace(*groupID)
+	resolvedIn := *inputPath
+	resolvedCand := *candDir
+
+	if targetGroup != "" && targetGroup != "rincent" {
+		if resolvedIn == "" {
+			resolvedIn = filepath.Join("data", "groups", targetGroup, "runs")
+		}
+		if resolvedCand == "" {
+			resolvedCand = filepath.Join("data", "groups", targetGroup, "candidate")
+		}
+	} else {
+		if resolvedIn == "" {
+			resolvedIn = filepath.Join("data", "raw", "runs")
+		}
+		if resolvedCand == "" {
+			resolvedCand = filepath.Join("data", "candidate")
+		}
+	}
+
+	existingFingerprints, err := filter.LoadExistingFingerprints(resolvedCand)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to load existing candidate fingerprints: %v\n", err)
 	}
 
 	rules := filter.DefaultRules
+	if targetGroup != "" {
+		rules = filter.LoadRulesForGroup("data/groups.json", targetGroup)
+	}
 	rules.RequireMedia = *requireMedia
 	rules.MaxAgeHours = *maxAge
 
 	// Collect posts to evaluate
 	var posts []*raw.Post
-	info, err := os.Stat(*inputPath)
+	info, err := os.Stat(resolvedIn)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error accessing input path %s: %v\n", *inputPath, err)
+		fmt.Fprintf(os.Stderr, "Error accessing input path %s: %v\n", resolvedIn, err)
 		os.Exit(1)
 	}
 
 	if info.IsDir() {
-		_ = filepath.WalkDir(*inputPath, func(path string, d os.DirEntry, err error) error {
+		_ = filepath.WalkDir(resolvedIn, func(path string, d os.DirEntry, err error) error {
 			if err != nil || d.IsDir() || !strings.HasSuffix(d.Name(), ".json") || d.Name() == "manifest.json" {
 				return nil
 			}
@@ -402,21 +427,21 @@ func runFilter(args []string) {
 			return nil
 		})
 	} else {
-		data, err := os.ReadFile(*inputPath)
+		data, err := os.ReadFile(resolvedIn)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", *inputPath, err)
+			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", resolvedIn, err)
 			os.Exit(1)
 		}
 		var p raw.Post
 		if err := json.Unmarshal(data, &p); err != nil {
-			fmt.Fprintf(os.Stderr, "Error unmarshaling %s: %v\n", *inputPath, err)
+			fmt.Fprintf(os.Stderr, "Error unmarshaling %s: %v\n", resolvedIn, err)
 			os.Exit(1)
 		}
 		posts = append(posts, &p)
 	}
 
 	if len(posts) == 0 {
-		fmt.Printf("No raw posts found to evaluate in %s\n", *inputPath)
+		fmt.Printf("No raw posts found to evaluate in %s\n", resolvedIn)
 		return
 	}
 

@@ -45,6 +45,40 @@ var DefaultRules = FilterRules{
 	MaxAgeHours: 168, // Within 7 days
 }
 
+// CommonKeywords are generic live event announcement keywords across all idol groups.
+var CommonKeywords = []string{
+	"タイムテーブル", "タイテ", "出演", "特典会", "ライブ", "フェス", "対バン", "単独",
+}
+
+// LoadRulesForGroup reads data/groups.json and builds group-specific FilterRules.
+func LoadRulesForGroup(groupsJSONPath string, groupID string) FilterRules {
+	rules := DefaultRules
+	if groupsJSONPath == "" {
+		groupsJSONPath = "data/groups.json"
+	}
+	data, err := os.ReadFile(groupsJSONPath)
+	if err != nil {
+		return rules
+	}
+
+	var root struct {
+		Groups map[string]struct {
+			Aliases []string `json:"aliases"`
+		} `json:"groups"`
+	}
+	if err := json.Unmarshal(data, &root); err != nil {
+		return rules
+	}
+
+	if g, ok := root.Groups[groupID]; ok && len(g.Aliases) > 0 {
+		var combined []string
+		combined = append(combined, g.Aliases...)
+		combined = append(combined, CommonKeywords...)
+		rules.TargetKeywords = combined
+	}
+	return rules
+}
+
 // FilterResult represents the evaluation decision.
 type FilterResult struct {
 	Passed      bool   `json:"passed"`

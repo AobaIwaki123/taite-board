@@ -1,0 +1,31 @@
+{
+  "default_group": "rincent",
+  "groups": {
+    "rincent": {
+      "id": "rincent",
+      "name": "リボンクロック",
+      "short_name": "RiNCENT#",
+      "x_account": "Ribbon_Clock",
+      "aliases": ["リボンクロック", "リボクロ"],
+      "timetree_id": "",
+      "data_path": "data/curated/schedule.json",
+      "theme": {
+        "primary": "rose",
+        "accent": "sky"
+      }
+    },
+    "dollykiss": {
+      "id": "dollykiss",
+      "name": "Dolly Kiss",
+      "short_name": "ドリキス",
+      "x_account": "dollykiss_staff",
+      "aliases": ["Dolly Kiss", "DollyKiss", "ドリキス"],
+      "timetree_id": "lui_17707",
+      "data_path": "data/groups/dollykiss/schedule.json",
+      "theme": {
+        "primary": "pink",
+        "accent": "purple"
+      }
+    }
+  }
+}
