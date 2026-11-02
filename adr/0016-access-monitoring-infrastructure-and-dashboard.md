@@ -77,7 +77,9 @@ Ribbon Clock (taite-board) は、Zero Telemetry（クライアント側での個
   - `status`: `200`, `304`, `404`, `500` 等
 - **`ribonclock_monitor_uptime_seconds`**: モニター稼働秒数
 
-### 2. ダッシュボード機能仕様と出来合いUIライブラリ採用 (`ribonclock-dashboard.aooba.net`)
+### 2. ダッシュボード機能仕様と出来合いUIライブラリ採用 (Tailscale `http://ribonclock-dashboard`)
+> **セキュリティ・プライバシー改定メモ（PR #115）**: 当初計画された外部一般公開 Ingress（`ribonclock-dashboard.aooba.net`）は、未認証での生アクセスログやインテーク履歴の露出を防ぐため完全廃止されました。現在は Tailscale 内部専用エンドポイント（`http://ribonclock-dashboard`）経由でのみアクセス可能です。
+
 - **出来合いUIライブラリの採用 (Off-the-shelf Dashboard UI)**:
   - 手書きCSSや自作SVGチャートによるレイアウト崩れ・保守工数を根絶するため、**Pico CSS v2**（セマンティックHTML、軽量ダークモード）および **Chart.js v4**（時系列バーチャート、ルート円グラフ）を採用。
   - 独自の手書き CSS ルールを極小化し、標準コンポーネントのみで構築。
@@ -96,7 +98,7 @@ Ribbon Clock (taite-board) は、Zero Telemetry（クライアント側での個
 ## 影響とトレードオフ (Consequences)
 
 ### 正の影響 (Positive)
-- 運用者がいつでもブラウザから `https://ribonclock-dashboard.aooba.net/` にアクセスし、直近のアクセス状況とエラー発生をリアルタイムに監視できる。
+- 運用者がいつでもブラウザから Tailscale 経由（`http://ribonclock-dashboard`）でアクセスし、直近のアクセス状況とエラー発生をリアルタイムに監視できる。
 - `observability` の Prometheus / Grafana ともシームレスに統合され、長期トレンド分析が可能になる。
 - プライバシー保護要件（Zero Telemetry）を完全に遵守。
 
