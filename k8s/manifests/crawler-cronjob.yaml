@@ -35,7 +35,7 @@ spec:
               type: RuntimeDefault
           containers:
             - name: crawler
-              image: ghcr.io/aobaiwaki123/taite-board-crawler:sha-730ca44
+              image: ghcr.io/aobaiwaki123/taite-board-crawler:sha-224347e
               imagePullPolicy: IfNotPresent
               env:
                 - name: TARGET_ACCOUNT
