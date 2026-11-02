@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -20,9 +21,10 @@ const (
 	DefaultPromptVersion = "event-v1"
 )
 
-// GeminiClient implements VisionParser using Google Gemini 2.5 Flash REST API.
+// GeminiClient implements VisionParser using Google Gemini 2.5 Flash REST API (AI Studio or Vertex AI).
 type GeminiClient struct {
 	APIKey     string
+	ProjectID  string
 	HTTPClient *http.Client
 	Endpoint   string
 }
@@ -32,13 +34,46 @@ func NewGeminiClient(apiKey string, timeout time.Duration) *GeminiClient {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
+	projectID := os.Getenv("GCP_PROJECT")
+	if projectID == "" {
+		projectID = "taite-board"
+	}
 	return &GeminiClient{
-		APIKey: apiKey,
+		APIKey:    apiKey,
+		ProjectID: projectID,
 		HTTPClient: &http.Client{
 			Timeout: timeout,
 		},
 		Endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
 	}
+}
+
+func (c *GeminiClient) getAccessToken(ctx context.Context) (string, error) {
+	if token := os.Getenv("GOOGLE_OAUTH_ACCESS_TOKEN"); token != "" {
+		return token, nil
+	}
+	// Try GCP Compute / Cloud Run metadata server
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Metadata-Flavor", "Google")
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("metadata server unavailable: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("metadata server returned status %d", resp.StatusCode)
+	}
+	var res struct {
+		AccessToken string `json:"access_token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", err
+	}
+	return res.AccessToken, nil
 }
 
 type geminiPart struct {
@@ -97,10 +132,6 @@ type extractedOutput struct {
 
 // Parse sends the post text and timetable images to Gemini 2.5 Flash for structured extraction.
 func (c *GeminiClient) Parse(ctx context.Context, req *ParseRequest) (*ParseResponse, error) {
-	if c.APIKey == "" {
-		return nil, fmt.Errorf("gemini api key is not configured")
-	}
-
 	modelID := req.ModelID
 	if modelID == "" {
 		modelID = DefaultModelID
@@ -181,12 +212,33 @@ If a time or venue is not found, leave as empty string. Do not hallucinate.`,
 		return nil, fmt.Errorf("encoding gemini request: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("%s?key=%s", c.Endpoint, c.APIKey)
+	var apiURL string
+	var bearerToken string
+
+	if c.APIKey != "" {
+		apiURL = fmt.Sprintf("%s?key=%s", c.Endpoint, c.APIKey)
+	} else {
+		token, err := c.getAccessToken(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("authenticating with gcp vertex ai: %w", err)
+		}
+		bearerToken = token
+		project := c.ProjectID
+		if project == "" {
+			project = "taite-board"
+		}
+		apiURL = fmt.Sprintf("https://us-central1-aiplatform.googleapis.com/v1/projects/%s/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:generateContent", project)
+	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("creating http request: %w", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if bearerToken != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+bearerToken)
+		httpReq.Header.Set("X-Goog-User-Project", c.ProjectID)
+	}
 
 	httpResp, err := c.HTTPClient.Do(httpReq)
 	if err != nil {
