@@ -135,3 +135,20 @@ type roundTripFunc func(req *http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
+
+func TestCleanJSONText(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected string
+	}{
+		{"{\"key\": \"val\"}", "{\"key\": \"val\"}"},
+		{"```json\n{\"key\": \"val\"}\n```", "{\"key\": \"val\"}"},
+		{"```\n{\"key\": \"val\"}\n```", "{\"key\": \"val\"}"},
+	}
+	for _, tc := range cases {
+		got := cleanJSONText(tc.input)
+		if got != tc.expected {
+			t.Errorf("cleanJSONText(%q) = %q, want %q", tc.input, got, tc.expected)
+		}
+	}
+}
