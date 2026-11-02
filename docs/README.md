@@ -47,3 +47,4 @@ URL共有、ブラウザ、PWA、iOS Web Clip で使用する画像を、用途�
 ## 設計資料
 
 - [自宅オーケストレーターと Cloud Run AI パーサー設計案](home-orchestrator-cloud-run-ai-parser.md)
+- [マルチグループ展開・機能再利用および推し活コンパニオンアプリ設計構想](multi-group-hub-and-reusable-architecture.md)
