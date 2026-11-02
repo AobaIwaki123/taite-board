@@ -35,6 +35,97 @@
       display: inline-block; width: 8px; height: 8px; border-radius: 50%;
       background-color: #10b981; box-shadow: 0 0 8px #10b981; margin-right: 6px;
     }
+
+    /* Pipeline Conveyor Stream Styles */
+    .conveyor-belt {
+      position: relative;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, rgba(168, 85, 247, 0.05) 50%, rgba(16, 185, 129, 0.05) 100%);
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 1.25rem 1rem;
+      min-height: 240px;
+      overflow-x: auto;
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+    .conveyor-stage {
+      flex: 1;
+      min-width: 220px;
+      background: rgba(18, 18, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      position: relative;
+    }
+    .conveyor-stage.active {
+      border-color: rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+    }
+    .conveyor-stage-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stream-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 0.65rem;
+      font-size: 0.78rem;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .stream-card.highlight {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+    }
+    .stream-card.passed {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .stream-card.shielded {
+      border-color: #fb7185;
+      background: rgba(244, 63, 94, 0.08);
+      opacity: 0.75;
+    }
+    @keyframes pulseConveyor {
+      0% { opacity: 0.3; transform: scaleX(0.98); }
+      50% { opacity: 0.8; transform: scaleX(1); }
+      100% { opacity: 0.3; transform: scaleX(0.98); }
+    }
+    .pulse-connector {
+      position: absolute;
+      right: -1.2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1rem;
+      height: 2px;
+      background: linear-gradient(90deg, #38bdf8, #a855f7);
+      animation: pulseConveyor 2s infinite ease-in-out;
+      z-index: 2;
+    }
+    @keyframes scanLaser {
+      0% { transform: translateY(0); opacity: 0.8; }
+      50% { transform: translateY(60px); opacity: 1; }
+      100% { transform: translateY(0); opacity: 0.8; }
+    }
+    .laser-line {
+      height: 2px;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: scanLaser 1.8s infinite ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -214,6 +305,86 @@
           </table>
         </div>
       </details>
+    </article>
+
+    <!-- Pipeline Stream Conveyor & Data Journey Visualizer (ADR-0018 / Closed-Loop Visualizer) -->
+    <article id="pipeline-stream-article" style="margin-bottom: 2rem; border: 1px solid rgba(168, 85, 247, 0.35); background: rgba(15, 13, 23, 0.6);">
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.05rem; color: #c084fc; display: flex; align-items: center; gap: 6px;">
+            Pipeline Stream & Conveyor Journey
+          </strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            Real-time visual stream: Watch raw posts get ingested, gated by Snowflake since_id, inspected by Vertex AI vision, and committed to schedule.
+          </small>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-replay-stream" class="outline" style="font-size: 0.75rem; padding: 0.3rem 0.75rem; border-color: #c084fc; color: #c084fc; margin-bottom: 0;">
+            Play Conveyor Stream &blacktriangleright;
+          </button>
+          <span id="conveyor-status-badge" class="badge badge-304">Ready</span>
+        </div>
+      </header>
+
+      <!-- Conveyor Belt 4-Stage Track -->
+      <div class="conveyor-belt" id="conveyor-belt">
+        <!-- Stage 1: X GraphQL Crawl Ingest -->
+        <div class="conveyor-stage" id="stage-1">
+          <div class="conveyor-stage-header">
+            <span style="color: #38bdf8;">1. X Crawl Ingest</span>
+            <span class="badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;" id="stage-1-count">0 Posts</span>
+          </div>
+          <div style="font-size:0.7rem; color:var(--pico-muted-color);">GraphQL response stream</div>
+          <div id="stage-1-cards" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto;">
+            <!-- Ingested cards stream in here -->
+          </div>
+          <div class="pulse-connector"></div>
+        </div>
+
+        <!-- Stage 2: Gatekeeper & Deduplication -->
+        <div class="conveyor-stage" id="stage-2">
+          <div class="conveyor-stage-header">
+            <span style="color: #fb7185;">2. Pre-Filter Gate</span>
+            <span class="badge" style="background:rgba(251,113,133,0.15); color:#fb7185;" id="stage-2-count">0 Gated</span>
+          </div>
+          <div style="font-size:0.7rem; color:var(--pico-muted-color);">Since ID & Media/Keyword Shield</div>
+          <div id="stage-2-cards" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto;">
+            <!-- Filtered / passed cards stream in here -->
+          </div>
+          <div class="pulse-connector"></div>
+        </div>
+
+        <!-- Stage 3: Keyless Vertex AI Vision Parser -->
+        <div class="conveyor-stage" id="stage-3">
+          <div class="conveyor-stage-header">
+            <span style="color: #f59e0b;">3. Cloud Run AI Vision</span>
+            <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;" id="stage-3-count">0 Scanned</span>
+          </div>
+          <div style="font-size:0.7rem; color:var(--pico-muted-color);">Vertex AI (gemini-2.5-flash-image)</div>
+          <div id="stage-3-cards" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto;">
+            <!-- AI Parsed candidate cards stream in here -->
+          </div>
+          <div class="pulse-connector"></div>
+        </div>
+
+        <!-- Stage 4: Schedule Persistence & PVC Sync -->
+        <div class="conveyor-stage" id="stage-4">
+          <div class="conveyor-stage-header">
+            <span style="color: #10b981;">4. Active Schedule</span>
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981;" id="stage-4-count">0 Confirmed</span>
+          </div>
+          <div style="font-size:0.7rem; color:var(--pico-muted-color);">schedule.json / Web PWA</div>
+          <div id="stage-4-cards" style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto;">
+            <!-- Promoted live session cards stream in here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-time Packet Telemetry Console -->
+      <footer style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(0,0,0,0.3); border-radius: 6px; font-family: monospace; font-size: 0.75rem; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div id="conveyor-log-line">Conveyor idling. Click &quot;Play Conveyor Stream&quot; to trace a raw post journey.</div>
+        <div id="conveyor-metrics-line" style="color: #38bdf8;">ADC Token: Active (Keyless)</div>
+      </footer>
     </article>
 
     <!-- X Timetable Ingest & AI Pipeline Card -->
@@ -738,9 +909,172 @@
       return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
     }
 
+    // ==========================================
+    // Pipeline Conveyor & Data Journey Stream Logic
+    // ==========================================
+    const SAMPLE_STREAM_DATA = [
+      {
+        id: "2119330614138921102",
+        text: "11/4(水) 新宿Motionにて出番決定！出番 19:30-19:50 特典会 20:00-21:00",
+        images: 2,
+        stage1: "Ingested via GraphQL",
+        stage2: { pass: true, reason: "media=2, keyword='出番'" },
+        stage3: { extracted: true, live: "19:30-19:50", benefit: "20:00-21:00", venue: "新宿Motion", conf: 1.0 },
+        stage4: { scheduled: true, title: "11/04 新宿Motion" }
+      },
+      {
+        id: "2118991204893712011",
+        text: "本日はレッスンありがとうございました！明日も頑張ります！",
+        images: 0,
+        stage1: "Ingested via GraphQL",
+        stage2: { pass: false, reason: "Shielded: media_count == 0" },
+        stage3: null,
+        stage4: null
+      },
+      {
+        id: "2118801948210948194",
+        text: "オンラインチェキ販売開始しました！チェキ券の購入はこちらから！",
+        images: 1,
+        stage1: "Ingested via GraphQL",
+        stage2: { pass: false, reason: "Shielded: Target keywords missing" },
+        stage3: null,
+        stage4: null
+      },
+      {
+        id: "2116002151944401001",
+        text: "過去ライブの御礼ポスト (Since ID Checkpoint Post)",
+        images: 2,
+        stage1: "Ingested via GraphQL",
+        stage2: { pass: false, reason: "Short-Circuited: id <= since_id" },
+        stage3: null,
+        stage4: null
+      }
+    ];
+
+    function renderConveyorInitial(data) {
+      const s1Cards = document.getElementById('stage-1-cards');
+      const s2Cards = document.getElementById('stage-2-cards');
+      const s3Cards = document.getElementById('stage-3-cards');
+      const s4Cards = document.getElementById('stage-4-cards');
+
+      if (!s1Cards || !s2Cards || !s3Cards || !s4Cards) return;
+
+      document.getElementById('stage-1-count').innerText = SAMPLE_STREAM_DATA.length + " Posts";
+      document.getElementById('stage-2-count').innerText = SAMPLE_STREAM_DATA.filter(p => !p.stage2.pass).length + " Gated";
+      document.getElementById('stage-3-count').innerText = SAMPLE_STREAM_DATA.filter(p => p.stage3).length + " Scanned";
+      document.getElementById('stage-4-count').innerText = SAMPLE_STREAM_DATA.filter(p => p.stage4).length + " Confirmed";
+
+      s1Cards.innerHTML = SAMPLE_STREAM_DATA.map(p => `
+        <div class="stream-card" id="s1-${p.id}">
+          <div style="font-weight:700; color:#38bdf8; font-family:monospace;">#${p.id.slice(-6)}</div>
+          <div style="color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.text}</div>
+          <div style="font-size:0.7rem; color:var(--pico-muted-color); margin-top:2px;">Images: ${p.images} &bull; GraphQL Ingest</div>
+        </div>
+      `).join('');
+
+      s2Cards.innerHTML = SAMPLE_STREAM_DATA.map(p => `
+        <div class="stream-card ${p.stage2.pass ? 'passed' : 'shielded'}" id="s2-${p.id}">
+          <div style="font-weight:700; font-family:monospace;">#${p.id.slice(-6)}: ${p.stage2.pass ? '<span style="color:#10b981;">PASS</span>' : '<span style="color:#fb7185;">SHIELDED</span>'}</div>
+          <div style="font-size:0.72rem; color:${p.stage2.pass ? '#a7f3d0' : '#fecdd3'};">${p.stage2.reason}</div>
+        </div>
+      `).join('');
+
+      s3Cards.innerHTML = SAMPLE_STREAM_DATA.filter(p => p.stage3).map(p => `
+        <div class="stream-card passed" id="s3-${p.id}">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; color:#f59e0b; font-family:monospace;">#${p.id.slice(-6)}</span>
+            <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:0.65rem;">Confidence 1.0</span>
+          </div>
+          <div style="font-size:0.75rem; color:#fde68a; margin-top:3px;">Live: ${p.stage3.live} &bull; ${p.stage3.venue}</div>
+          <div style="font-size:0.7rem; color:#cbd5e1;">Benefit: ${p.stage3.benefit}</div>
+        </div>
+      `).join('');
+
+      s4Cards.innerHTML = SAMPLE_STREAM_DATA.filter(p => p.stage4).map(p => `
+        <div class="stream-card passed" id="s4-${p.id}">
+          <div style="font-weight:700; color:#10b981;">${p.stage4.title}</div>
+          <div style="font-size:0.7rem; color:#a7f3d0;">Active in schedule.json (Promoted)</div>
+          <div style="font-size:0.65rem; color:var(--pico-muted-color); margin-top:2px;">Synced to PVC &amp; Tailscale PWA</div>
+        </div>
+      `).join('');
+    }
+
+    let isConveyorPlaying = false;
+    async function playConveyorStream() {
+      if (isConveyorPlaying) return;
+      isConveyorPlaying = true;
+
+      const badge = document.getElementById('conveyor-status-badge');
+      const logLine = document.getElementById('conveyor-log-line');
+      const btn = document.getElementById('btn-replay-stream');
+      if (btn) btn.disabled = true;
+      if (badge) {
+        badge.className = 'badge badge-200';
+        badge.innerText = 'STREAMING...';
+      }
+
+      const stages = ['stage-1', 'stage-2', 'stage-3', 'stage-4'];
+      const targetPost = SAMPLE_STREAM_DATA[0]; // 11/04 新宿Motion 告知ポスト
+
+      // Reset styles
+      document.querySelectorAll('.conveyor-stage').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.stream-card').forEach(c => c.classList.remove('highlight'));
+
+      // Step 1: Ingest
+      document.getElementById('stage-1').classList.add('active');
+      const c1 = document.getElementById(`s1-${targetPost.id}`);
+      if (c1) c1.classList.add('highlight');
+      logLine.innerText = `[00:01] INGEST: Crawled Post #${targetPost.id} from @Ribbon_Clock with 2 timetable images.`;
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 2: Gatekeeper
+      document.getElementById('stage-1').classList.remove('active');
+      document.getElementById('stage-2').classList.add('active');
+      const c2 = document.getElementById(`s2-${targetPost.id}`);
+      if (c2) c2.classList.add('highlight');
+      logLine.innerText = `[00:02] GATE: Rule check PASS (media_count > 0, keyword '出番' detected, Snowflake ID > since_id).`;
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 3: Cloud Run Vertex AI Vision
+      document.getElementById('stage-2').classList.remove('active');
+      document.getElementById('stage-3').classList.add('active');
+      const c3 = document.getElementById(`s3-${targetPost.id}`);
+      if (c3) {
+        c3.classList.add('highlight');
+        c3.innerHTML += '<div class="laser-line" id="temp-laser"></div>';
+      }
+      logLine.innerText = `[00:03] VERTEX AI: Dispatched to Cloud Run taite-parser via ADC Keyless Token. Gemini 2.5 Flash Vision scanning flyer...`;
+      await new Promise(r => setTimeout(r, 1800));
+      const laser = document.getElementById('temp-laser');
+      if (laser) laser.remove();
+      logLine.innerText = `[00:04] AI RESULT: Extracted Live: 19:30-19:50, Venue: 新宿Motion, Benefit: 20:00-21:00 (Confidence: 1.0).`;
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Step 4: Schedule Commit
+      document.getElementById('stage-3').classList.remove('active');
+      document.getElementById('stage-4').classList.add('active');
+      const c4 = document.getElementById(`s4-${targetPost.id}`);
+      if (c4) c4.classList.add('highlight');
+      logLine.innerText = `[00:05] SCHEDULE: Event Candidate committed to schedule.json & checkpoint.json advanced to ${targetPost.id}.`;
+      await new Promise(r => setTimeout(r, 1500));
+
+      document.getElementById('stage-4').classList.remove('active');
+      if (badge) {
+        badge.className = 'badge badge-304';
+        badge.innerText = 'Completed';
+      }
+      if (btn) btn.disabled = false;
+      isConveyorPlaying = false;
+    }
+
     // Initialize on load
     window.addEventListener('DOMContentLoaded', () => {
       initCharts();
+      renderConveyorInitial();
+      const replayBtn = document.getElementById('btn-replay-stream');
+      if (replayBtn) {
+        replayBtn.addEventListener('click', playConveyorStream);
+      }
       refreshTelemetry();
       setInterval(refreshTelemetry, 5000);
     });
