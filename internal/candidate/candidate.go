@@ -41,6 +41,13 @@ type EventCandidate struct {
 	LiveEndRaw       string `json:"live_end_raw"`
 	BenefitStartRaw  string `json:"benefit_start_raw,omitempty"`
 	BenefitEndRaw    string `json:"benefit_end_raw,omitempty"`
+	BenefitBoothRaw  string `json:"benefit_booth_raw,omitempty"`
+	AdmissionBonus   string `json:"admission_bonus,omitempty"`
+	PhotoAllowed     *bool  `json:"photo_allowed,omitempty"`
+	PhotoSong        string `json:"photo_song,omitempty"`
+	PhotoDevice      string `json:"photo_device,omitempty"`
+	PhotoNotes       string `json:"photo_notes,omitempty"`
+	IsPatch          bool   `json:"is_patch,omitempty"`
 }
 
 // IntakeResult encapsulates the result of fetching and resolving a post.

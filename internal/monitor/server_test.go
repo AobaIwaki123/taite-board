@@ -248,3 +248,91 @@ func TestServer_Intake_Promote(t *testing.T) {
 		t.Errorf("expected domain=rincent.iorin.net, got %v", res["domain"])
 	}
 }
+
+func TestServer_Intake_Patch(t *testing.T) {
+	collector := NewCollector("test-v1")
+	handler := NewHandler(collector)
+
+	// Create temp schedule file
+	tmpDir := t.TempDir()
+	origWd, _ := os.Getwd()
+	_ = os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(origWd) }()
+
+	_ = os.MkdirAll("data/generated", 0755)
+	initialSchedule := `{
+		"target_group": {"name": "test"},
+		"current_next_id": "session-test-01",
+		"sessions": [
+			{
+				"id": "session-test-01",
+				"date": "2026-11-21",
+				"title": "Girls Face in RING",
+				"venue": {"name": "渋谷RING"},
+				"live": {"start_time": "20:20"},
+				"benefit": {"start_time": "21:10"}
+			}
+		]
+	}`
+	_ = os.WriteFile("data/generated/schedule.json", []byte(initialSchedule), 0644)
+
+	body, _ := json.Marshal(map[string]any{
+		"group":           "rincent",
+		"date":            "2026-11-21",
+		"source_url":      "https://x.com/Ribbon_Clock/status/999888",
+		"admission_bonus": "指名入場特典：宿題チェキ券",
+		"photo_song":      "未来へのファンファーレ",
+		"photo_device":    "video_ok",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/intake/patch", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var res map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &res); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if res["status"] != "success" {
+		t.Errorf("expected status=success, got %v", res["status"])
+	}
+	if res["session_id"] != "session-test-01" {
+		t.Errorf("expected session_id=session-test-01, got %v", res["session_id"])
+	}
+
+	// Verify updated schedule contents
+	updatedBytes, err := os.ReadFile("data/generated/schedule.json")
+	if err != nil {
+		t.Fatalf("failed to read updated schedule: %v", err)
+	}
+	var doc struct {
+		Sessions []struct {
+			ID             string `json:"id"`
+			AdmissionBonus string `json:"admission_bonus"`
+			Photo          struct {
+				AllowedSongs []string `json:"allowed_songs"`
+				Device       string   `json:"device"`
+			} `json:"photo"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(updatedBytes, &doc); err != nil {
+		t.Fatalf("failed to parse updated json: %v", err)
+	}
+	if len(doc.Sessions) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(doc.Sessions))
+	}
+	sess := doc.Sessions[0]
+	if sess.AdmissionBonus != "指名入場特典：宿題チェキ券" {
+		t.Errorf("expected admission bonus '指名入場特典：宿題チェキ券', got %q", sess.AdmissionBonus)
+	}
+	if len(sess.Photo.AllowedSongs) == 0 || sess.Photo.AllowedSongs[0] != "未来へのファンファーレ" {
+		t.Errorf("expected allowed song '未来へのファンファーレ', got %v", sess.Photo.AllowedSongs)
+	}
+	if sess.Photo.Device != "video_ok" {
+		t.Errorf("expected photo device 'video_ok', got %q", sess.Photo.Device)
+	}
+}

@@ -79,3 +79,34 @@ func TestResolve_ImageRequiresAI(t *testing.T) {
 		t.Errorf("expected needsAI=true when timetable image present without text times, got false")
 	}
 }
+
+func TestResolve_PerkAndPhotoPatch(t *testing.T) {
+	r, err := NewResolver("../../data/curated/entities.json")
+	if err != nil {
+		t.Fatalf("failed to init resolver: %v", err)
+	}
+
+	tweet := `
+🎀リボンクロック 明日11/4の特典情報🎀
+🎁指名入場特典：宿題チェキ券＋集合写メ
+📸撮影可能曲：【未来へのファンファーレ】動画撮影OK！
+お待ちしております！
+`
+	cand, _, needsAI := r.Resolve(tweet, nil)
+
+	if !cand.IsPatch {
+		t.Errorf("expected cand.IsPatch=true, got false")
+	}
+	if cand.AdmissionBonus != "指名入場特典：宿題チェキ券＋集合写メ" {
+		t.Errorf("expected admission bonus, got %q", cand.AdmissionBonus)
+	}
+	if cand.PhotoSong != "未来へのファンファーレ" {
+		t.Errorf("expected photo song '未来へのファンファーレ', got %q", cand.PhotoSong)
+	}
+	if cand.PhotoDevice != "video_ok" {
+		t.Errorf("expected photo device 'video_ok', got %q", cand.PhotoDevice)
+	}
+	if needsAI {
+		t.Errorf("expected needsAI=false for deterministic perk/photo patch without timetable images, got true")
+	}
+}

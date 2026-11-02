@@ -61,6 +61,8 @@ export interface PhotoRule {
   available?: boolean;
   rule?: string;
   raw_text?: string;
+  allowed_songs?: string[];
+  device?: string;
 }
 
 export interface TicketPrice {

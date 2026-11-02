@@ -440,12 +440,43 @@ export function CockpitView({
       {/* レギュレーション・特記事項 */}
       <div class="space-y-2">
         {/* 撮影可否ルール */}
-        {session.photo?.rule && (
-          <div class="p-3 rounded-xl bg-stone-900/80 border border-white/10 text-xs flex items-start gap-2">
-            <Icon icon={Aperture} class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-            <div class="space-y-0.5">
-              <span class="font-bold text-emerald-300">撮影可否：</span>
-              <span class="text-stone-300">{session.photo.rule}</span>
+        {(session.photo?.rule || (session.photo?.allowed_songs && session.photo.allowed_songs.length > 0)) && (
+          <div class={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+            session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
+              ? 'bg-amber-950/40 border-amber-500/40 shadow-sm shadow-amber-950/30'
+              : 'bg-stone-900/80 border-white/10'
+          }`}>
+            <Icon
+              icon={Aperture}
+              class={`w-4 h-4 shrink-0 mt-0.5 ${
+                session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
+                  ? 'text-amber-400'
+                  : 'text-emerald-400'
+              }`}
+            />
+            <div class="space-y-1">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class={`font-bold ${
+                  session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
+                    ? 'text-amber-300'
+                    : 'text-emerald-300'
+                }`}>
+                  撮影レギュレーション：
+                </span>
+                {session.photo?.allowed_songs && session.photo.allowed_songs.length > 0 && (
+                  <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/30">
+                    撮可曲: {session.photo.allowed_songs.join(', ')}
+                  </span>
+                )}
+                {session.photo?.device === 'video_ok' && (
+                  <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                    動画・静止画OK
+                  </span>
+                )}
+              </div>
+              {session.photo?.rule && (
+                <div class="text-stone-300">{session.photo.rule}</div>
+              )}
             </div>
           </div>
         )}
