@@ -173,6 +173,53 @@ func (c *Collector) AddIntake(res candidate.IntakeResult) {
 	}
 }
 
+// UpdateIntakeAIResult updates an existing intake record with Cloud Run AI Vision results.
+func (c *Collector) UpdateIntakeAIResult(sourceID string, cand candidate.EventCandidate, evidence []candidate.Evidence, modelID string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	found := false
+	for i := range c.recentIntakes {
+		if c.recentIntakes[i].SourceID == sourceID {
+			if cand.LiveStartRaw != "" {
+				c.recentIntakes[i].Candidate.LiveStartRaw = cand.LiveStartRaw
+			}
+			if cand.LiveEndRaw != "" {
+				c.recentIntakes[i].Candidate.LiveEndRaw = cand.LiveEndRaw
+			}
+			if cand.BenefitStartRaw != "" {
+				c.recentIntakes[i].Candidate.BenefitStartRaw = cand.BenefitStartRaw
+			}
+			if cand.BenefitEndRaw != "" {
+				c.recentIntakes[i].Candidate.BenefitEndRaw = cand.BenefitEndRaw
+			}
+			if cand.Date != "" {
+				c.recentIntakes[i].Candidate.Date = cand.Date
+			}
+			if cand.VenueRaw != "" {
+				c.recentIntakes[i].Candidate.VenueRaw = cand.VenueRaw
+			}
+			c.recentIntakes[i].Evidence = append(c.recentIntakes[i].Evidence, evidence...)
+			c.recentIntakes[i].Status = candidate.StatusCompleted
+			c.recentIntakes[i].NeedsAI = false
+			found = true
+			break
+		}
+	}
+
+	// Increment pipeline AI dispatched counter
+	c.pipelineStats.AIDispatched++
+	if c.stateFilePath != "" {
+		_ = telemetry.SavePipelineState(c.stateFilePath, c.pipelineStats)
+	}
+
+	if found && c.intakesPath != "" {
+		if data, err := json.MarshalIndent(c.recentIntakes, "", "  "); err == nil {
+			_ = os.WriteFile(c.intakesPath, data, 0644)
+		}
+	}
+}
+
 // RecentIntakes returns a copy of recent intake records.
 func (c *Collector) RecentIntakes() []candidate.IntakeResult {
 	c.mu.RLock()

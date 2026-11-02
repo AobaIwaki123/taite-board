@@ -165,8 +165,7 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		parserURL := os.Getenv("AI_PARSER_URL")
 		if parserURL == "" {
 			// Dry-run / mock mode when Cloud Run URL is not configured
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(parser.ParseResponse{
+			mockResp := parser.ParseResponse{
 				RequestID: fmt.Sprintf("mock-%d", time.Now().UnixNano()),
 				Status:    candidate.StatusCompleted,
 				ModelID:   "mock-parser",
@@ -184,7 +183,10 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 						Confidence: 0.95,
 					},
 				},
-			})
+			}
+			collector.UpdateIntakeAIResult(req.SourceID, mockResp.Candidate, mockResp.Evidence, mockResp.ModelID)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(mockResp)
 			return
 		}
 
@@ -223,9 +225,17 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		}
 		defer resp.Body.Close()
 
+		respBytes, err := io.ReadAll(resp.Body)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var parseResp parser.ParseResponse
+			if err := json.Unmarshal(respBytes, &parseResp); err == nil && parseResp.Status == candidate.StatusCompleted {
+				collector.UpdateIntakeAIResult(req.SourceID, parseResp.Candidate, parseResp.Evidence, parseResp.ModelID)
+			}
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
-		_, _ = io.Copy(w, resp.Body)
+		_, _ = w.Write(respBytes)
 	})
 
 	return mux

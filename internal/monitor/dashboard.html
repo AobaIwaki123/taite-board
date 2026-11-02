@@ -451,22 +451,29 @@
           document.getElementById('recent-intake-count').innerText = data.recent_intakes.length;
           const intakeList = document.getElementById('recent-intakes-list');
           if (data.recent_intakes.length > 0) {
-            intakeList.innerHTML = data.recent_intakes.map(item => `
-              <div style="padding: 0.6rem; border-radius: 6px; background: rgba(255,255,255,0.03); margin-bottom: 0.5rem; border-left: 3px solid ${item.needs_ai ? '#f59e0b' : '#10b981'};">
-                <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
-                  <strong>${item.author || 'X Post'}</strong>
-                  <span class="badge ${item.needs_ai ? 'badge-404' : 'badge-200'}">
-                    ${item.needs_ai ? 'AI Vision Needed' : 'Deterministic'}
-                  </span>
+            intakeList.innerHTML = data.recent_intakes.map(item => {
+              const isAiCompleted = item.status === 'completed';
+              const badgeClass = item.needs_ai ? 'badge-404' : 'badge-200';
+              const badgeLabel = isAiCompleted ? 'AI Parsed (Cloud Run)' :
+                                 item.needs_ai ? 'AI Vision Needed' : 'Deterministic';
+              const borderCol = item.needs_ai ? '#f59e0b' : '#10b981';
+              return `
+                <div style="padding: 0.6rem; border-radius: 6px; background: rgba(255,255,255,0.03); margin-bottom: 0.5rem; border-left: 3px solid ${borderCol};">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.78rem;">
+                    <strong>${item.author || 'X Post'}</strong>
+                    <span class="badge ${badgeClass}">
+                      ${badgeLabel}
+                    </span>
+                  </div>
+                  <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 4px; white-space: pre-line; max-height: 4.5em; overflow: hidden;">
+                    ${item.text.slice(0, 160)}${item.text.length > 160 ? '...' : ''}
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--pico-muted-color); margin-top: 4px; font-family: monospace;">
+                    Venue: ${item.candidate.venue_raw || 'Unknown'} | Date: ${item.candidate.date || 'TBD'} | Live: <strong style="color:#e2e8f0;">${item.candidate.live_start_raw || '--:--'}-${item.candidate.live_end_raw || '--:--'}</strong> | Benefit: ${item.candidate.benefit_start_raw || '--:--'}-${item.candidate.benefit_end_raw || '--:--'}
+                  </div>
                 </div>
-                <div style="font-size: 0.75rem; color: #cbd5e1; margin-top: 4px; white-space: pre-line; max-height: 4.5em; overflow: hidden;">
-                  ${item.text.slice(0, 160)}${item.text.length > 160 ? '...' : ''}
-                </div>
-                <div style="font-size: 0.72rem; color: var(--pico-muted-color); margin-top: 4px; font-family: monospace;">
-                  Venue: ${item.candidate.venue_raw || 'Unknown'} | Date: ${item.candidate.date || 'TBD'} | Live: ${item.candidate.live_start_raw || '--:--'}-${item.candidate.live_end_raw || '--:--'}
-                </div>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           }
         }
 
@@ -716,6 +723,7 @@
         if (aiAction) {
           aiAction.innerHTML = '<div style="font-size:0.8rem; color:#10b981; font-weight:600;">Timetable extracted successfully via Cloud Run AI Parser.</div>';
         }
+        await refreshTelemetry();
       } catch (err) {
         alert('AI Parse Error: ' + err.message);
       } finally {
