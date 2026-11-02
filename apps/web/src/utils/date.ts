@@ -40,6 +40,9 @@ function formatMinutesDuration(totalMinutes: number, targetAction: string): stri
   if (totalMinutes <= 0) {
     return `${targetAction}時刻`;
   }
+  if (totalMinutes <= 10 && targetAction === '出番開始') {
+    return `間もなく${targetAction}`;
+  }
   if (totalMinutes >= 60) {
     const hours = Math.floor(totalMinutes / 60);
     const mins = totalMinutes % 60;

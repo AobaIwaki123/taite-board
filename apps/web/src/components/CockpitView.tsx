@@ -362,7 +362,7 @@ export function CockpitView({
             return (
               <div class="flex items-center justify-between pt-1 border-t border-white/5 text-xs">
                 <span class="font-bold text-white text-[13px]">{progress.countdownMessage}</span>
-                {progress.minutesRemaining !== undefined && progress.status !== 'ended' && (
+                {progress.minutesRemaining !== undefined && progress.status !== 'ended' && progress.minutesRemaining <= 60 && (
                   <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-semibold">
                     残り {progress.minutesRemaining}分
                   </span>

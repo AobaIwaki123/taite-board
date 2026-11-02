@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'preact/hooks';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
 import { resolveCurrentGroup, GroupConfig } from './config/group';
+import { updatePageMetadata } from './utils/meta';
 import { resolveNextSession } from './utils/date';
 import { getAttendedSessionIds, toggleAttendedSessionId } from './utils/attendance';
 import { getSessionDelayOffset, setSessionDelayOffset } from './utils/delay';
@@ -41,12 +42,17 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    updatePageMetadata(group);
+  }, [group]);
+
+  useEffect(() => {
     setAttendedSessionIds(getAttendedSessionIds());
     loadScheduleData()
       .then(({ data: loadedData, isFallback: loadedFallback, group: loadedGroup }) => {
         setData(loadedData);
         setIsFallback(loadedFallback);
         setGroup(loadedGroup);
+        updatePageMetadata(loadedGroup);
       })
       .catch((err) => {
         console.warn('Initial load fallback', err);

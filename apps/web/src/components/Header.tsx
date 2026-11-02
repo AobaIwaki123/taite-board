@@ -47,12 +47,27 @@ export function Header({
         </span>
       </button>
 
-      {freshnessLabel && (
-        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-          <span>{freshnessLabel}</span>
-        </div>
-      )}
+      <div class="flex items-center gap-2">
+        {freshnessLabel && (
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span>{freshnessLabel}</span>
+          </div>
+        )}
+        <a
+          href={typeof window !== 'undefined' && window.location.hostname.endsWith('iorin.net') ? 'https://taite.iorin.net' : '/'}
+          class="flex items-center justify-center w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-stone-400 hover:text-white transition-all duration-150 border border-white/5"
+          title="グループ一覧へ戻る"
+          aria-label="グループ一覧へ戻る"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="7" x="3" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="3" rx="1" />
+            <rect width="7" height="7" x="14" y="14" rx="1" />
+            <rect width="7" height="7" x="3" y="14" rx="1" />
+          </svg>
+        </a>
+      </div>
     </header>
   );
 }
