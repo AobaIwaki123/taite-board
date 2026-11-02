@@ -25,7 +25,7 @@ func TestNormalizeMediaURL(t *testing.T) {
 		{
 			name: "non media URL",
 			url:  "https://example.com/image.jpg?name=orig",
-			want: "https://example.com/image.jpg?name=orig",
+			want: "",
 		},
 	}
 

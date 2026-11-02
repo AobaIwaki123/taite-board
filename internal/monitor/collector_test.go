@@ -1,8 +1,10 @@
 package monitor
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
 )
@@ -10,12 +12,14 @@ import (
 func TestCollector_ProcessLine(t *testing.T) {
 	c := NewCollector("1.0.0")
 
+	today := time.Now().Format("2006-01-02")
+
 	// Sample JSON log lines
 	lines := []string{
-		`{"ts":"2026-11-01T15:00:00+09:00","route":"document","status":200}`,
-		`{"ts":"2026-11-01T15:05:00+09:00","route":"schedule","status":200}`,
-		`{"ts":"2026-11-01T15:10:00+09:00","route":"asset","status":304}`,
-		`{"ts":"2026-11-01T15:15:00+09:00","route":"other","status":404}`,
+		fmt.Sprintf(`{"ts":"%sT15:00:00+09:00","route":"document","status":200}`, today),
+		fmt.Sprintf(`{"ts":"%sT15:05:00+09:00","route":"schedule","status":200}`, today),
+		fmt.Sprintf(`{"ts":"%sT15:10:00+09:00","route":"asset","status":304}`, today),
+		fmt.Sprintf(`{"ts":"%sT15:15:00+09:00","route":"other","status":404}`, today),
 		``, // empty line
 		`invalid json`,
 	}
