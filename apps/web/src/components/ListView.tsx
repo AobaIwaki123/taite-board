@@ -12,7 +12,7 @@ interface ListViewProps {
 export function ListView({ sessions, attendedSessionIds = [], onSelectSession }: ListViewProps) {
   // 特典会終了後数時間の猶予時間を考慮し、今後の公演のみを抽出
   const upcomingSessions = sessions.filter((s) => !isSessionPast(s));
-  const attendedCount = sessions.filter((s) => attendedSessionIds.includes(s.id)).length;
+  const attendedCount = upcomingSessions.filter((s) => attendedSessionIds.includes(s.id)).length;
 
   return (
     <div class="h-full overflow-y-auto no-scrollbar tab-slide space-y-3 pb-6">
@@ -21,7 +21,7 @@ export function ListView({ sessions, attendedSessionIds = [], onSelectSession }:
         <span class="flex items-center gap-1.5">
           <span>今後の公演予定</span>
           {attendedCount > 0 && (
-            <span class="text-emerald-400 font-bold">({attendedCount}公演 参戦済)</span>
+            <span class="text-sky-400 font-bold">({attendedCount}公演 参戦予定)</span>
           )}
         </span>
         <span class="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 font-bold">
@@ -82,8 +82,14 @@ export function ListView({ sessions, attendedSessionIds = [], onSelectSession }:
                   </span>
                   <div class="flex items-center gap-1 shrink-0">
                     {attendedSessionIds.includes(session.id) && (
-                      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
-                        参戦済
+                      <span
+                        class={`px-1.5 py-0.5 rounded text-xs font-bold border ${
+                          isSessionPast(session)
+                            ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
+                            : 'bg-sky-950/80 text-sky-400 border-sky-500/30'
+                        }`}
+                      >
+                        {isSessionPast(session) ? '参戦済' : '参戦予定'}
                       </span>
                     )}
                     {sessionTag && (
