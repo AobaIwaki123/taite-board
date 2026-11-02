@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - rollout.yaml
+  - service.yaml
+  - service-preview.yaml
+  - ingress.yaml
+  - servicemonitor.yaml
+  - grafana-dashboard.yaml
+  - tailscale-service.yaml
+  - access-report-cronjob.yaml
+  - crawler-cronjob.yaml
+
+images:
+  - name: ghcr.io/aobaiwaki123/taite-board
+    newTag: sha-b64d705
+  - name: ghcr.io/aobaiwaki123/taite-board-monitor
+    newTag: sha-b64d705
