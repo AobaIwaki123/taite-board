@@ -4,3 +4,15 @@ kind: Kustomization
 resources:
   - ../base
   - ingress.yaml
+
+patches:
+  - target:
+      kind: Rollout
+      name: ribonclock
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Always
+      - op: replace
+        path: /spec/template/spec/containers/1/imagePullPolicy
+        value: Always
