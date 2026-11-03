@@ -77,7 +77,8 @@ export function PortalView() {
     return Object.values(REGISTERED_GROUPS).filter((g) => g.id !== 'sample');
   }, []);
 
-  const [topGroupId, setTopGroupId] = useState<string>(() => {
+  // お気に入りグループ ID（null は未設定）
+  const [favoriteGroupId, setFavoriteGroupId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('taite_top_group');
@@ -91,39 +92,59 @@ export function PortalView() {
     return DEFAULT_GROUP_ID;
   });
 
-  const orderedGroups = useMemo(() => {
-    const top = realGroups.find((g) => g.id === topGroupId) || realGroups[0];
-    const others = realGroups.filter((g) => g.id !== top.id);
-    return [top, ...others];
-  }, [realGroups, topGroupId]);
+  // 操作フィードバック用の軽量トーストメッセージ
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const handlePinTop = (groupId: string, e: MouseEvent) => {
+  const orderedGroups = useMemo(() => {
+    if (!favoriteGroupId) return realGroups;
+    const fav = realGroups.find((g) => g.id === favoriteGroupId);
+    if (!fav) return realGroups;
+    const others = realGroups.filter((g) => g.id !== fav.id);
+    return [fav, ...others];
+  }, [realGroups, favoriteGroupId]);
+
+  // お気に入りトグル処理（既に選択中の場合は解除）
+  const handleToggleFavorite = (group: GroupConfig, e: MouseEvent) => {
     e.stopPropagation();
+    const isCurrentFav = favoriteGroupId === group.id;
+    const newFav = isCurrentFav ? null : group.id;
+
     try {
-      localStorage.setItem('taite_top_group', groupId);
+      if (newFav) {
+        localStorage.setItem('taite_top_group', newFav);
+      } else {
+        localStorage.removeItem('taite_top_group');
+      }
     } catch {
       // Ignored
     }
-    setTopGroupId(groupId);
+
+    setFavoriteGroupId(newFav);
+    setToastMessage(
+      newFav
+        ? `${group.name} をお気に入りに設定しました（最上位に固定）`
+        : 'お気に入りを解除しました'
+    );
+
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2400);
   };
 
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-3 pb-6">
-      {/* Header: Clear & Minimal */}
-      <header class="flex items-center justify-between px-1 pt-1 pb-3 shrink-0 border-b border-white/5">
+      {/* Header: Pure Minimal (不要なテキストを全廃) */}
+      <header class="flex items-center justify-between px-1 pt-1 pb-2.5 shrink-0 border-b border-white/5">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
           <span class="text-xs font-bold tracking-widest text-stone-200 uppercase">Taite Board</span>
         </div>
-        <div class="text-[11px] text-stone-400 font-medium">
-          グループ選択
-        </div>
       </header>
 
       {/* Ticket List Area */}
-      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar">
+      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar relative">
         {orderedGroups.map((group: GroupConfig, index: number) => {
-          const isTop = topGroupId === group.id;
+          const isFav = favoriteGroupId === group.id;
           const theme = TICKET_THEMES[group.id] || DEFAULT_TICKET_THEME;
           const nextEvent = NEXT_EVENT_DATA[group.id] || {
             date: '未定',
@@ -136,14 +157,18 @@ export function PortalView() {
             <div
               key={group.id}
               onClick={() => navigateToGroup(group.id)}
-              class={`group relative rounded-xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] border ${theme.border} bg-stone-900/90 shadow-md hover:shadow-lg flex items-stretch overflow-hidden`}
+              class={`group relative rounded-xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] border ${
+                isFav
+                  ? 'border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.12)] bg-stone-900/95'
+                  : `${theme.border} bg-stone-900/90 shadow-md`
+              } hover:shadow-lg flex items-stretch overflow-hidden`}
             >
               {/* Background Ambient Glow */}
               <div
                 class={`absolute inset-0 bg-gradient-to-r ${theme.glow} pointer-events-none opacity-40 group-hover:opacity-80 transition-opacity duration-300`}
               />
 
-              {/* Left Ticket Stub (半券エリア: 通し番号とグループ通称) */}
+              {/* Left Ticket Stub (半券エリア) */}
               <div
                 class={`w-14 shrink-0 ${theme.stubBg} border-r border-dashed border-stone-700/60 flex flex-col items-center justify-between py-2.5 px-1 relative z-10`}
               >
@@ -152,15 +177,15 @@ export function PortalView() {
                   #{String(index + 1).padStart(2, '0')}
                 </span>
 
-                {/* Group Short Name (通称: リボクロ / ドリキス) */}
+                {/* Group Short Name */}
                 <div class="text-[11px] font-bold tracking-wider text-stone-300 group-hover:text-white transition-colors text-center leading-tight">
                   {group.shortName}
                 </div>
 
-                {/* Status Dot */}
-                <span class={`w-1.5 h-1.5 rounded-full ${theme.indicator}`} />
+                {/* Status Indicator */}
+                <span class={`w-1.5 h-1.5 rounded-full ${isFav ? 'bg-amber-400' : theme.indicator}`} />
 
-                {/* Ticket Cutout Notches (切り欠き) */}
+                {/* Cutout Notches */}
                 <div class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-stone-950 border-b border-stone-800" />
                 <div class="absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-full bg-stone-950 border-t border-stone-800" />
               </div>
@@ -174,17 +199,17 @@ export function PortalView() {
                       <h2 class="text-sm font-bold text-white tracking-wide truncate group-hover:text-rose-200 transition-colors">
                         {group.name}
                       </h2>
-                      {isTop && (
-                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-0.5 shrink-0">
+                      {isFav && (
+                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-0.5 shrink-0">
                           <Icon icon={Crown} size={9} class="text-amber-400" />
-                          推し
+                          お気に入り
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Right Actions: X Link & Pin */}
-                  <div class="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Right Actions: X Link & Favorite Toggle */}
+                  <div class="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {xLink && (
                       <a
                         href={xLink}
@@ -198,16 +223,16 @@ export function PortalView() {
                       </a>
                     )}
                     <button
-                      onClick={(e) => handlePinTop(group.id, e)}
-                      class={`p-1 rounded transition-colors ${
-                        isTop
-                          ? 'text-amber-400 bg-amber-500/10'
+                      onClick={(e) => handleToggleFavorite(group, e)}
+                      class={`p-1 rounded transition-all active:scale-90 ${
+                        isFav
+                          ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
                           : 'text-stone-600 hover:text-stone-300 hover:bg-white/10'
                       }`}
-                      title={isTop ? '最推し解除' : '最推しに設定'}
-                      aria-label="推し設定"
+                      title={isFav ? 'お気に入りを解除' : 'お気に入りに設定（最上位に固定）'}
+                      aria-label="お気に入り設定"
                     >
-                      <Icon icon={Crown} size={13} />
+                      <Icon icon={Crown} size={14} class={isFav ? 'filter drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]' : ''} />
                     </button>
                   </div>
                 </div>
@@ -234,6 +259,14 @@ export function PortalView() {
             </div>
           );
         })}
+
+        {/* Lightweight Feedback Toast */}
+        {toastMessage && (
+          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-stone-900/95 border border-amber-500/40 text-amber-200 text-[11px] font-medium shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-1.5 whitespace-nowrap">
+            <Icon icon={Crown} size={11} class="text-amber-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
       </main>
 
       {/* Footer Info */}
