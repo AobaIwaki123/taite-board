@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ribonclock
+  labels:
+    app.kubernetes.io/name: ribonclock
+spec:
+  ingressClassName: cloudflare-tunnel
+  rules:
+    - host: preview-taite.iorin.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ribonclock
+                port:
+                  name: http

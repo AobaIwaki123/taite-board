@@ -2,7 +2,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   name: ribonclock
-  namespace: ribonclock
   labels:
     app.kubernetes.io/name: ribonclock
 spec:
