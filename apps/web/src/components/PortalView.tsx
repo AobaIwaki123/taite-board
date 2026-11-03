@@ -17,36 +17,44 @@ export function navigateToGroup(groupId: string) {
   }
 }
 
-// グループごとのテーマグラデーション設定
-const GROUP_THEME_GRADIENTS: Record<string, { border: string; glow: string; badge: string; bar: string }> = {
+interface MinimalTheme {
+  dot: string;
+  glow: string;
+  accent: string;
+}
+
+const MINIMAL_THEMES: Record<string, MinimalTheme> = {
   ribonclock: {
-    border: 'border-rose-500/30 hover:border-rose-500/60',
-    glow: 'from-rose-500/10 via-rose-500/5 to-transparent',
-    badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-    bar: 'from-rose-500 to-rose-400',
+    dot: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]',
+    glow: 'hover:border-rose-500/40',
+    accent: 'text-rose-400',
   },
   dollykiss: {
-    border: 'border-pink-500/30 hover:border-pink-500/60',
-    glow: 'from-pink-500/10 via-purple-500/5 to-transparent',
-    badge: 'bg-pink-500/15 text-pink-300 border-pink-500/30',
-    bar: 'from-pink-500 to-purple-500',
+    dot: 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]',
+    glow: 'hover:border-pink-500/40',
+    accent: 'text-pink-400',
   },
 };
 
-const DEFAULT_THEME_GRADIENT = {
-  border: 'border-stone-700/50 hover:border-stone-600',
-  glow: 'from-stone-700/10 to-transparent',
-  badge: 'bg-stone-800 text-stone-300 border-stone-700',
-  bar: 'from-stone-500 to-stone-400',
+const DEFAULT_MINIMAL_THEME: MinimalTheme = {
+  dot: 'bg-stone-500',
+  glow: 'hover:border-stone-500/40',
+  accent: 'text-stone-300',
 };
 
-// 次回ライブ情報（画像不要・テキストサマリー）
-const NEXT_EVENT_SUMMARY: Record<string, string> = {
-  ribonclock: '次回: 11/3(祝) アイドルマリアージュ @ ベルサール虎ノ門',
-  dollykiss: '次回: 11/3(祝) アイドルマリアージュ / @JAM×アイドル横丁',
+const NEXT_EVENT_DATA: Record<string, { date: string; title: string; venue: string }> = {
+  ribonclock: {
+    date: '11/3 (祝)',
+    title: 'アイドルマリアージュ',
+    venue: 'ベルサール虎ノ門',
+  },
+  dollykiss: {
+    date: '11/3 (祝)',
+    title: 'アイドルマリアージュ / 横丁',
+    venue: '都内複数会場',
+  },
 };
 
-// 公式Xリンク
 const OFFICIAL_X_LINKS: Record<string, string> = {
   ribonclock: 'https://x.com/Ribbon_Clock',
   dollykiss: 'https://x.com/DollyKiss_staff',
@@ -65,7 +73,7 @@ export function PortalView() {
           return stored;
         }
       } catch {
-        // Fallback if localStorage access fails
+        // Fallback
       }
     }
     return DEFAULT_GROUP_ID;
@@ -88,113 +96,109 @@ export function PortalView() {
   };
 
   return (
-    <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-3 pb-6">
-      {/* Top minimal header */}
-      <header class="flex items-center justify-between px-1 pt-1 pb-3 shrink-0 border-b border-white/5">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-          <span class="text-xs font-bold tracking-widest text-stone-200 uppercase">Taite Board</span>
+    <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-black text-stone-100 select-none px-4 pt-4 pb-6">
+      {/* Header */}
+      <header class="flex items-baseline justify-between px-1 pb-4 shrink-0 border-b border-stone-900">
+        <div>
+          <span class="text-xs font-mono font-bold tracking-widest text-stone-400 uppercase">
+            Directory
+          </span>
+          <h1 class="text-lg font-extrabold text-white tracking-tight mt-0.5">
+            Groups
+          </h1>
         </div>
-        <div class="text-[11px] text-stone-400 font-medium">
-          アイドルグループ選択
+        <div class="text-[11px] font-mono text-stone-500">
+          {orderedGroups.length} REGISTERED
         </div>
       </header>
 
-      {/* Ticket List Area */}
-      <main class="flex-1 min-h-0 py-4 flex flex-col gap-3.5 overflow-y-auto no-scrollbar">
+      {/* List Area */}
+      <main class="flex-1 min-h-0 py-3 flex flex-col gap-2 overflow-y-auto no-scrollbar">
         {orderedGroups.map((group: GroupConfig) => {
           const isTop = topGroupId === group.id;
-          const themeStyle = GROUP_THEME_GRADIENTS[group.id] || DEFAULT_THEME_GRADIENT;
-          const nextEvent = NEXT_EVENT_SUMMARY[group.id] || 'スケジュール登録中';
+          const theme = MINIMAL_THEMES[group.id] || DEFAULT_MINIMAL_THEME;
+          const nextEvent = NEXT_EVENT_DATA[group.id] || {
+            date: 'TBD',
+            title: '未定',
+            venue: '未定',
+          };
           const xLink = OFFICIAL_X_LINKS[group.id];
 
           return (
             <div
               key={group.id}
               onClick={() => navigateToGroup(group.id)}
-              class={`group relative rounded-2xl p-4 transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] border ${themeStyle.border} bg-stone-900/80 shadow-lg hover:shadow-xl backdrop-blur-sm overflow-hidden flex flex-col justify-between min-h-[110px]`}
+              class={`group relative rounded-xl p-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99] border border-stone-900 bg-stone-950/80 hover:bg-stone-900/60 ${theme.glow} flex flex-col gap-2.5`}
             >
-              {/* Left Accent Bar */}
-              <div
-                class={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${themeStyle.bar}`}
-              />
-
-              {/* Background Ambient Glow */}
-              <div
-                class={`absolute inset-0 bg-gradient-to-br ${themeStyle.glow} pointer-events-none opacity-40 group-hover:opacity-70 transition-opacity duration-300`}
-              />
-
-              {/* Upper: Group Info & Top Pin / Official X */}
-              <div class="relative z-10 flex items-start justify-between gap-2 pl-1">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-2xl shrink-0 filter drop-shadow">
-                    {group.logoText || '🎀'}
-                  </span>
-                  <div>
-                    <div class="flex items-center gap-2">
-                      <h2 class="text-base font-extrabold text-white tracking-wide group-hover:text-rose-200 transition-colors">
+              {/* Row 1: Indicator, Group Name & Top Pin */}
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class={`w-2 h-2 rounded-full shrink-0 ${theme.dot}`} />
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="text-sm font-bold text-white tracking-tight truncate group-hover:text-stone-200 transition-colors">
                         {group.name}
-                      </h2>
+                      </span>
                       {isTop && (
-                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                          <Icon icon={Crown} size={10} class="text-amber-400" />
-                          推し
+                        <span class="text-[9px] font-mono font-semibold px-1 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-0.5 shrink-0">
+                          <Icon icon={Crown} size={9} class="text-amber-400" />
+                          TOP
                         </span>
                       )}
-                    </div>
-                    <div class="text-[11px] text-stone-400 font-medium">
-                      {group.shortName}
                     </div>
                   </div>
                 </div>
 
-                {/* Actions: Pin & Official X */}
+                {/* Right Actions */}
                 <div class="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                   {xLink && (
                     <a
                       href={xLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-white/10 transition-colors"
-                      title="公式Xを開く"
+                      class="p-1 rounded text-stone-600 hover:text-stone-300 transition-colors"
+                      title="公式X"
                       aria-label="公式X"
                     >
-                      <Icon icon={ExternalLink} size={14} />
+                      <Icon icon={ExternalLink} size={13} />
                     </a>
                   )}
                   <button
                     onClick={(e) => handlePinTop(group.id, e)}
-                    class={`p-1.5 rounded-lg transition-colors ${
+                    class={`p-1 rounded transition-colors ${
                       isTop
-                        ? 'text-amber-400 bg-amber-500/10'
-                        : 'text-stone-500 hover:text-stone-300 hover:bg-white/10'
+                        ? 'text-amber-400'
+                        : 'text-stone-700 hover:text-stone-400'
                     }`}
-                    title={isTop ? '最推しグループに設定中' : '最推しに設定する'}
+                    title={isTop ? '最推し解除' : '最推しに設定'}
                     aria-label="推し設定"
                   >
-                    <Icon icon={Crown} size={14} />
+                    <Icon icon={Crown} size={13} />
                   </button>
+                  <Icon icon={ChevronRight} size={15} class="text-stone-600 group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all ml-0.5" />
                 </div>
               </div>
 
-              {/* Lower: Next Live Summary & Arrow */}
-              <div class="relative z-10 pt-2.5 mt-2 border-t border-white/5 flex items-center justify-between pl-1">
-                <div class="text-[11px] text-stone-300 font-medium truncate pr-2">
-                  {nextEvent}
-                </div>
-                <div class="flex items-center text-xs font-bold text-stone-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0">
-                  <Icon icon={ChevronRight} size={16} />
-                </div>
+              {/* Row 2: Live Info Pill */}
+              <div class="flex items-center justify-between text-[11px] text-stone-400 pl-4.5 pt-1 border-t border-stone-900/60 font-sans">
+                <span class="truncate pr-2">
+                  <span class="font-mono text-stone-300 mr-1.5">{nextEvent.date}</span>
+                  <span class="text-stone-300">{nextEvent.title}</span>
+                  <span class="text-stone-500 text-[10px] ml-1.5">@{nextEvent.venue}</span>
+                </span>
+                <span class="text-[10px] font-mono text-stone-500 shrink-0">
+                  {group.shortName}
+                </span>
               </div>
             </div>
           );
         })}
       </main>
 
-      {/* Footer minimal info */}
-      <footer class="pt-2 shrink-0 border-t border-white/5 flex items-center justify-between text-[11px] text-stone-500 px-1">
-        <span>タップしてタイテを開く</span>
-        <span>taite-board v1.4.3</span>
+      {/* Footer Info */}
+      <footer class="pt-3 shrink-0 border-t border-stone-900 flex items-center justify-between text-[11px] text-stone-600 px-1 font-mono">
+        <span>TAITE BOARD</span>
+        <span>v1.4.3</span>
       </footer>
     </div>
   );
