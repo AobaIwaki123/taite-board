@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'preact/hooks';
 import { GroupConfig, REGISTERED_GROUPS, DEFAULT_GROUP_ID } from '../config/group';
 import { Icon } from './Icon';
-import { Crown, ChevronRight, ExternalLink } from '../utils/icons';
+import { Star, ChevronRight, ExternalLink } from '../utils/icons';
 
 export function navigateToGroup(groupId: string) {
   if (typeof window === 'undefined') return;
@@ -73,7 +73,7 @@ const OFFICIAL_X_LINKS: Record<string, string> = {
 };
 
 export function PortalView() {
-  const realGroups = useMemo(() => {
+  const groups = useMemo(() => {
     return Object.values(REGISTERED_GROUPS).filter((g) => g.id !== 'sample');
   }, []);
 
@@ -92,22 +92,14 @@ export function PortalView() {
     return DEFAULT_GROUP_ID;
   });
 
-  // 操作フィードバック用の軽量トーストメッセージ
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // 直前にタップしたボタングループ（マイクロアニメーション用）
+  const [animatingGroupId, setAnimatingGroupId] = useState<string | null>(null);
 
-  const orderedGroups = useMemo(() => {
-    if (!favoriteGroupId) return realGroups;
-    const fav = realGroups.find((g) => g.id === favoriteGroupId);
-    if (!fav) return realGroups;
-    const others = realGroups.filter((g) => g.id !== fav.id);
-    return [fav, ...others];
-  }, [realGroups, favoriteGroupId]);
-
-  // お気に入りトグル処理（既に選択中の場合は解除）
-  const handleToggleFavorite = (group: GroupConfig, e: MouseEvent) => {
+  // お気に入りトグル処理（位置の入れ替えテレポートはせず、その場で点灯/消灯する直感的なUX）
+  const handleToggleFavorite = (groupId: string, e: MouseEvent) => {
     e.stopPropagation();
-    const isCurrentFav = favoriteGroupId === group.id;
-    const newFav = isCurrentFav ? null : group.id;
+    const isCurrentFav = favoriteGroupId === groupId;
+    const newFav = isCurrentFav ? null : groupId;
 
     try {
       if (newFav) {
@@ -120,20 +112,15 @@ export function PortalView() {
     }
 
     setFavoriteGroupId(newFav);
-    setToastMessage(
-      newFav
-        ? `${group.name} をお気に入りに設定しました（最上位に固定）`
-        : 'お気に入りを解除しました'
-    );
-
+    setAnimatingGroupId(groupId);
     setTimeout(() => {
-      setToastMessage(null);
-    }, 2400);
+      setAnimatingGroupId(null);
+    }, 400);
   };
 
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-3 pb-6">
-      {/* Header: Pure Minimal (不要なテキストを全廃) */}
+      {/* Header: Pure Minimal (ロゴのみで一切の説明テキストを排除) */}
       <header class="flex items-center justify-between px-1 pt-1 pb-2.5 shrink-0 border-b border-white/5">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
@@ -142,9 +129,10 @@ export function PortalView() {
       </header>
 
       {/* Ticket List Area */}
-      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar relative">
-        {orderedGroups.map((group: GroupConfig, index: number) => {
+      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar">
+        {groups.map((group: GroupConfig, index: number) => {
           const isFav = favoriteGroupId === group.id;
+          const isAnimating = animatingGroupId === group.id;
           const theme = TICKET_THEMES[group.id] || DEFAULT_TICKET_THEME;
           const nextEvent = NEXT_EVENT_DATA[group.id] || {
             date: '未定',
@@ -157,20 +145,24 @@ export function PortalView() {
             <div
               key={group.id}
               onClick={() => navigateToGroup(group.id)}
-              class={`group relative rounded-xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] border ${
+              class={`group relative rounded-xl transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border ${
                 isFav
-                  ? 'border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.12)] bg-stone-900/95'
+                  ? 'border-amber-400/60 shadow-[0_0_18px_rgba(251,191,36,0.18)] bg-stone-900/95 ring-1 ring-amber-400/30'
                   : `${theme.border} bg-stone-900/90 shadow-md`
               } hover:shadow-lg flex items-stretch overflow-hidden`}
             >
               {/* Background Ambient Glow */}
               <div
-                class={`absolute inset-0 bg-gradient-to-r ${theme.glow} pointer-events-none opacity-40 group-hover:opacity-80 transition-opacity duration-300`}
+                class={`absolute inset-0 bg-gradient-to-r ${
+                  isFav
+                    ? 'from-amber-500/10 via-amber-500/5 to-transparent opacity-80'
+                    : `${theme.glow} opacity-40 group-hover:opacity-80`
+                } pointer-events-none transition-opacity duration-300`}
               />
 
               {/* Left Ticket Stub (半券エリア) */}
               <div
-                class={`w-14 shrink-0 ${theme.stubBg} border-r border-dashed border-stone-700/60 flex flex-col items-center justify-between py-2.5 px-1 relative z-10`}
+                class={`w-14 shrink-0 ${theme.stubBg} border-r border-dashed border-stone-700/60 flex flex-col items-center justify-between py-2.5 px-1 relative z-10 transition-colors duration-300`}
               >
                 {/* Ticket Number */}
                 <span class="text-[9px] font-mono tracking-wider text-stone-500 uppercase">
@@ -182,8 +174,14 @@ export function PortalView() {
                   {group.shortName}
                 </div>
 
-                {/* Status Indicator */}
-                <span class={`w-1.5 h-1.5 rounded-full ${isFav ? 'bg-amber-400' : theme.indicator}`} />
+                {/* Status Indicator (お気に入りはゴールド、通常はテーマカラー) */}
+                <span
+                  class={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                    isFav
+                      ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+                      : theme.indicator
+                  }`}
+                />
 
                 {/* Cutout Notches */}
                 <div class="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-stone-950 border-b border-stone-800" />
@@ -195,21 +193,20 @@ export function PortalView() {
                 {/* Upper: Group Name & Actions */}
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center gap-2">
                       <h2 class="text-sm font-bold text-white tracking-wide truncate group-hover:text-rose-200 transition-colors">
                         {group.name}
                       </h2>
                       {isFav && (
-                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-0.5 shrink-0">
-                          <Icon icon={Crown} size={9} class="text-amber-400" />
-                          お気に入り
+                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 flex items-center gap-0.5">
+                          推し
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Right Actions: X Link & Favorite Toggle */}
-                  <div class="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Right Actions: Official X & Star Toggle */}
+                  <div class="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {xLink && (
                       <a
                         href={xLink}
@@ -223,16 +220,26 @@ export function PortalView() {
                       </a>
                     )}
                     <button
-                      onClick={(e) => handleToggleFavorite(group, e)}
-                      class={`p-1 rounded transition-all active:scale-90 ${
+                      onClick={(e) => handleToggleFavorite(group.id, e)}
+                      class={`p-1.5 rounded-lg transition-all duration-200 ${
+                        isAnimating ? 'scale-125' : 'scale-100 active:scale-90'
+                      } ${
                         isFav
-                          ? 'text-amber-400 bg-amber-500/15 border border-amber-500/30'
-                          : 'text-stone-600 hover:text-stone-300 hover:bg-white/10'
+                          ? 'text-amber-400 bg-amber-400/10'
+                          : 'text-stone-600 hover:text-stone-400 hover:bg-white/5'
                       }`}
-                      title={isFav ? 'お気に入りを解除' : 'お気に入りに設定（最上位に固定）'}
-                      aria-label="お気に入り設定"
+                      title={isFav ? 'お気に入りを解除' : 'お気に入りに登録'}
+                      aria-label="お気に入り登録"
                     >
-                      <Icon icon={Crown} size={14} class={isFav ? 'filter drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]' : ''} />
+                      <Icon
+                        icon={Star}
+                        size={15}
+                        class={`transition-all duration-200 ${
+                          isFav
+                            ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]'
+                            : 'stroke-[1.5]'
+                        }`}
+                      />
                     </button>
                   </div>
                 </div>
@@ -259,14 +266,6 @@ export function PortalView() {
             </div>
           );
         })}
-
-        {/* Lightweight Feedback Toast */}
-        {toastMessage && (
-          <div class="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 rounded-full bg-stone-900/95 border border-amber-500/40 text-amber-200 text-[11px] font-medium shadow-xl backdrop-blur-md animate-fade-in flex items-center gap-1.5 whitespace-nowrap">
-            <Icon icon={Crown} size={11} class="text-amber-400" />
-            <span>{toastMessage}</span>
-          </div>
-        )}
       </main>
 
       {/* Footer Info */}
