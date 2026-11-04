@@ -317,7 +317,7 @@ export function CockpitView({
                 <div class="flex items-center gap-2">
                   <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
                   <span class="text-meta font-bold text-white group-hover:text-rose-200 transition-colors">
-                    当日のタイムテーブル（合同案内板）
+                    合同タイムテーブル
                   </span>
                 </div>
                 <div class="flex items-center gap-1.5 text-floor font-mono text-rose-300 group-hover:text-rose-100 font-bold">
