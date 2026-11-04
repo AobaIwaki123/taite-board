@@ -22,6 +22,76 @@ export interface CrossTrackEvent {
   sessions: CrossTrackSession[];
 }
 
+export function parseMinutes(timeStr: string): number {
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+export function formatMinutes(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+export type SessionTimeStatus = 'active' | 'upcoming' | 'passed';
+
+export interface EvaluatedSession {
+  session: CrossTrackSession;
+  status: SessionTimeStatus;
+  startMinutes: number;
+  endMinutes: number;
+  durationMinutes: number;
+  remainingMinutes: number; // if active: minutes until end. if upcoming: minutes until start.
+  progress: number; // 0 to 1 if active
+}
+
+export function evaluateSessions(
+  sessions: CrossTrackSession[],
+  currentMinutes: number
+): {
+  active: EvaluatedSession[];
+  upcoming: EvaluatedSession[];
+  passed: EvaluatedSession[];
+  next: EvaluatedSession | null;
+} {
+  const evaluated: EvaluatedSession[] = sessions.map((session) => {
+    const start = parseMinutes(session.startTime);
+    const end = parseMinutes(session.endTime);
+    const duration = end - start;
+
+    let status: SessionTimeStatus = 'upcoming';
+    let remaining = start - currentMinutes;
+    let progress = 0;
+
+    if (currentMinutes >= end) {
+      status = 'passed';
+      remaining = 0;
+      progress = 1;
+    } else if (currentMinutes >= start) {
+      status = 'active';
+      remaining = end - currentMinutes;
+      progress = duration > 0 ? (currentMinutes - start) / duration : 0;
+    }
+
+    return {
+      session,
+      status,
+      startMinutes: start,
+      endMinutes: end,
+      durationMinutes: duration,
+      remainingMinutes: remaining,
+      progress: Math.min(1, Math.max(0, progress)),
+    };
+  });
+
+  const active = evaluated.filter((s) => s.status === 'active');
+  const upcoming = evaluated.filter((s) => s.status === 'upcoming');
+  const passed = evaluated.filter((s) => s.status === 'passed');
+  const next = upcoming.length > 0 ? upcoming[0] : null;
+
+  return { active, upcoming, passed, next };
+}
+
 // 2026-11-03 アイドルマリアージュの合同タイテデータ
 export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
   '2026-11-03/mariage': {
