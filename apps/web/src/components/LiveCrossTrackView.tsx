@@ -5,11 +5,14 @@ import {
   parseMinutes,
   formatMinutes,
 } from '../utils/crossTrack';
-import { PatternLocationView } from './cross-track/PatternLocationView';
+import { PatternTotemBoard } from './cross-track/PatternTotemBoard';
+import { PatternScheduleSlip } from './cross-track/PatternScheduleSlip';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink, MapPin, SlidersHorizontal, Clock } from '../utils/icons';
 import { REGISTERED_GROUPS } from '../config/group';
+
+export type TimelineTheme = 'totem' | 'slip';
 
 interface Props {
   eventId?: string;
@@ -30,6 +33,13 @@ export function LiveCrossTrackView({
     if (!fromGroupId) return null;
     return REGISTERED_GROUPS[fromGroupId]?.name || fromGroupId;
   }, [fromGroupId]);
+
+  // デザイン案の切り替え状態 (案A: totem / 案B: slip)
+  const [theme, setTheme] = useState<TimelineTheme>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('theme');
+    return t === 'slip' ? 'slip' : 'totem';
+  });
 
   // タイムシミュレーター（デバッグステッパー）の開閉状態
   const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(() => {
@@ -74,6 +84,13 @@ export function LiveCrossTrackView({
     const timer = setInterval(updateClock, 30000);
     return () => clearInterval(timer);
   }, [isRealTime]);
+
+  const handleSelectTheme = (newTheme: TimelineTheme) => {
+    setTheme(newTheme);
+    const url = new URL(window.location.href);
+    url.searchParams.set('theme', newTheme);
+    window.history.replaceState({}, '', url.toString());
+  };
 
   const handleToggleSimulator = () => {
     setIsSimulatorOpen((prev) => {
@@ -124,49 +141,49 @@ export function LiveCrossTrackView({
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-2 pb-2">
       {/* 1. Header Bar: Navigation & Real-time Clock */}
-      <header class="flex items-center justify-between px-1 pt-1 pb-2 shrink-0 border-b border-white/10">
+      <header class="flex items-center justify-between px-1 pt-1 pb-2 shrink-0 border-b border-stone-800">
         <button
           onClick={onBack}
-          class="flex items-center gap-1 -ml-1.5 px-2 py-1 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 transition-colors group"
+          class="flex items-center gap-1 -ml-1.5 px-2 py-1 rounded-lg text-stone-400 hover:text-white hover:bg-stone-900 transition-colors group"
           aria-label="戻る"
         >
           <Icon icon={ChevronLeft} size={20} class="text-rose-400 group-hover:-translate-x-0.5 transition-transform" />
-          <span class="text-meta font-bold text-stone-200 group-hover:text-white truncate max-w-[140px]">
+          <span class="text-meta font-medium text-stone-300 group-hover:text-white truncate max-w-[140px]">
             {fromGroupName ? fromGroupName : 'ポータル'}
           </span>
         </button>
 
         <div class="flex items-center gap-2">
           {delayMinutes > 0 && (
-            <span class="text-floor font-mono font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
-              +{delayMinutes}分押中
+            <span class="text-floor font-mono font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              +{delayMinutes}分押
             </span>
           )}
 
           <button
             onClick={handleSetRealTime}
-            class={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${
+            class={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-colors ${
               isRealTime
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-bold shadow-[0_0_10px_rgba(16,185,129,0.25)]'
-                : 'bg-stone-900 text-stone-300 border-white/10 hover:text-white hover:border-white/20'
+                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 font-medium'
+                : 'bg-stone-900 text-stone-400 border-stone-800 hover:text-white'
             }`}
             title="現在時刻に同期"
           >
             <span
               class={`w-2 h-2 rounded-full ${
-                isRealTime ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'
+                isRealTime ? 'bg-emerald-400' : 'bg-stone-600'
               }`}
             />
-            <span class="text-meta font-mono font-bold">
+            <span class="text-meta font-mono font-medium">
               {isRealTime ? 'LIVE' : 'SIM'}: {formatMinutes(currentMinutes)}
             </span>
           </button>
         </div>
       </header>
 
-      {/* 2. Event Title & Details (見切れのない美しい2段レイアウト) */}
-      <div class="px-1 pt-2.5 pb-2 shrink-0 flex flex-col gap-1 border-b border-white/10">
-        <div class="text-subheading font-black text-white leading-snug tracking-tight break-words">
+      {/* 2. Event Title & Details (見切れのない自然な2段レイアウト) */}
+      <div class="px-1 pt-2.5 pb-2 shrink-0 flex flex-col gap-1 border-b border-stone-800/80">
+        <div class="text-subheading font-bold text-white leading-snug tracking-tight break-words">
           {event.title}
         </div>
         <div class="flex items-center justify-between text-meta text-stone-400 pt-0.5">
@@ -174,9 +191,9 @@ export function LiveCrossTrackView({
             href={event.venueUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-1 hover:text-rose-300 transition-colors truncate max-w-[210px]"
+            class="flex items-center gap-1 hover:text-stone-200 transition-colors truncate max-w-[210px]"
           >
-            <Icon icon={MapPin} size={14} class="text-rose-400 shrink-0" />
+            <Icon icon={MapPin} size={14} class="text-stone-400 shrink-0" />
             <span class="truncate">{event.venueName}</span>
           </a>
 
@@ -185,58 +202,96 @@ export function LiveCrossTrackView({
               href={event.ticketUrl}
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center gap-1 text-stone-300 hover:text-white text-floor font-mono px-2 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shrink-0"
+              class="flex items-center gap-1 text-stone-400 hover:text-stone-200 text-floor font-mono px-2 py-0.5 rounded border border-stone-800 hover:border-stone-700 transition-colors shrink-0"
             >
               <span>チケット</span>
-              <Icon icon={ExternalLink} size={12} />
+              <Icon icon={ExternalLink} size={11} />
             </a>
           )}
         </div>
       </div>
 
-      {/* 3. 進行遅延セレクター（現場オタク向けに常時描画） */}
-      <div class="px-1 py-2 shrink-0 flex items-center justify-between border-b border-white/10 bg-stone-900/60 rounded-xl my-1.5">
-        <div class="flex items-center gap-1 text-floor font-mono text-stone-400 font-bold shrink-0">
-          <Icon icon={Clock} size={13} class="text-amber-400" />
-          <span>進行調整:</span>
+      {/* 3. Controls: 進行押し調整 & 案A/案B切り替えセレクター */}
+      <div class="px-1 py-1.5 shrink-0 flex flex-col gap-1.5 border-b border-stone-800/80 bg-stone-900/50 rounded-lg my-1.5">
+        {/* 進行押し調整 */}
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1 text-floor font-mono text-stone-400 font-medium shrink-0">
+            <Icon icon={Clock} size={12} class="text-stone-400" />
+            <span>進行調整:</span>
+          </div>
+          <div class="flex items-center gap-1 font-mono">
+            {[0, 5, 10, 15, 20, 30].map((m) => {
+              const isSelected = delayMinutes === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => handleChangeDelay(m)}
+                  class={`px-2 py-0.5 rounded text-floor font-medium transition-colors ${
+                    isSelected
+                      ? 'bg-amber-400/90 text-stone-950 font-bold'
+                      : 'bg-stone-800/80 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                  }`}
+                >
+                  {m === 0 ? '定刻' : `+${m}m`}
+                </button>
+              );
+            })}
+          </div>
         </div>
-        <div class="flex items-center gap-1 font-mono">
-          {[0, 5, 10, 15, 20, 30].map((m) => {
-            const isSelected = delayMinutes === m;
-            return (
-              <button
-                key={m}
-                onClick={() => handleChangeDelay(m)}
-                class={`px-2 py-1 rounded-lg text-floor font-bold transition-all ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-stone-950 font-black shadow-[0_0_10px_rgba(251,191,36,0.4)] scale-105'
-                    : 'bg-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/10'
-                }`}
-              >
-                {m === 0 ? '定刻' : `+${m}分`}
-              </button>
-            );
-          })}
+
+        {/* 案A / 案B 切り替えセグメントコントロール */}
+        <div class="flex items-center justify-between pt-1 border-t border-stone-800/60 text-floor">
+          <span class="font-mono text-stone-400">DESIGN PREVIEW:</span>
+          <div class="flex items-center p-0.5 rounded-md bg-stone-950 border border-stone-800">
+            <button
+              onClick={() => handleSelectTheme('totem')}
+              class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
+                theme === 'totem'
+                  ? 'bg-stone-800 text-white font-bold'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              案A: 看板
+            </button>
+            <button
+              onClick={() => handleSelectTheme('slip')}
+              class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
+                theme === 'slip'
+                  ? 'bg-stone-800 text-white font-bold'
+                  : 'text-stone-400 hover:text-stone-200'
+              }`}
+            >
+              案B: スリップ
+            </button>
+          </div>
         </div>
       </div>
 
       {/* 4. Main Clean Board Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        <PatternLocationView
-          event={event}
-          currentMinutes={effectiveMinutes}
-          highlightGroupId={fromGroupId}
-        />
+        {theme === 'totem' ? (
+          <PatternTotemBoard
+            event={event}
+            currentMinutes={effectiveMinutes}
+            highlightGroupId={fromGroupId}
+          />
+        ) : (
+          <PatternScheduleSlip
+            event={event}
+            currentMinutes={effectiveMinutes}
+            highlightGroupId={fromGroupId}
+          />
+        )}
       </main>
 
       {/* 5. Footer & Optional Simulator Drawer */}
       {isSimulatorOpen ? (
-        <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-white/10 bg-stone-900/90 rounded-t-2xl p-2 mt-1">
-          <div class="flex items-center justify-between px-1 pb-1 text-floor font-mono text-stone-400 border-b border-white/10">
-            <span class="font-bold text-amber-300">⚙ タイムシミュレーター</span>
+        <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-stone-800 bg-stone-900/95 rounded-t-xl p-2 mt-1">
+          <div class="flex items-center justify-between px-1 pb-1 text-floor font-mono text-stone-400 border-b border-stone-800">
+            <span class="font-medium text-stone-300">タイムシミュレーター</span>
             <button
               onClick={handleToggleSimulator}
-              class="text-stone-400 hover:text-white px-2 py-0.5 rounded hover:bg-white/10 text-floor"
+              class="text-stone-400 hover:text-white px-2 py-0.5 rounded hover:bg-stone-800 text-floor"
             >
               閉じる ✕
             </button>
@@ -248,14 +303,11 @@ export function LiveCrossTrackView({
           />
         </footer>
       ) : (
-        <footer class="pt-2 pb-1 shrink-0 border-t border-white/10 flex items-center justify-between text-floor font-mono text-stone-400 px-1">
-          <div class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-rose-400" />
-            <span class="tracking-wider">当日のタイムテーブル</span>
-          </div>
+        <footer class="pt-2 pb-1 shrink-0 border-t border-stone-800 flex items-center justify-between text-floor font-mono text-stone-400 px-1">
+          <span class="tracking-wider">当日のタイムテーブル</span>
           <button
             onClick={handleToggleSimulator}
-            class="flex items-center gap-1 text-stone-400 hover:text-stone-200 px-2 py-0.5 rounded border border-white/10 bg-white/5 transition-colors"
+            class="flex items-center gap-1 text-stone-400 hover:text-stone-200 px-2 py-0.5 rounded border border-stone-800 bg-stone-900/50 transition-colors"
             title="時間シミュレーターを開く"
           >
             <Icon icon={SlidersHorizontal} size={11} />
