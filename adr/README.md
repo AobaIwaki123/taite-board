@@ -90,3 +90,5 @@ YYYY-MM-DD
 | [ADR-0016](0016-access-monitoring-infrastructure-and-dashboard.md) | プライバシー配慮型アクセス監視基盤とリアルタイムダッシュボード | Accepted | 2026-11-01 |
 | [ADR-0017](0017-global-typography-tokens-and-structural-governance.md) | グローバルタイポグラフィトークンと構造的ガバナンス | Accepted | 2026-11-01 |
 | [ADR-0018](0018-automated-x-crawler-and-multi-stage-pipeline.md) | 自宅k8sヘッドレス巡回と多段前処理による告知自動取得パイプライン | Accepted | 2026-11-02 |
+| [ADR-0019](0019-portal-wallet-card-stack-architecture.md) | ポータルウォレットカードスタックとピン留め状態管理アーキテクチャ | Accepted | 2026-11-03 |
+| [ADR-0020](0020-festival-cross-track-timeline-and-dynamic-session-binding.md) | フェス合同タイムテーブル機能のアーキテクチャ・データスキーマ・動的セッションバインディング | Accepted | 2026-11-04 |

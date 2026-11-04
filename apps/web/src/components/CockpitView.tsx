@@ -300,19 +300,19 @@ export function CockpitView({
           <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
         </div>
 
-        {(session.date === '2026-11-03' || session.title.includes('マリアージュ')) && (() => {
+        {session.cross_track_event_id && (() => {
           const fromGroup = typeof window !== 'undefined'
             ? new URLSearchParams(window.location.search).get('group') || 'ribonclock'
             : 'ribonclock';
           return (
             <div class="pt-1">
               <a
-                href={`/?view=live&event=2026-11-03/mariage&from=${fromGroup}`}
+                href={`/?view=live&event=${session.cross_track_event_id}&from=${fromGroup}`}
                 class="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-rose-950/60 to-purple-950/40 border border-rose-500/30 hover:border-rose-500/60 transition-all group shadow-sm"
                 title="当日のフェスタイムテーブルを開く"
               >
                 <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  <span class="w-2 h-2 rounded-full bg-rose-400" />
                   <span class="text-meta font-bold text-rose-200 group-hover:text-white transition-colors">
                     当日のタイムテーブル
                   </span>

@@ -116,6 +116,7 @@ export interface Session {
   source_tweet_url?: string;
   images?: SessionImage[];
   source_refs?: SourceRef[];
+  cross_track_event_id?: string;
 }
 
 export interface ScheduleData {
