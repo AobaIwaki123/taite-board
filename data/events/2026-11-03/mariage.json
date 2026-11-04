@@ -1,0 +1,183 @@
+{
+  "id": "2026-11-03/mariage",
+  "date": "2026-11-03",
+  "dayOfWeek": "火祝",
+  "title": "アイドルマリアージュ Vol.79",
+  "venueName": "ベルサール虎ノ門",
+  "venueUrl": "https://maps.google.com/?q=ベルサール虎ノ門",
+  "ticketUrl": "https://ticketdive.com/event/idolmariage_79",
+  "sessions": [
+    {
+      "groupId": "milky",
+      "groupName": "Milky✳︎Sphene",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "11:30",
+      "endTime": "11:50"
+    },
+    {
+      "groupId": "ribonclock",
+      "groupName": "リボンクロック",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "11:55",
+      "endTime": "12:15",
+      "detail": "指名入場特典：お目当て3択（10秒動画券 / 写真+30秒トーク 等）"
+    },
+    {
+      "groupId": "milky",
+      "groupName": "Milky✳︎Sphene",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "12:00",
+      "endTime": "13:00",
+      "location": "並行A"
+    },
+    {
+      "groupId": "ribonclock",
+      "groupName": "リボンクロック",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "12:20",
+      "endTime": "13:20",
+      "location": "並行C"
+    },
+    {
+      "groupId": "sairium",
+      "groupName": "SAI²Rium",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "12:20",
+      "endTime": "12:40"
+    },
+    {
+      "groupId": "benjas",
+      "groupName": "ベンジャス!",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "12:45",
+      "endTime": "13:05"
+    },
+    {
+      "groupId": "sairium",
+      "groupName": "SAI²Rium",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "12:50",
+      "endTime": "13:50",
+      "location": "並行B"
+    },
+    {
+      "groupId": "benjas",
+      "groupName": "ベンジャス!",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "13:15",
+      "endTime": "14:15",
+      "location": "並行A"
+    },
+    {
+      "groupId": "riborn",
+      "groupName": "RiBORN",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "13:10",
+      "endTime": "13:30"
+    },
+    {
+      "groupId": "riborn",
+      "groupName": "RiBORN",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "13:40",
+      "endTime": "14:40",
+      "location": "並行C"
+    },
+    {
+      "groupId": "kasumi",
+      "groupName": "かすみ草とステラ",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "13:35",
+      "endTime": "13:55"
+    },
+    {
+      "groupId": "kasumi",
+      "groupName": "かすみ草とステラ",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "14:05",
+      "endTime": "15:05",
+      "location": "並行B"
+    },
+    {
+      "groupId": "appare",
+      "groupName": "Appare!",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "14:00",
+      "endTime": "14:25"
+    },
+    {
+      "groupId": "appare",
+      "groupName": "Appare!",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "14:35",
+      "endTime": "15:35",
+      "location": "並行A"
+    },
+    {
+      "groupId": "anthurium",
+      "groupName": "アンスリューム",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "14:30",
+      "endTime": "14:50"
+    },
+    {
+      "groupId": "anthurium",
+      "groupName": "アンスリューム",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "15:00",
+      "endTime": "16:00",
+      "location": "並行C"
+    },
+    {
+      "groupId": "dollykiss",
+      "groupName": "Dolly Kiss",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "14:55",
+      "endTime": "15:15",
+      "detail": "指名入場特典：10秒動画券（2本回しで写メ撮り放題券）"
+    },
+    {
+      "groupId": "dollykiss",
+      "groupName": "Dolly Kiss",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "15:20",
+      "endTime": "16:20",
+      "location": "並行B"
+    },
+    {
+      "groupId": "maneki",
+      "groupName": "まねきケチャ",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "15:20",
+      "endTime": "15:45"
+    },
+    {
+      "groupId": "maneki",
+      "groupName": "まねきケチャ",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "15:55",
+      "endTime": "16:55",
+      "location": "並行A"
+    }
+  ]
+}
