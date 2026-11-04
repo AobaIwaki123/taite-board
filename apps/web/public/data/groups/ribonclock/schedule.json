@@ -281,6 +281,7 @@
       "date": "2026-11-03",
       "day_of_week": "火祝",
       "session_name": "祝日昼帯",
+      "cross_track_event_id": "2026-11-03/mariage",
       "venue": {
         "canonical_id": "venue:bellesalle-toranomon",
         "name": "ベルサール虎ノ門",

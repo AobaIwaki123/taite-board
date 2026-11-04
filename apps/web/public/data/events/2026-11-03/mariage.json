@@ -8,12 +8,79 @@
   "ticketUrl": "https://ticketdive.com/event/idolmariage_79",
   "sessions": [
     {
-      "groupId": "milky",
-      "groupName": "Milky✳︎Sphene",
+      "groupName": "RUN WITH YOU",
       "type": "live",
       "label": "ライブ出番",
-      "startTime": "11:30",
-      "endTime": "11:50"
+      "startTime": "10:10",
+      "endTime": "10:30"
+    },
+    {
+      "groupName": "RUN WITH YOU",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "10:35",
+      "endTime": "11:35",
+      "location": "並行A"
+    },
+    {
+      "groupName": "YumeLia",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "10:30",
+      "endTime": "10:50"
+    },
+    {
+      "groupName": "YumeLia",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "10:55",
+      "endTime": "11:55",
+      "location": "並行B"
+    },
+    {
+      "groupName": "Bright Charm",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "10:50",
+      "endTime": "11:10"
+    },
+    {
+      "groupName": "Bright Charm",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "11:15",
+      "endTime": "12:15",
+      "location": "並行C"
+    },
+    {
+      "groupName": "BANZAI JAPAN",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "11:10",
+      "endTime": "11:35"
+    },
+    {
+      "groupName": "BANZAI JAPAN",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "11:40",
+      "endTime": "12:40",
+      "location": "並行A"
+    },
+    {
+      "groupName": "MELYUME",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "11:35",
+      "endTime": "11:55"
+    },
+    {
+      "groupName": "MELYUME",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "12:00",
+      "endTime": "13:00",
+      "location": "並行B"
     },
     {
       "groupId": "ribonclock",
@@ -25,15 +92,6 @@
       "detail": "指名入場特典：お目当て3択（10秒動画券 / 写真+30秒トーク 等）"
     },
     {
-      "groupId": "milky",
-      "groupName": "Milky✳︎Sphene",
-      "type": "benefit",
-      "label": "特典会",
-      "startTime": "12:00",
-      "endTime": "13:00",
-      "location": "並行A"
-    },
-    {
       "groupId": "ribonclock",
       "groupName": "リボンクロック",
       "type": "benefit",
@@ -43,106 +101,109 @@
       "location": "並行C"
     },
     {
-      "groupId": "sairium",
-      "groupName": "SAI²Rium",
+      "groupName": "ゆるっと革命団",
       "type": "live",
       "label": "ライブ出番",
       "startTime": "12:20",
       "endTime": "12:40"
     },
     {
-      "groupId": "benjas",
-      "groupName": "ベンジャス!",
-      "type": "live",
-      "label": "ライブ出番",
+      "groupName": "ゆるっと革命団",
+      "type": "benefit",
+      "label": "特典会",
       "startTime": "12:45",
-      "endTime": "13:05"
-    },
-    {
-      "groupId": "sairium",
-      "groupName": "SAI²Rium",
-      "type": "benefit",
-      "label": "特典会",
-      "startTime": "12:50",
-      "endTime": "13:50",
-      "location": "並行B"
-    },
-    {
-      "groupId": "benjas",
-      "groupName": "ベンジャス!",
-      "type": "benefit",
-      "label": "特典会",
-      "startTime": "13:15",
-      "endTime": "14:15",
+      "endTime": "13:45",
       "location": "並行A"
     },
     {
-      "groupId": "riborn",
-      "groupName": "RiBORN",
+      "groupName": "きゅん死に一生を!?",
       "type": "live",
       "label": "ライブ出番",
-      "startTime": "13:10",
-      "endTime": "13:30"
+      "startTime": "12:40",
+      "endTime": "13:00"
     },
     {
-      "groupId": "riborn",
-      "groupName": "RiBORN",
+      "groupName": "きゅん死に一生を!?",
       "type": "benefit",
       "label": "特典会",
-      "startTime": "13:40",
-      "endTime": "14:40",
-      "location": "並行C"
-    },
-    {
-      "groupId": "kasumi",
-      "groupName": "かすみ草とステラ",
-      "type": "live",
-      "label": "ライブ出番",
-      "startTime": "13:35",
-      "endTime": "13:55"
-    },
-    {
-      "groupId": "kasumi",
-      "groupName": "かすみ草とステラ",
-      "type": "benefit",
-      "label": "特典会",
-      "startTime": "14:05",
-      "endTime": "15:05",
+      "startTime": "13:05",
+      "endTime": "14:05",
       "location": "並行B"
     },
     {
-      "groupId": "appare",
-      "groupName": "Appare!",
+      "groupName": "わくめる！",
       "type": "live",
       "label": "ライブ出番",
-      "startTime": "14:00",
-      "endTime": "14:25"
+      "startTime": "13:00",
+      "endTime": "13:20"
     },
     {
-      "groupId": "appare",
-      "groupName": "Appare!",
+      "groupName": "わくめる！",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "13:25",
+      "endTime": "14:25",
+      "location": "並行C"
+    },
+    {
+      "groupName": "ラプラス",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "13:20",
+      "endTime": "13:45"
+    },
+    {
+      "groupName": "ラプラス",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "13:50",
+      "endTime": "14:50",
+      "location": "並行A"
+    },
+    {
+      "groupName": "マイノリティアラート",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "13:45",
+      "endTime": "14:05"
+    },
+    {
+      "groupName": "マイノリティアラート",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "14:10",
+      "endTime": "15:10",
+      "location": "並行B"
+    },
+    {
+      "groupName": "LEVEL7",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "14:05",
+      "endTime": "14:30"
+    },
+    {
+      "groupName": "LEVEL7",
       "type": "benefit",
       "label": "特典会",
       "startTime": "14:35",
       "endTime": "15:35",
-      "location": "並行A"
+      "location": "並行C"
     },
     {
-      "groupId": "anthurium",
-      "groupName": "アンスリューム",
+      "groupName": "カリスマめんざいふっ！",
       "type": "live",
       "label": "ライブ出番",
-      "startTime": "14:30",
-      "endTime": "14:50"
+      "startTime": "14:35",
+      "endTime": "14:55"
     },
     {
-      "groupId": "anthurium",
-      "groupName": "アンスリューム",
+      "groupName": "カリスマめんざいふっ！",
       "type": "benefit",
       "label": "特典会",
       "startTime": "15:00",
       "endTime": "16:00",
-      "location": "並行C"
+      "location": "並行A"
     },
     {
       "groupId": "dollykiss",
@@ -163,21 +224,214 @@
       "location": "並行B"
     },
     {
-      "groupId": "maneki",
-      "groupName": "まねきケチャ",
+      "groupName": "Loulouchouchou",
       "type": "live",
       "label": "ライブ出番",
-      "startTime": "15:20",
-      "endTime": "15:45"
+      "startTime": "15:15",
+      "endTime": "15:40"
     },
     {
-      "groupId": "maneki",
-      "groupName": "まねきケチャ",
+      "groupName": "Loulouchouchou",
       "type": "benefit",
       "label": "特典会",
-      "startTime": "15:55",
-      "endTime": "16:55",
+      "startTime": "15:45",
+      "endTime": "16:45",
+      "location": "並行C"
+    },
+    {
+      "groupName": "虹色幻想曲〜プリズム・ファンタジア〜",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "15:40",
+      "endTime": "16:00"
+    },
+    {
+      "groupName": "虹色幻想曲〜プリズム・ファンタジア〜",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "16:05",
+      "endTime": "17:05",
       "location": "並行A"
+    },
+    {
+      "groupName": "Lovlis",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "16:00",
+      "endTime": "16:25"
+    },
+    {
+      "groupName": "Lovlis",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "16:30",
+      "endTime": "17:30",
+      "location": "並行B"
+    },
+    {
+      "groupName": "New Crown",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "16:25",
+      "endTime": "16:45"
+    },
+    {
+      "groupName": "New Crown",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "16:50",
+      "endTime": "17:50",
+      "location": "並行C"
+    },
+    {
+      "groupName": "黎明リフレイン",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "16:50",
+      "endTime": "17:10"
+    },
+    {
+      "groupName": "黎明リフレイン",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "17:15",
+      "endTime": "18:15",
+      "location": "並行A"
+    },
+    {
+      "groupName": "Chime de Happy",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "17:10",
+      "endTime": "17:30"
+    },
+    {
+      "groupName": "Chime de Happy",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "17:35",
+      "endTime": "18:35",
+      "location": "並行B"
+    },
+    {
+      "groupName": "てんしめし！",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "17:30",
+      "endTime": "17:50"
+    },
+    {
+      "groupName": "てんしめし！",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "17:55",
+      "endTime": "18:55",
+      "location": "並行C"
+    },
+    {
+      "groupName": "ブルーなままで",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "17:50",
+      "endTime": "18:15"
+    },
+    {
+      "groupName": "ブルーなままで",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "18:20",
+      "endTime": "19:20",
+      "location": "並行A"
+    },
+    {
+      "groupName": "PHiZZ",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "18:15",
+      "endTime": "18:35"
+    },
+    {
+      "groupName": "PHiZZ",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "18:40",
+      "endTime": "19:40",
+      "location": "並行B"
+    },
+    {
+      "groupName": "折れないしっぽ",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "18:35",
+      "endTime": "18:55"
+    },
+    {
+      "groupName": "折れないしっぽ",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "19:00",
+      "endTime": "20:00",
+      "location": "並行C"
+    },
+    {
+      "groupName": "君のメインヒロイン",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "19:00",
+      "endTime": "19:25"
+    },
+    {
+      "groupName": "君のメインヒロイン",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "19:30",
+      "endTime": "20:30",
+      "location": "並行A"
+    },
+    {
+      "groupName": "IWI!",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "19:25",
+      "endTime": "19:50"
+    },
+    {
+      "groupName": "IWI!",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "20:45",
+      "endTime": "21:45",
+      "location": "終演後"
+    },
+    {
+      "groupName": "Magi",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "19:50",
+      "endTime": "20:15"
+    },
+    {
+      "groupName": "Magi",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "20:45",
+      "endTime": "21:45",
+      "location": "終演後"
+    },
+    {
+      "groupName": "Aerolipop",
+      "type": "live",
+      "label": "ライブ出番",
+      "startTime": "20:15",
+      "endTime": "20:40"
+    },
+    {
+      "groupName": "Aerolipop",
+      "type": "benefit",
+      "label": "特典会",
+      "startTime": "20:45",
+      "endTime": "21:45",
+      "location": "終演後"
     }
   ]
 }
