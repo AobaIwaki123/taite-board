@@ -345,7 +345,7 @@ export function PortalView() {
 
       {/* Footer Info */}
       <footer class="pt-2 shrink-0 border-t border-white/5 flex items-center justify-between text-[11px] text-stone-500 px-1 font-mono">
-        <span>タップしてタイテを開く</span>
+        <span>推しグループを選択</span>
         <span>v1.4.3</span>
       </footer>
     </div>
