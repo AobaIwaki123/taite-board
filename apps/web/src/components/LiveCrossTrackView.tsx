@@ -5,13 +5,13 @@ import {
   parseMinutes,
   formatMinutes,
 } from '../utils/crossTrack';
-import { PatternStreamView } from './cross-track/PatternStreamView';
+import { PatternLocationView } from './cross-track/PatternLocationView';
 import { PatternTimerView } from './cross-track/PatternTimerView';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink } from '../utils/icons';
 
-type ViewMode = 'stream' | 'timer';
+type ViewMode = 'location' | 'timer';
 
 interface Props {
   eventId?: string;
@@ -23,12 +23,12 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     return SAMPLE_CROSS_TRACK_EVENTS[eventId] || SAMPLE_CROSS_TRACK_EVENTS['2026-11-03/mariage'];
   }, [eventId]);
 
-  // Tab view mode: 'stream' (integrated info & timer) or 'timer' (timer-focused)
+  // Tab view mode: 'location' (Area-based STAGE vs BENEFIT) or 'timer' (Timer-focused countdown)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const params = new URLSearchParams(window.location.search);
     const m = params.get('mode') || params.get('pattern');
     if (m === 'timer') return 'timer';
-    return 'stream'; // Default: Stream
+    return 'location'; // Default: Area-based
   });
 
   // Current simulated minutes
@@ -36,8 +36,8 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     const params = new URLSearchParams(window.location.search);
     const t = params.get('time');
     if (t && t !== 'now') return parseMinutes(t);
-    // Default demo time: 12:05
-    return parseMinutes('12:05');
+    // Default demo time: 12:20 (SAI²Rium live / Ribon Clock & Milky benefit)
+    return parseMinutes('12:20');
   });
 
   const [isRealTime, setIsRealTime] = useState<boolean>(() => {
@@ -144,18 +144,18 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         )}
       </div>
 
-      {/* Top Segmented Tab Switcher (ストリーム vs 残り時間) */}
+      {/* Top Segmented Tab Switcher (エリア別 vs 残り時間) */}
       <div class="px-1 pt-2 shrink-0">
         <div class="flex items-center bg-stone-900/90 rounded-xl p-0.5 border border-white/10 text-xs font-mono">
           <button
-            onClick={() => handleSelectMode('stream')}
+            onClick={() => handleSelectMode('location')}
             class={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-              viewMode === 'stream'
+              viewMode === 'location'
                 ? 'bg-white/15 text-white font-extrabold shadow-sm'
                 : 'text-stone-400 hover:text-stone-200'
             }`}
           >
-            ストリーム (NOW)
+            エリア別 (STAGE / 物販)
           </button>
           <button
             onClick={() => handleSelectMode('timer')}
@@ -172,8 +172,8 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
 
       {/* Main Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        {viewMode === 'stream' ? (
-          <PatternStreamView event={event} currentMinutes={currentMinutes} />
+        {viewMode === 'location' ? (
+          <PatternLocationView event={event} currentMinutes={currentMinutes} />
         ) : (
           <PatternTimerView event={event} currentMinutes={currentMinutes} />
         )}
