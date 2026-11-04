@@ -12,7 +12,7 @@ export function PatternTimerView({ event, currentMinutes }: Props) {
 
   return (
     <div class="flex-1 flex flex-col justify-between py-2 gap-3 min-h-0">
-      {/* Active Sessions with Remaining Timer & Progress Bar */}
+      {/* Active Sessions with Remaining Timer Highlight & Progress Bar */}
       <div class="flex-1 flex flex-col gap-2.5 min-h-0 overflow-y-auto no-scrollbar">
         {active.length > 0 ? (
           active.map((item, idx) => {
@@ -24,7 +24,7 @@ export function PatternTimerView({ event, currentMinutes }: Props) {
                 key={idx}
                 class={`rounded-2xl border p-3.5 flex flex-col gap-2.5 shadow-lg relative overflow-hidden ${theme.border} bg-stone-900/90`}
               >
-                {/* Header: Label & Time */}
+                {/* Header: Label & Time Range */}
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -50,11 +50,11 @@ export function PatternTimerView({ event, currentMinutes }: Props) {
                   )}
                 </div>
 
-                {/* Remaining Time Highlight */}
+                {/* Remaining Time Highlight (Big Typography) */}
                 <div class="flex items-baseline justify-between pt-0.5">
                   <span class="text-xs text-stone-400 font-medium">終了まで</span>
                   <div class="flex items-baseline gap-1 font-mono">
-                    <span class="text-xl font-black text-emerald-400">
+                    <span class="text-2xl font-black text-emerald-400 tracking-tight">
                       残り {item.remainingMinutes}
                     </span>
                     <span class="text-xs text-emerald-400 font-bold">分</span>

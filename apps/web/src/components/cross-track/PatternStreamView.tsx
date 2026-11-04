@@ -12,7 +12,7 @@ export function PatternStreamView({ event, currentMinutes }: Props) {
 
   return (
     <div class="flex-1 flex flex-col justify-between py-2 gap-3 min-h-0">
-      {/* NOW Section (Hero Focus) */}
+      {/* NOW Section (Hero Focus with Timer Integrated) */}
       <div class="flex-1 flex flex-col gap-2 min-h-0">
         <div class="flex items-center justify-between px-1">
           <div class="flex items-center gap-1.5">
@@ -31,12 +31,14 @@ export function PatternStreamView({ event, currentMinutes }: Props) {
             active.map((item, idx) => {
               const theme = getGroupTheme(item.session.groupId || item.session.groupName);
               const isLive = item.session.type === 'live';
+              const progressPercent = Math.round(item.progress * 100);
 
               return (
                 <div
                   key={`${item.session.groupId}-${idx}`}
-                  class={`relative rounded-2xl border p-3.5 flex flex-col gap-1.5 shadow-lg overflow-hidden ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
+                  class={`relative rounded-2xl border p-3.5 flex flex-col gap-2 shadow-lg overflow-hidden ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
                 >
+                  {/* Top Line: Session Label, Range & Remaining Minutes */}
                   <div class="flex items-center justify-between">
                     <span
                       class={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded-full border ${
@@ -47,34 +49,63 @@ export function PatternStreamView({ event, currentMinutes }: Props) {
                     >
                       {item.session.label}
                     </span>
-                    <span class="text-xs font-mono font-bold text-white tracking-wider">
-                      {item.session.startTime} - {item.session.endTime}
-                    </span>
-                  </div>
 
-                  <div class="text-lg font-extrabold text-white tracking-tight mt-0.5">
-                    {item.session.groupName}
-                  </div>
-
-                  {item.session.location && (
-                    <div class="flex items-center gap-1.5 text-xs text-amber-300 font-medium">
-                      <Icon icon={MapPin} size={12} />
-                      <span>場所: {item.session.location}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-mono text-stone-300">
+                        {item.session.startTime} - {item.session.endTime}
+                      </span>
+                      <span class="text-xs font-mono font-extrabold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
+                        残り {item.remainingMinutes}分
+                      </span>
                     </div>
-                  )}
+                  </div>
 
+                  {/* Group Name & Location */}
+                  <div>
+                    <div class="text-lg font-extrabold text-white tracking-tight">
+                      {item.session.groupName}
+                    </div>
+
+                    {item.session.location && (
+                      <div class="flex items-center gap-1.5 text-xs text-amber-300 font-medium mt-0.5">
+                        <Icon icon={MapPin} size={12} />
+                        <span>場所: {item.session.location}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Optional Details */}
                   {item.session.detail && (
-                    <div class="text-[11px] text-stone-300 bg-white/5 p-2 rounded-lg border border-white/5 mt-0.5">
+                    <div class="text-[11px] text-stone-300 bg-white/5 p-2 rounded-lg border border-white/5">
                       {item.session.detail}
                     </div>
                   )}
+
+                  {/* Integrated Slim Progress Bar */}
+                  <div class="w-full bg-white/10 rounded-full h-1 overflow-hidden mt-0.5">
+                    <div
+                      class={`h-full transition-all duration-300 ${theme.bar}`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
                 </div>
               );
             })
           ) : (
             <div class="flex-1 flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-stone-900/40 p-6 text-center">
-              <span class="text-sm text-stone-200 font-medium">現在進行中の演目・特典会はありません</span>
-              <span class="text-xs text-stone-400 mt-1">インターバル待機中</span>
+              <span class="text-xs font-mono tracking-widest text-stone-400 uppercase">
+                INTERVAL
+              </span>
+              <span class="text-sm text-stone-200 font-bold mt-1">
+                現在進行中の演目・特典会はありません
+              </span>
+              {next && (
+                <div class="mt-3 flex items-center gap-2 text-xs font-mono bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                  <span class="text-stone-300">次の出番まで</span>
+                  <span class="text-emerald-400 font-bold">あと {next.remainingMinutes}分</span>
+                  <span class="text-stone-400">({next.session.startTime} {next.session.groupShortName})</span>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -5,14 +5,13 @@ import {
   parseMinutes,
   formatMinutes,
 } from '../utils/crossTrack';
-import { PatternLocationView } from './cross-track/PatternLocationView';
 import { PatternStreamView } from './cross-track/PatternStreamView';
 import { PatternTimerView } from './cross-track/PatternTimerView';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink } from '../utils/icons';
 
-type PatternType = 'stream' | 'location' | 'timer';
+type ViewMode = 'stream' | 'timer';
 
 interface Props {
   eventId?: string;
@@ -24,12 +23,12 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     return SAMPLE_CROSS_TRACK_EVENTS[eventId] || SAMPLE_CROSS_TRACK_EVENTS['2026-11-03/mariage'];
   }, [eventId]);
 
-  // Read initial pattern and sim time from URL search params
-  const [pattern, setPattern] = useState<PatternType>(() => {
+  // Tab view mode: 'stream' (integrated info & timer) or 'timer' (timer-focused)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const params = new URLSearchParams(window.location.search);
-    const p = params.get('pattern');
-    if (p === 'location' || p === 'timer') return p;
-    return 'stream'; // Default: Pattern B (Minimal Stream)
+    const m = params.get('mode') || params.get('pattern');
+    if (m === 'timer') return 'timer';
+    return 'stream'; // Default: Stream
   });
 
   // Current simulated minutes
@@ -37,7 +36,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     const params = new URLSearchParams(window.location.search);
     const t = params.get('time');
     if (t && t !== 'now') return parseMinutes(t);
-    // Default demo time: 12:05 (RibonClock live / Milky benefit)
+    // Default demo time: 12:05
     return parseMinutes('12:05');
   });
 
@@ -60,10 +59,11 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     return () => clearInterval(timer);
   }, [isRealTime]);
 
-  const handleSelectPattern = (newPattern: PatternType) => {
-    setPattern(newPattern);
+  const handleSelectMode = (mode: ViewMode) => {
+    setViewMode(mode);
     const url = new URL(window.location.href);
-    url.searchParams.set('pattern', newPattern);
+    url.searchParams.set('mode', mode);
+    url.searchParams.delete('pattern');
     window.history.replaceState({}, '', url.toString());
   };
 
@@ -107,7 +107,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
             class={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-colors ${
               isRealTime
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
-                : 'bg-white/5 text-stone-300 border-white/10 hover:text-white'
+                : 'bg-white/5 text-stone-400 border-white/10 hover:text-white'
             }`}
             title="現在時刻に同期"
           >
@@ -117,7 +117,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
               }`}
             />
             <span class="text-[11px] font-mono">
-              {isRealTime ? 'LIVE NOW' : 'SIM'}: {formatMinutes(currentMinutes)}
+              {isRealTime ? 'LIVE' : 'SIM'}: {formatMinutes(currentMinutes)}
             </span>
           </button>
         </div>
@@ -144,61 +144,48 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         )}
       </div>
 
-      {/* Main Pattern Viewport */}
+      {/* Top Segmented Tab Switcher (ストリーム vs 残り時間) */}
+      <div class="px-1 pt-2 shrink-0">
+        <div class="flex items-center bg-stone-900/90 rounded-xl p-0.5 border border-white/10 text-xs font-mono">
+          <button
+            onClick={() => handleSelectMode('stream')}
+            class={`flex-1 py-1.5 rounded-lg text-center transition-all ${
+              viewMode === 'stream'
+                ? 'bg-white/15 text-white font-extrabold shadow-sm'
+                : 'text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            ストリーム (NOW)
+          </button>
+          <button
+            onClick={() => handleSelectMode('timer')}
+            class={`flex-1 py-1.5 rounded-lg text-center transition-all ${
+              viewMode === 'timer'
+                ? 'bg-white/15 text-white font-extrabold shadow-sm'
+                : 'text-stone-400 hover:text-stone-200'
+            }`}
+          >
+            残り時間 (TIMER)
+          </button>
+        </div>
+      </div>
+
+      {/* Main Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        {pattern === 'stream' && (
+        {viewMode === 'stream' ? (
           <PatternStreamView event={event} currentMinutes={currentMinutes} />
-        )}
-        {pattern === 'location' && (
-          <PatternLocationView event={event} currentMinutes={currentMinutes} />
-        )}
-        {pattern === 'timer' && (
+        ) : (
           <PatternTimerView event={event} currentMinutes={currentMinutes} />
         )}
       </main>
 
-      {/* Bottom Controls: Stepper Debugger & Pattern Switcher */}
-      <footer class="pt-1.5 flex flex-col gap-1.5 shrink-0 border-t border-white/10">
-        {/* Step-by-Step Timeline Controller */}
+      {/* Bottom Controls: Stepper Debugger */}
+      <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-white/10">
         <TimelineStepper
           sessions={event.sessions}
           currentMinutes={currentMinutes}
           onSelectMinutes={handleSelectMinutes}
         />
-
-        {/* Pattern Switcher */}
-        <div class="flex items-center justify-between text-[10px] font-mono bg-stone-900/90 rounded-lg p-0.5 border border-white/5">
-          <button
-            onClick={() => handleSelectPattern('stream')}
-            class={`flex-1 py-1 rounded text-center transition-all ${
-              pattern === 'stream'
-                ? 'bg-white/15 text-white font-bold shadow-sm'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            B: NOW特化
-          </button>
-          <button
-            onClick={() => handleSelectPattern('location')}
-            class={`flex-1 py-1 rounded text-center transition-all ${
-              pattern === 'location'
-                ? 'bg-white/15 text-white font-bold shadow-sm'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            A: エリア別
-          </button>
-          <button
-            onClick={() => handleSelectPattern('timer')}
-            class={`flex-1 py-1 rounded text-center transition-all ${
-              pattern === 'timer'
-                ? 'bg-white/15 text-white font-bold shadow-sm'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            C: 残り時間
-          </button>
-        </div>
       </footer>
     </div>
   );
