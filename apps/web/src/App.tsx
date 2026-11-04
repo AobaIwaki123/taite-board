@@ -37,15 +37,24 @@ function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
 export function App() {
   const liveMode = isLiveTrackMode();
   if (liveMode.isLive) {
+    const fromGroup = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('from')
+      : null;
+
     return (
       <LiveCrossTrackView
         eventId={liveMode.eventId}
+        fromGroupId={fromGroup || undefined}
         onBack={() => {
           const url = new URL(window.location.href);
           url.searchParams.delete('view');
           url.searchParams.delete('event');
+          if (fromGroup) {
+            url.searchParams.set('group', fromGroup);
+            url.searchParams.delete('from');
+          }
           if (url.pathname.startsWith('/live/')) {
-            window.location.href = '/';
+            window.location.href = fromGroup ? `/?group=${fromGroup}` : '/';
           } else {
             window.location.href = url.toString();
           }

@@ -298,17 +298,33 @@ export function CockpitView({
 
         <div class="flex items-start justify-between gap-2">
           <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
-          {(session.date === '2026-11-03' || session.title.includes('マリアージュ')) && (
-            <a
-              href="/?view=live&event=2026-11-03/mariage"
-              class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-floor font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition-all shrink-0 shadow-sm"
-              title="当日の合同進行ボードを開く"
-            >
-              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-              <span>合同進行</span>
-            </a>
-          )}
         </div>
+
+        {(session.date === '2026-11-03' || session.title.includes('マリアージュ')) && (() => {
+          const fromGroup = typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('group') || 'ribonclock'
+            : 'ribonclock';
+          return (
+            <div class="pt-1">
+              <a
+                href={`/?view=live&event=2026-11-03/mariage&from=${fromGroup}`}
+                class="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-rose-950/60 to-purple-950/40 border border-rose-500/30 hover:border-rose-500/60 transition-all group shadow-sm"
+                title="当日のフェスタイムテーブルを開く"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  <span class="text-meta font-bold text-rose-200 group-hover:text-white transition-colors">
+                    当日のタイムテーブル
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 text-floor font-mono text-rose-300/80 group-hover:text-rose-200">
+                  <span>LIVE TIMELINE</span>
+                  <span class="group-hover:translate-x-0.5 transition-transform">❯</span>
+                </div>
+              </a>
+            </div>
+          );
+        })()}
 
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-stone-300 min-w-0">
           <a
