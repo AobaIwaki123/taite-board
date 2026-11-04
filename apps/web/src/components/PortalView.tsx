@@ -331,8 +331,10 @@ export function PortalView() {
                     </span>
                   </div>
 
-                  <div class="flex items-center text-stone-500 group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all shrink-0">
-                    <Icon icon={ChevronRight} size={15} />
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <div class="flex items-center text-stone-500 group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all">
+                      <Icon icon={ChevronRight} size={15} />
+                    </div>
                   </div>
                 </div>
               </div>

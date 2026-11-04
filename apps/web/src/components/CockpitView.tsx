@@ -296,7 +296,35 @@ export function CockpitView({
           </div>
         </div>
 
-        <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
+        </div>
+
+        {(session.date === '2026-11-03' || session.title.includes('マリアージュ')) && (() => {
+          const fromGroup = typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('group') || 'ribonclock'
+            : 'ribonclock';
+          return (
+            <div class="pt-1">
+              <a
+                href={`/?view=live&event=2026-11-03/mariage&from=${fromGroup}`}
+                class="flex items-center justify-between px-3 py-2 rounded-xl bg-gradient-to-r from-rose-950/60 to-purple-950/40 border border-rose-500/30 hover:border-rose-500/60 transition-all group shadow-sm"
+                title="当日のフェスタイムテーブルを開く"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                  <span class="text-meta font-bold text-rose-200 group-hover:text-white transition-colors">
+                    当日のタイムテーブル
+                  </span>
+                </div>
+                <div class="flex items-center gap-1 text-floor font-mono text-rose-300/80 group-hover:text-rose-200">
+                  <span>LIVE TIMELINE</span>
+                  <span class="group-hover:translate-x-0.5 transition-transform">❯</span>
+                </div>
+              </a>
+            </div>
+          );
+        })()}
 
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-stone-300 min-w-0">
           <a
