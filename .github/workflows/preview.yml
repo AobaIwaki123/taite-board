@@ -43,24 +43,30 @@ jobs:
           set -euo pipefail
           pr_num="${{ github.event.number }}"
           head_sha="${{ github.event.pull_request.head.sha }}"
-          short_sha="sha-${head_sha:0:7}"
+          short_sha_7="sha-${head_sha:0:7}"
+          short_sha_8="sha-${head_sha:0:8}"
           docker build \
             --tag "${IMAGE_NAME}:pr-${pr_num}" \
-            --tag "${IMAGE_NAME}:${short_sha}" \
+            --tag "${IMAGE_NAME}:${short_sha_7}" \
+            --tag "${IMAGE_NAME}:${short_sha_8}" \
             .
           docker push "${IMAGE_NAME}:pr-${pr_num}"
-          docker push "${IMAGE_NAME}:${short_sha}"
+          docker push "${IMAGE_NAME}:${short_sha_7}"
+          docker push "${IMAGE_NAME}:${short_sha_8}"
 
       - name: Build and push monitor image
         run: |
           set -euo pipefail
           pr_num="${{ github.event.number }}"
           head_sha="${{ github.event.pull_request.head.sha }}"
-          short_sha="sha-${head_sha:0:7}"
+          short_sha_7="sha-${head_sha:0:7}"
+          short_sha_8="sha-${head_sha:0:8}"
           docker build \
             --file deploy/monitor.Dockerfile \
             --tag "${MONITOR_IMAGE_NAME}:pr-${pr_num}" \
-            --tag "${MONITOR_IMAGE_NAME}:${short_sha}" \
+            --tag "${MONITOR_IMAGE_NAME}:${short_sha_7}" \
+            --tag "${MONITOR_IMAGE_NAME}:${short_sha_8}" \
             .
           docker push "${MONITOR_IMAGE_NAME}:pr-${pr_num}"
-          docker push "${MONITOR_IMAGE_NAME}:${short_sha}"
+          docker push "${MONITOR_IMAGE_NAME}:${short_sha_7}"
+          docker push "${MONITOR_IMAGE_NAME}:${short_sha_8}"
