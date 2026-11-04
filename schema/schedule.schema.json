@@ -181,6 +181,10 @@
               "observed_at": { "type": "string", "format": "date-time" }
               }
             }
+          },
+          "cross_track_event_id": {
+            "type": "string",
+            "description": "Identifier for the multi-group festival cross-track event timeline (e.g. 2026-11-03/mariage)"
           }
         }
       }
