@@ -77,6 +77,15 @@ export function PortalView() {
     return Object.values(REGISTERED_GROUPS).filter((g) => g.id !== 'sample');
   }, []);
 
+  // 各グループの固有固定ID（並び順が変わっても不変のチケットシリアル番号）
+  const groupFixedIdMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    baseGroups.forEach((g, idx) => {
+      map[g.id] = `#${String(idx + 1).padStart(2, '0')}`;
+    });
+    return map;
+  }, [baseGroups]);
+
   // ピン留めされたグループ ID（null はデフォルト状態）
   const [pinnedGroupId, setPinnedGroupId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -187,7 +196,7 @@ export function PortalView() {
 
       {/* Ticket List Area */}
       <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar relative">
-        {orderedGroups.map((group: GroupConfig, index: number) => {
+        {orderedGroups.map((group: GroupConfig) => {
           const isPinned = pinnedGroupId === group.id;
           const isElevating = elevatingGroupId === group.id;
           const theme = TICKET_THEMES[group.id] || DEFAULT_TICKET_THEME;
@@ -230,9 +239,9 @@ export function PortalView() {
               <div
                 class={`w-14 shrink-0 ${theme.stubBg} border-r border-dashed border-stone-700/60 flex flex-col items-center justify-between py-2.5 px-1 relative z-10 transition-colors duration-300`}
               >
-                {/* Ticket Number */}
+                {/* Ticket Serial ID (グループ固有の不変シリアル番号) */}
                 <span class="text-[9px] font-mono tracking-wider text-stone-500 uppercase">
-                  #{String(index + 1).padStart(2, '0')}
+                  {groupFixedIdMap[group.id] || '#00'}
                 </span>
 
                 {/* Group Short Name */}
