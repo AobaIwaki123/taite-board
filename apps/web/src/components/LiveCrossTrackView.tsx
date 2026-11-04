@@ -5,14 +5,11 @@ import {
   parseMinutes,
   formatMinutes,
 } from '../utils/crossTrack';
-import { PatternSignboardClean } from './cross-track/PatternSignboardClean';
 import { PatternSignboardDetailed } from './cross-track/PatternSignboardDetailed';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink, MapPin, SlidersHorizontal, Clock } from '../utils/icons';
 import { REGISTERED_GROUPS } from '../config/group';
-
-export type TimelineTheme = 'clean' | 'detailed';
 
 interface Props {
   eventId?: string;
@@ -25,21 +22,33 @@ export function LiveCrossTrackView({
   fromGroupId,
   onBack,
 }: Props) {
-  const event: CrossTrackEvent = useMemo(() => {
+  // イベントデータ（静的フォールバック付き）
+  const [eventData, setEventData] = useState<CrossTrackEvent>(() => {
     return SAMPLE_CROSS_TRACK_EVENTS[eventId] || SAMPLE_CROSS_TRACK_EVENTS['2026-11-03/mariage'];
+  });
+
+  // 非同期で最新のイベントJSONがあれば読み込む
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`data/events/${eventId}.json`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: CrossTrackEvent | null) => {
+        if (!cancelled && data) {
+          setEventData(data);
+        }
+      })
+      .catch(() => {
+        // フォールバック維持
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
   const fromGroupName = useMemo(() => {
     if (!fromGroupId) return null;
     return REGISTERED_GROUPS[fromGroupId]?.name || fromGroupId;
   }, [fromGroupId]);
-
-  // デザイン案の切り替え状態 (プロ仕様: clean / ディテール案: detailed)
-  const [theme, setTheme] = useState<TimelineTheme>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const t = params.get('theme');
-    return t === 'clean' ? 'clean' : 'detailed';
-  });
 
   // タイムシミュレーター（デバッグステッパー）の開閉状態
   const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(() => {
@@ -84,13 +93,6 @@ export function LiveCrossTrackView({
     const timer = setInterval(updateClock, 30000);
     return () => clearInterval(timer);
   }, [isRealTime]);
-
-  const handleSelectTheme = (newTheme: TimelineTheme) => {
-    setTheme(newTheme);
-    const url = new URL(window.location.href);
-    url.searchParams.set('theme', newTheme);
-    window.history.replaceState({}, '', url.toString());
-  };
 
   const handleToggleSimulator = () => {
     setIsSimulatorOpen((prev) => {
@@ -184,22 +186,22 @@ export function LiveCrossTrackView({
       {/* 2. Event Title & Details (見切れのない自然な2段レイアウト) */}
       <div class="px-1 pt-2 pb-2 shrink-0 flex flex-col gap-1 border-b border-stone-800/80">
         <div class="text-subheading font-bold text-white leading-snug tracking-tight break-words">
-          {event.title}
+          {eventData.title}
         </div>
         <div class="flex items-center justify-between text-meta text-stone-400 pt-0.5">
           <a
-            href={event.venueUrl || '#'}
+            href={eventData.venueUrl || '#'}
             target="_blank"
             rel="noopener noreferrer"
             class="flex items-center gap-1 hover:text-stone-200 transition-colors truncate max-w-[210px]"
           >
             <Icon icon={MapPin} size={14} class="text-stone-400 shrink-0" />
-            <span class="truncate">{event.venueName}</span>
+            <span class="truncate">{eventData.venueName}</span>
           </a>
 
-          {event.ticketUrl && (
+          {eventData.ticketUrl && (
             <a
-              href={event.ticketUrl}
+              href={eventData.ticketUrl}
               target="_blank"
               rel="noopener noreferrer"
               class="flex items-center gap-1 text-stone-400 hover:text-stone-200 text-floor font-mono px-2 py-0.5 rounded border border-stone-800 hover:border-stone-700 transition-colors shrink-0"
@@ -211,75 +213,38 @@ export function LiveCrossTrackView({
         </div>
       </div>
 
-      {/* 3. Controls: 進行押し調整 & 案A1/案A2切り替えセレクター */}
-      <div class="px-1 py-1.5 shrink-0 flex flex-col gap-1.5 border-b border-stone-800/80 bg-stone-900/50 rounded-lg my-1.5">
-        {/* 進行押し調整 */}
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1 text-floor font-mono text-stone-400 font-medium shrink-0">
-            <Icon icon={Clock} size={12} class="text-stone-400" />
-            <span>進行調整:</span>
-          </div>
-          <div class="flex items-center gap-1 font-mono">
-            {[0, 5, 10, 15, 20, 30].map((m) => {
-              const isSelected = delayMinutes === m;
-              return (
-                <button
-                  key={m}
-                  onClick={() => handleChangeDelay(m)}
-                  class={`px-2 py-0.5 rounded text-floor font-medium transition-colors ${
-                    isSelected
-                      ? 'bg-amber-400/90 text-stone-950 font-bold'
-                      : 'bg-stone-800/80 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
-                  }`}
-                >
-                  {m === 0 ? '定刻' : `+${m}m`}
-                </button>
-              );
-            })}
-          </div>
+      {/* 3. Controls: 進行押し調整バー（常時描画・現場仕様） */}
+      <div class="px-1 py-1.5 shrink-0 flex items-center justify-between border-b border-stone-800/80 bg-stone-900/50 rounded-lg my-1.5">
+        <div class="flex items-center gap-1 text-floor font-mono text-stone-400 font-medium shrink-0">
+          <Icon icon={Clock} size={12} class="text-stone-400" />
+          <span>進行調整:</span>
         </div>
-
-        {/* 案A1（プロ仕様） / 案A2（ディテール案） 切り替えスイッチ */}
-        <div class="flex items-center justify-between pt-1 border-t border-stone-800/60 text-floor">
-          <span class="font-mono text-stone-400">SIGNBOARD DESIGN:</span>
-          <div class="flex items-center p-0.5 rounded-md bg-stone-950 border border-stone-800">
-            <button
-              onClick={() => handleSelectTheme('clean')}
-              class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
-                theme === 'clean'
-                  ? 'bg-stone-800 text-white font-bold shadow-sm'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              プロ仕様
-            </button>
-            <button
-              onClick={() => handleSelectTheme('detailed')}
-              class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
-                theme === 'detailed'
-                  ? 'bg-stone-800 text-white font-bold shadow-sm'
-                  : 'text-stone-400 hover:text-stone-200'
-              }`}
-            >
-              ディテール
-            </button>
-          </div>
+        <div class="flex items-center gap-1 font-mono">
+          {[0, 5, 10, 15, 20, 30].map((m) => {
+            const isSelected = delayMinutes === m;
+            return (
+              <button
+                key={m}
+                onClick={() => handleChangeDelay(m)}
+                class={`px-2 py-0.5 rounded text-floor font-medium transition-colors ${
+                  isSelected
+                    ? 'bg-amber-400/90 text-stone-950 font-bold'
+                    : 'bg-stone-800/80 text-stone-400 hover:text-stone-200 hover:bg-stone-800'
+                }`}
+              >
+                {m === 0 ? '定刻' : `+${m}m`}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* 4. Main Clean Board Viewport */}
+      {/* 4. Main Clean Board Viewport (Signboard Detailed) */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        {theme === 'detailed' ? (
-          <PatternSignboardDetailed
-            event={event}
-            currentMinutes={effectiveMinutes}
-          />
-        ) : (
-          <PatternSignboardClean
-            event={event}
-            currentMinutes={effectiveMinutes}
-          />
-        )}
+        <PatternSignboardDetailed
+          event={eventData}
+          currentMinutes={effectiveMinutes}
+        />
       </main>
 
       {/* 5. Footer & Optional Simulator Drawer */}
@@ -295,7 +260,7 @@ export function LiveCrossTrackView({
             </button>
           </div>
           <TimelineStepper
-            sessions={event.sessions}
+            sessions={eventData.sessions}
             currentMinutes={currentMinutes}
             onSelectMinutes={handleSelectMinutes}
           />
