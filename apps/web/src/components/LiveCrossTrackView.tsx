@@ -5,14 +5,14 @@ import {
   parseMinutes,
   formatMinutes,
 } from '../utils/crossTrack';
-import { PatternTotemBoard } from './cross-track/PatternTotemBoard';
-import { PatternScheduleSlip } from './cross-track/PatternScheduleSlip';
+import { PatternSignboardClean } from './cross-track/PatternSignboardClean';
+import { PatternSignboardDetailed } from './cross-track/PatternSignboardDetailed';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink, MapPin, SlidersHorizontal, Clock } from '../utils/icons';
 import { REGISTERED_GROUPS } from '../config/group';
 
-export type TimelineTheme = 'totem' | 'slip';
+export type TimelineTheme = 'clean' | 'detailed';
 
 interface Props {
   eventId?: string;
@@ -34,11 +34,11 @@ export function LiveCrossTrackView({
     return REGISTERED_GROUPS[fromGroupId]?.name || fromGroupId;
   }, [fromGroupId]);
 
-  // デザイン案の切り替え状態 (案A: totem / 案B: slip)
+  // デザイン案の切り替え状態 (プロ仕様: clean / ディテール案: detailed)
   const [theme, setTheme] = useState<TimelineTheme>(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get('theme');
-    return t === 'slip' ? 'slip' : 'totem';
+    return t === 'clean' ? 'clean' : 'detailed';
   });
 
   // タイムシミュレーター（デバッグステッパー）の開閉状態
@@ -182,7 +182,7 @@ export function LiveCrossTrackView({
       </header>
 
       {/* 2. Event Title & Details (見切れのない自然な2段レイアウト) */}
-      <div class="px-1 pt-2.5 pb-2 shrink-0 flex flex-col gap-1 border-b border-stone-800/80">
+      <div class="px-1 pt-2 pb-2 shrink-0 flex flex-col gap-1 border-b border-stone-800/80">
         <div class="text-subheading font-bold text-white leading-snug tracking-tight break-words">
           {event.title}
         </div>
@@ -211,7 +211,7 @@ export function LiveCrossTrackView({
         </div>
       </div>
 
-      {/* 3. Controls: 進行押し調整 & 案A/案B切り替えセレクター */}
+      {/* 3. Controls: 進行押し調整 & 案A1/案A2切り替えセレクター */}
       <div class="px-1 py-1.5 shrink-0 flex flex-col gap-1.5 border-b border-stone-800/80 bg-stone-900/50 rounded-lg my-1.5">
         {/* 進行押し調整 */}
         <div class="flex items-center justify-between">
@@ -239,29 +239,29 @@ export function LiveCrossTrackView({
           </div>
         </div>
 
-        {/* 案A / 案B 切り替えセグメントコントロール */}
+        {/* 案A1（プロ仕様） / 案A2（ディテール案） 切り替えスイッチ */}
         <div class="flex items-center justify-between pt-1 border-t border-stone-800/60 text-floor">
-          <span class="font-mono text-stone-400">DESIGN PREVIEW:</span>
+          <span class="font-mono text-stone-400">SIGNBOARD DESIGN:</span>
           <div class="flex items-center p-0.5 rounded-md bg-stone-950 border border-stone-800">
             <button
-              onClick={() => handleSelectTheme('totem')}
+              onClick={() => handleSelectTheme('clean')}
               class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
-                theme === 'totem'
-                  ? 'bg-stone-800 text-white font-bold'
+                theme === 'clean'
+                  ? 'bg-stone-800 text-white font-bold shadow-sm'
                   : 'text-stone-400 hover:text-stone-200'
               }`}
             >
-              案A: 看板
+              プロ仕様
             </button>
             <button
-              onClick={() => handleSelectTheme('slip')}
+              onClick={() => handleSelectTheme('detailed')}
               class={`px-2.5 py-0.5 rounded text-floor font-medium transition-colors ${
-                theme === 'slip'
-                  ? 'bg-stone-800 text-white font-bold'
+                theme === 'detailed'
+                  ? 'bg-stone-800 text-white font-bold shadow-sm'
                   : 'text-stone-400 hover:text-stone-200'
               }`}
             >
-              案B: スリップ
+              ディテール
             </button>
           </div>
         </div>
@@ -269,17 +269,15 @@ export function LiveCrossTrackView({
 
       {/* 4. Main Clean Board Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        {theme === 'totem' ? (
-          <PatternTotemBoard
+        {theme === 'detailed' ? (
+          <PatternSignboardDetailed
             event={event}
             currentMinutes={effectiveMinutes}
-            highlightGroupId={fromGroupId}
           />
         ) : (
-          <PatternScheduleSlip
+          <PatternSignboardClean
             event={event}
             currentMinutes={effectiveMinutes}
-            highlightGroupId={fromGroupId}
           />
         )}
       </main>
