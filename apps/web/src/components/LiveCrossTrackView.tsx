@@ -8,7 +8,7 @@ import {
 import { PatternLocationView } from './cross-track/PatternLocationView';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
-import { ChevronLeft, ExternalLink } from '../utils/icons';
+import { ChevronLeft, ExternalLink, SlidersHorizontal } from '../utils/icons';
 
 interface Props {
   eventId?: string;
@@ -19,6 +19,12 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
   const event: CrossTrackEvent = useMemo(() => {
     return SAMPLE_CROSS_TRACK_EVENTS[eventId] || SAMPLE_CROSS_TRACK_EVENTS['2026-11-03/mariage'];
   }, [eventId]);
+
+  // Debug controls toggle state (Default: false for clean final production view)
+  const [isDebugOpen, setIsDebugOpen] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('debug') === '1' || params.get('debug') === 'true';
+  });
 
   // Current simulated minutes
   const [currentMinutes, setCurrentMinutes] = useState<number>(() => {
@@ -57,6 +63,20 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     const timer = setInterval(updateClock, 30000);
     return () => clearInterval(timer);
   }, [isRealTime]);
+
+  const handleToggleDebug = () => {
+    setIsDebugOpen((prev) => {
+      const next = !prev;
+      const url = new URL(window.location.href);
+      if (next) {
+        url.searchParams.set('debug', '1');
+      } else {
+        url.searchParams.delete('debug');
+      }
+      window.history.replaceState({}, '', url.toString());
+      return next;
+    });
+  };
 
   const handleSelectMinutes = (mins: number | ((prev: number) => number)) => {
     setIsRealTime(false);
@@ -128,6 +148,20 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
               {isRealTime ? 'LIVE' : 'SIM'}: {formatMinutes(currentMinutes)}
             </span>
           </button>
+
+          {/* Debug Controls Toggle Button */}
+          <button
+            onClick={handleToggleDebug}
+            class={`p-1.5 rounded-lg border transition-colors ${
+              isDebugOpen
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'bg-white/5 text-stone-400 border-white/10 hover:text-stone-200'
+            }`}
+            title={isDebugOpen ? 'デバッグツールを閉じる' : 'デバッグツールを開く'}
+            aria-label="デバッグツール切り替え"
+          >
+            <Icon icon={SlidersHorizontal} size={15} />
+          </button>
         </div>
       </header>
 
@@ -152,39 +186,53 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         )}
       </div>
 
-      {/* Delay Offset Controls (スケジュールの押し調整バー) */}
-      <div class="px-1 py-1.5 shrink-0 flex items-center justify-between border-b border-white/5">
-        <span class="text-floor font-mono text-stone-400 font-bold">進行押し調整:</span>
-        <div class="flex items-center gap-1 font-mono">
-          {[0, 5, 10, 15, 20, 30].map((m) => (
-            <button
-              key={m}
-              onClick={() => handleChangeDelay(m)}
-              class={`px-2 py-0.5 rounded text-floor font-bold transition-all ${
-                delayMinutes === m
-                  ? 'bg-amber-400 text-stone-950 font-black shadow-sm'
-                  : 'bg-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/10'
-              }`}
-            >
-              {m === 0 ? '定刻' : `+${m}分`}
-            </button>
-          ))}
+      {/* Optional Debug Delay Bar (ONの時のみ表示) */}
+      {isDebugOpen && (
+        <div class="px-1 py-1.5 shrink-0 flex items-center justify-between border-b border-white/5 bg-stone-900/40">
+          <span class="text-floor font-mono text-stone-400 font-bold">進行押し調整:</span>
+          <div class="flex items-center gap-1 font-mono">
+            {[0, 5, 10, 15, 20, 30].map((m) => (
+              <button
+                key={m}
+                onClick={() => handleChangeDelay(m)}
+                class={`px-2 py-0.5 rounded text-floor font-bold transition-all ${
+                  delayMinutes === m
+                    ? 'bg-amber-400 text-stone-950 font-black shadow-sm'
+                    : 'bg-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/10'
+                }`}
+              >
+                {m === 0 ? '定刻' : `+${m}分`}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Main Board Viewport (effectiveMinutes 伝達) */}
+      {/* Main Clean Board Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
         <PatternLocationView event={event} currentMinutes={effectiveMinutes} />
       </main>
 
-      {/* Bottom Controls: Stepper Debugger */}
-      <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-white/10">
-        <TimelineStepper
-          sessions={event.sessions}
-          currentMinutes={currentMinutes}
-          onSelectMinutes={handleSelectMinutes}
-        />
-      </footer>
+      {/* Bottom Controls: Debugger or Minimal Footer */}
+      {isDebugOpen ? (
+        <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-white/10">
+          <TimelineStepper
+            sessions={event.sessions}
+            currentMinutes={currentMinutes}
+            onSelectMinutes={handleSelectMinutes}
+          />
+        </footer>
+      ) : (
+        <footer class="pt-2 pb-1 shrink-0 border-t border-white/5 flex items-center justify-between text-floor font-mono text-stone-400 px-1">
+          <span>LIVE TRACK BOARD</span>
+          <button
+            onClick={handleToggleDebug}
+            class="text-stone-400 hover:text-stone-200 transition-colors"
+          >
+            DEBUG TOOL ⚙
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

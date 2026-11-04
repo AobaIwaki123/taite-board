@@ -27,6 +27,7 @@ export {
   Navigation,
   Pin,
   Plus,
+  SlidersHorizontal,
   Sparkles,
   Star,
   Ticket,
