@@ -71,44 +71,44 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
 
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-2 pb-2">
-      {/* Header: Pure Minimal */}
-      <header class="flex items-center justify-between px-1 pt-1 pb-1.5 shrink-0 border-b border-white/5">
+      {/* Header */}
+      <header class="flex items-center justify-between px-1 pt-1 pb-2 shrink-0 border-b border-white/10">
         <button
           onClick={onBack}
           class="flex items-center gap-1 -ml-1.5 px-2 py-1 rounded-lg text-stone-400 hover:text-white hover:bg-white/5 transition-colors"
           aria-label="戻る"
         >
-          <Icon icon={ChevronLeft} size={18} />
-          <span class="text-xs font-mono text-stone-300">PORTAL</span>
+          <Icon icon={ChevronLeft} size={20} />
+          <span class="text-meta font-mono font-bold text-stone-300">PORTAL</span>
         </button>
 
         <div class="flex items-center gap-2">
           <button
             onClick={handleSetRealTime}
-            class={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-colors ${
+            class={`flex items-center gap-2 px-2.5 py-1 rounded-full border transition-colors ${
               isRealTime
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
-                : 'bg-white/5 text-stone-400 border-white/10 hover:text-white'
+                : 'bg-white/5 text-stone-300 border-white/10 hover:text-white'
             }`}
             title="現在時刻に同期"
           >
             <span
-              class={`w-1.5 h-1.5 rounded-full ${
+              class={`w-2 h-2 rounded-full ${
                 isRealTime ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'
               }`}
             />
-            <span class="text-[11px] font-mono">
-              {isRealTime ? 'LIVE NOW' : 'SIM'}: {formatMinutes(currentMinutes)}
+            <span class="text-meta font-mono font-bold">
+              {isRealTime ? 'LIVE' : 'SIM'}: {formatMinutes(currentMinutes)}
             </span>
           </button>
         </div>
       </header>
 
       {/* Event Info Strip */}
-      <div class="px-1 py-1.5 shrink-0 flex items-center justify-between text-xs border-b border-white/5">
-        <div class="flex items-center gap-1.5 truncate">
-          <span class="font-extrabold text-white truncate">{event.title}</span>
-          <span class="text-[10px] text-stone-400 font-mono shrink-0">
+      <div class="px-1 py-2 shrink-0 flex items-center justify-between border-b border-white/10">
+        <div class="flex items-baseline gap-2 truncate">
+          <span class="text-body font-black text-white truncate">{event.title}</span>
+          <span class="text-meta text-stone-400 font-mono shrink-0">
             @{event.venueName}
           </span>
         </div>
@@ -117,15 +117,15 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
             href={event.ticketUrl}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center gap-0.5 text-stone-400 hover:text-white text-[10px] font-mono shrink-0"
+            class="flex items-center gap-1 text-stone-400 hover:text-white text-meta font-mono shrink-0"
           >
             <span>TICKET</span>
-            <Icon icon={ExternalLink} size={10} />
+            <Icon icon={ExternalLink} size={12} />
           </a>
         )}
       </div>
 
-      {/* Main Single Board View (STAGE vs BENEFIT) */}
+      {/* Main Board Viewport */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
         <PatternLocationView event={event} currentMinutes={currentMinutes} />
       </main>

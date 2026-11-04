@@ -68,13 +68,13 @@ export function TimelineStepper({ sessions, currentMinutes, onSelectMinutes }: P
   const maxMinutes = steps[steps.length - 1]?.minutes || 17 * 60;
 
   return (
-    <div class="flex flex-col gap-1.5 p-2 rounded-xl bg-stone-900/95 border border-white/10 text-xs font-mono shadow-md">
+    <div class="flex flex-col gap-1.5 p-2 rounded-xl bg-stone-900/95 border border-white/10 font-mono shadow-md">
       {/* Top Row: Stepper Controls & Current Step Info */}
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-2">
           <button
             onClick={handlePrev}
-            class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 active:bg-white/30 text-stone-200 transition-colors"
+            class="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 active:bg-white/30 text-stone-200 text-meta font-bold transition-colors"
             title="前の変化点へ"
             aria-label="前の変化点"
           >
@@ -83,7 +83,7 @@ export function TimelineStepper({ sessions, currentMinutes, onSelectMinutes }: P
 
           <button
             onClick={() => setIsPlaying(!isPlaying)}
-            class={`px-2.5 py-1 rounded font-bold transition-colors ${
+            class={`px-3 py-1 rounded text-meta font-bold transition-colors ${
               isPlaying
                 ? 'bg-rose-500 text-white animate-pulse'
                 : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
@@ -96,7 +96,7 @@ export function TimelineStepper({ sessions, currentMinutes, onSelectMinutes }: P
 
           <button
             onClick={handleNext}
-            class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 active:bg-white/30 text-stone-200 transition-colors"
+            class="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 active:bg-white/30 text-stone-200 text-meta font-bold transition-colors"
             title="次の変化点へ"
             aria-label="次の変化点"
           >
@@ -105,24 +105,24 @@ export function TimelineStepper({ sessions, currentMinutes, onSelectMinutes }: P
         </div>
 
         {/* Step Index & Time */}
-        <div class="flex items-center gap-1.5 text-right">
-          <span class="text-stone-400 text-[10px]">
+        <div class="flex items-center gap-2 text-right">
+          <span class="text-stone-400 text-floor">
             Step {currentStepIndex + 1}/{steps.length}
           </span>
-          <span class="font-bold text-white text-xs px-1.5 py-0.5 rounded bg-white/10">
+          <span class="font-bold text-white text-meta px-2 py-0.5 rounded bg-white/10">
             {formatMinutes(currentMinutes)}
           </span>
         </div>
       </div>
 
       {/* Step Description */}
-      <div class="text-[11px] text-amber-300 truncate px-0.5">
+      <div class="text-floor text-amber-300 truncate px-0.5">
         {currentStep ? currentStep.description : 'タイテ境界'}
       </div>
 
-      {/* Time Slider (無段階スクラブ) */}
+      {/* Time Slider */}
       <div class="flex items-center gap-2 pt-0.5">
-        <span class="text-[10px] text-stone-300 shrink-0">
+        <span class="text-floor text-stone-300 shrink-0">
           {formatMinutes(minMinutes)}
         </span>
         <input
@@ -138,7 +138,7 @@ export function TimelineStepper({ sessions, currentMinutes, onSelectMinutes }: P
           class="flex-1 h-1.5 bg-stone-700 rounded-lg appearance-none cursor-pointer accent-emerald-400"
           aria-label="タイムスライダー"
         />
-        <span class="text-[10px] text-stone-300 shrink-0">
+        <span class="text-floor text-stone-300 shrink-0">
           {formatMinutes(maxMinutes)}
         </span>
       </div>
