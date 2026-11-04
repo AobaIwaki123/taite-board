@@ -21,7 +21,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
   return (
     <div class="flex-1 flex flex-col gap-2.5 overflow-y-auto no-scrollbar py-1 w-full min-h-0">
       {/* 1. STAGE Section */}
-      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
+      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3.5 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
         {/* Header */}
         <div class="flex items-center justify-between border-b border-white/5 pb-1.5 shrink-0">
           <div class="flex items-center gap-2">
@@ -52,7 +52,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
                   {item.session.startTime} - {item.session.endTime}
                 </span>
 
-                {/* Group Name (Large font, anti-breakage) */}
+                {/* Group Name (Formal Name) */}
                 <div class="text-xl font-black text-white tracking-tight leading-tight break-words">
                   {item.session.groupName}
                 </div>
@@ -73,14 +73,14 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
         )}
 
         {/* Stage NEXT (Footer) */}
-        <div class="pt-1 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
+        <div class="pt-1.5 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
           <span class="text-[11px] font-mono font-bold text-stone-400 uppercase tracking-wider shrink-0">
             NEXT
           </span>
           {liveEval.next ? (
             <div class="flex items-center gap-2 text-stone-300 font-mono text-xs truncate ml-2">
               <span class="text-emerald-400 font-bold shrink-0">{liveEval.next.session.startTime}〜</span>
-              <span class="text-white font-bold truncate">{liveEval.next.session.groupShortName}</span>
+              <span class="text-white font-bold truncate">{liveEval.next.session.groupName}</span>
             </div>
           ) : (
             <span class="text-stone-400 text-xs font-mono">本日のステージは終了</span>
@@ -89,7 +89,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
       </section>
 
       {/* 2. BENEFIT Section */}
-      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
+      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3.5 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
         {/* Header */}
         <div class="flex items-center justify-between border-b border-white/5 pb-1.5 shrink-0">
           <div class="flex items-center gap-2">
@@ -137,7 +137,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
                     )}
                   </div>
 
-                  {/* Group Name (High visibility) */}
+                  {/* Group Name (Formal Name) */}
                   <div class="text-base font-extrabold text-white tracking-tight leading-snug break-words">
                     {item.session.groupName}
                   </div>
@@ -152,14 +152,14 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
         </div>
 
         {/* Benefit NEXT (Footer) */}
-        <div class="pt-1 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
+        <div class="pt-1.5 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
           <span class="text-[11px] font-mono font-bold text-stone-400 uppercase tracking-wider shrink-0">
             NEXT
           </span>
           {benefitEval.next ? (
             <div class="flex items-center gap-2 text-stone-300 font-mono text-xs truncate ml-2">
               <span class="text-emerald-400 font-bold shrink-0">{benefitEval.next.session.startTime}〜</span>
-              <span class="text-white font-bold truncate">{benefitEval.next.session.groupShortName}</span>
+              <span class="text-white font-bold truncate">{benefitEval.next.session.groupName}</span>
               {benefitEval.next.session.location && (
                 <span class="text-amber-300 text-xs shrink-0">({benefitEval.next.session.location})</span>
               )}

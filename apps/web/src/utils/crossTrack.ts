@@ -1,8 +1,8 @@
 export interface CrossTrackSession {
   id?: string;
-  groupId: string;
+  groupId?: string;
   groupName: string;
-  groupShortName: string;
+  groupShortName?: string;
   type: 'live' | 'benefit';
   label: string;
   startTime: string; // "11:55"
@@ -41,8 +41,8 @@ export interface EvaluatedSession {
   startMinutes: number;
   endMinutes: number;
   durationMinutes: number;
-  remainingMinutes: number; // if active: minutes until end. if upcoming: minutes until start.
-  progress: number; // 0 to 1 if active
+  remainingMinutes: number;
+  progress: number;
 }
 
 export function evaluateSessions(
@@ -170,7 +170,7 @@ export function getGroupTheme(groupIdOrName: string): GroupTheme {
   return PALETTE[index];
 }
 
-// タイムラインの主要な変化点（Step）を自動抽出
+// タイムラインの主要な変化点（Step）を自動抽出（正式名称 groupName を使用）
 export interface TimelineStep {
   minutes: number;
   timeStr: string;
@@ -184,8 +184,8 @@ export function extractTimelineSteps(sessions: CrossTrackSession[]): TimelineSte
     const startM = parseMinutes(s.startTime);
     const endM = parseMinutes(s.endTime);
 
-    const startDesc = `${s.groupShortName} ${s.label}開始`;
-    const endDesc = `${s.groupShortName} ${s.label}終了`;
+    const startDesc = `${s.groupName} ${s.label}開始`;
+    const endDesc = `${s.groupName} ${s.label}終了`;
 
     if (!pointsMap.has(startM)) pointsMap.set(startM, []);
     pointsMap.get(startM)!.push(startDesc);
@@ -203,7 +203,7 @@ export function extractTimelineSteps(sessions: CrossTrackSession[]): TimelineSte
   }));
 }
 
-// 2026-11-03 アイドルマリアージュ Vol.79 全体タイムテーブル（全グループ汎用対応）
+// 2026-11-03 アイドルマリアージュ Vol.79 全体タイムテーブル（すべて正式名称を使用）
 export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
   '2026-11-03/mariage': {
     id: '2026-11-03/mariage',
@@ -217,7 +217,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'milky',
         groupName: 'Milky✳︎Sphene',
-        groupShortName: 'ミルスフェ',
         type: 'live',
         label: 'ライブ出番',
         startTime: '11:30',
@@ -226,7 +225,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'ribonclock',
         groupName: 'リボンクロック',
-        groupShortName: 'リボクロ',
         type: 'live',
         label: 'ライブ出番',
         startTime: '11:55',
@@ -236,7 +234,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'milky',
         groupName: 'Milky✳︎Sphene',
-        groupShortName: 'ミルスフェ',
         type: 'benefit',
         label: '特典会',
         startTime: '12:00',
@@ -246,7 +243,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'ribonclock',
         groupName: 'リボンクロック',
-        groupShortName: 'リボクロ',
         type: 'benefit',
         label: '特典会',
         startTime: '12:20',
@@ -256,7 +252,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'sairium',
         groupName: 'SAI²Rium',
-        groupShortName: 'サイリウム',
         type: 'live',
         label: 'ライブ出番',
         startTime: '12:20',
@@ -265,7 +260,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'benjas',
         groupName: 'ベンジャス!',
-        groupShortName: 'ベンジャス',
         type: 'live',
         label: 'ライブ出番',
         startTime: '12:45',
@@ -274,7 +268,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'sairium',
         groupName: 'SAI²Rium',
-        groupShortName: 'サイリウム',
         type: 'benefit',
         label: '特典会',
         startTime: '12:50',
@@ -284,7 +277,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'benjas',
         groupName: 'ベンジャス!',
-        groupShortName: 'ベンジャス',
         type: 'benefit',
         label: '特典会',
         startTime: '13:15',
@@ -294,7 +286,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'riborn',
         groupName: 'RiBORN',
-        groupShortName: 'リボーン',
         type: 'live',
         label: 'ライブ出番',
         startTime: '13:10',
@@ -303,7 +294,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'riborn',
         groupName: 'RiBORN',
-        groupShortName: 'リボーン',
         type: 'benefit',
         label: '特典会',
         startTime: '13:40',
@@ -313,7 +303,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'kasumi',
         groupName: 'かすみ草とステラ',
-        groupShortName: 'かすテラ',
         type: 'live',
         label: 'ライブ出番',
         startTime: '13:35',
@@ -322,7 +311,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'kasumi',
         groupName: 'かすみ草とステラ',
-        groupShortName: 'かすテラ',
         type: 'benefit',
         label: '特典会',
         startTime: '14:05',
@@ -332,7 +320,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'appare',
         groupName: 'Appare!',
-        groupShortName: 'Appare!',
         type: 'live',
         label: 'ライブ出番',
         startTime: '14:00',
@@ -341,7 +328,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'appare',
         groupName: 'Appare!',
-        groupShortName: 'Appare!',
         type: 'benefit',
         label: '特典会',
         startTime: '14:35',
@@ -351,7 +337,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'anthurium',
         groupName: 'アンスリューム',
-        groupShortName: 'アンス',
         type: 'live',
         label: 'ライブ出番',
         startTime: '14:30',
@@ -360,7 +345,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'anthurium',
         groupName: 'アンスリューム',
-        groupShortName: 'アンス',
         type: 'benefit',
         label: '特典会',
         startTime: '15:00',
@@ -370,7 +354,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'dollykiss',
         groupName: 'Dolly Kiss',
-        groupShortName: 'ドリキス',
         type: 'live',
         label: 'ライブ出番',
         startTime: '14:55',
@@ -380,7 +363,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'dollykiss',
         groupName: 'Dolly Kiss',
-        groupShortName: 'ドリキス',
         type: 'benefit',
         label: '特典会',
         startTime: '15:20',
@@ -390,7 +372,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'maneki',
         groupName: 'まねきケチャ',
-        groupShortName: 'まねき',
         type: 'live',
         label: 'ライブ出番',
         startTime: '15:20',
@@ -399,7 +380,6 @@ export const SAMPLE_CROSS_TRACK_EVENTS: Record<string, CrossTrackEvent> = {
       {
         groupId: 'maneki',
         groupName: 'まねきケチャ',
-        groupShortName: 'まねき',
         type: 'benefit',
         label: '特典会',
         startTime: '15:55',
