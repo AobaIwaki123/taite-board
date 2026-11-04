@@ -19,11 +19,11 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
   const benefitEval = evaluateSessions(benefitSessions, currentMinutes);
 
   return (
-    <div class="flex-1 flex flex-col gap-2.5 min-h-0 py-1.5 w-full overflow-hidden">
-      {/* 1. STAGE Section (Stable shrink-0 container) */}
-      <section class="rounded-2xl border border-white/10 bg-stone-900/70 p-3.5 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
+    <div class="flex-1 flex flex-col gap-2.5 overflow-y-auto no-scrollbar py-1 w-full min-h-0">
+      {/* 1. STAGE Section */}
+      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
         {/* Header */}
-        <div class="flex items-center justify-between border-b border-white/5 pb-2 shrink-0">
+        <div class="flex items-center justify-between border-b border-white/5 pb-1.5 shrink-0">
           <div class="flex items-center gap-2">
             <span
               class={`w-2.5 h-2.5 rounded-full ${
@@ -45,14 +45,12 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
 
             return (
               <div
-                class={`relative rounded-xl border p-3 flex flex-col gap-2 shadow-md shrink-0 ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
+                class={`relative rounded-xl border p-2.5 flex flex-col gap-1.5 shadow-md shrink-0 ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
               >
                 {/* Time Range */}
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-mono font-bold text-stone-300 tracking-wider">
-                    {item.session.startTime} - {item.session.endTime}
-                  </span>
-                </div>
+                <span class="text-xs font-mono font-bold text-stone-300 tracking-wider">
+                  {item.session.startTime} - {item.session.endTime}
+                </span>
 
                 {/* Group Name (Large font, anti-breakage) */}
                 <div class="text-xl font-black text-white tracking-tight leading-tight break-words">
@@ -61,7 +59,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
 
                 {/* Optional Detail */}
                 {item.session.detail && (
-                  <div class="text-xs text-stone-300 line-clamp-2 bg-black/30 p-2 rounded-lg border border-white/5 mt-0.5 leading-relaxed">
+                  <div class="text-[11px] text-stone-300 line-clamp-2 bg-black/30 px-2 py-1 rounded border border-white/5 leading-relaxed">
                     {item.session.detail}
                   </div>
                 )}
@@ -69,13 +67,13 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
             );
           })()
         ) : (
-          <div class="py-5 text-center text-xs text-stone-400 font-mono">
+          <div class="py-3 text-center text-xs text-stone-400 font-mono">
             現在ステージの演目はありません
           </div>
         )}
 
         {/* Stage NEXT (Footer) */}
-        <div class="pt-1.5 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
+        <div class="pt-1 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
           <span class="text-[11px] font-mono font-bold text-stone-400 uppercase tracking-wider shrink-0">
             NEXT
           </span>
@@ -90,10 +88,10 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
         </div>
       </section>
 
-      {/* 2. BENEFIT Section (Flexible height with independent scroll) */}
-      <section class="rounded-2xl border border-white/10 bg-stone-900/70 p-3.5 backdrop-blur-sm flex-1 min-h-0 flex flex-col gap-2 shadow-sm">
+      {/* 2. BENEFIT Section */}
+      <section class="rounded-2xl border border-white/10 bg-stone-900/80 p-3 backdrop-blur-sm shrink-0 flex flex-col gap-2 shadow-sm">
         {/* Header */}
-        <div class="flex items-center justify-between border-b border-white/5 pb-2 shrink-0">
+        <div class="flex items-center justify-between border-b border-white/5 pb-1.5 shrink-0">
           <div class="flex items-center gap-2">
             <span
               class={`w-2.5 h-2.5 rounded-full ${
@@ -114,8 +112,8 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
           </div>
         </div>
 
-        {/* Benefit Active Cards (Safe scrolling with min-h prevention) */}
-        <div class="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2.5 min-h-0 py-0.5">
+        {/* Benefit Active Cards */}
+        <div class="flex flex-col gap-2 shrink-0">
           {benefitEval.active.length > 0 ? (
             benefitEval.active.map((item, idx) => {
               const theme = getGroupTheme(item.session.groupId || item.session.groupName);
@@ -123,7 +121,7 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
               return (
                 <div
                   key={idx}
-                  class={`relative rounded-xl border p-3 flex flex-col gap-2 shadow-md shrink-0 ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
+                  class={`relative rounded-xl border px-3 py-2 flex flex-col gap-1 shadow-md shrink-0 ${theme.border} bg-gradient-to-br ${theme.bgGlow}`}
                 >
                   {/* Top Line: Time & Location Badge */}
                   <div class="flex items-center justify-between">
@@ -132,8 +130,8 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
                     </span>
 
                     {item.session.location && (
-                      <div class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/40 shrink-0">
-                        <Icon icon={MapPin} size={11} />
+                      <div class="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/40 shrink-0">
+                        <Icon icon={MapPin} size={10} />
                         <span>{item.session.location}</span>
                       </div>
                     )}
@@ -147,16 +145,14 @@ export function PatternLocationView({ event, currentMinutes }: Props) {
               );
             })
           ) : (
-            <div class="flex-1 flex flex-col items-center justify-center py-6 text-center">
-              <span class="text-xs text-stone-400 font-mono">
-                現在進行中の特典会はありません
-              </span>
+            <div class="py-4 text-center text-xs text-stone-400 font-mono">
+              現在進行中の特典会はありません
             </div>
           )}
         </div>
 
         {/* Benefit NEXT (Footer) */}
-        <div class="pt-1.5 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
+        <div class="pt-1 border-t border-white/5 flex items-center justify-between text-xs shrink-0">
           <span class="text-[11px] font-mono font-bold text-stone-400 uppercase tracking-wider shrink-0">
             NEXT
           </span>
