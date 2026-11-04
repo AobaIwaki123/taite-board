@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'preact/hooks';
+import { useState, useMemo, useRef, useLayoutEffect } from 'preact/hooks';
 import { GroupConfig, REGISTERED_GROUPS, DEFAULT_GROUP_ID } from '../config/group';
 import { Icon } from './Icon';
-import { Star, ChevronRight, ExternalLink } from '../utils/icons';
+import { Pin, ChevronRight, ExternalLink } from '../utils/icons';
 
 export function navigateToGroup(groupId: string) {
   if (typeof window === 'undefined') return;
@@ -73,12 +73,12 @@ const OFFICIAL_X_LINKS: Record<string, string> = {
 };
 
 export function PortalView() {
-  const groups = useMemo(() => {
+  const baseGroups = useMemo(() => {
     return Object.values(REGISTERED_GROUPS).filter((g) => g.id !== 'sample');
   }, []);
 
-  // お気に入りグループ ID（null は未設定）
-  const [favoriteGroupId, setFavoriteGroupId] = useState<string | null>(() => {
+  // ピン留めされたグループ ID（null はデフォルト状態）
+  const [pinnedGroupId, setPinnedGroupId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('taite_top_group');
@@ -92,18 +92,79 @@ export function PortalView() {
     return DEFAULT_GROUP_ID;
   });
 
-  // 直前にタップしたボタングループ（マイクロアニメーション用）
-  const [animatingGroupId, setAnimatingGroupId] = useState<string | null>(null);
+  // 物理アニメーション用の状態
+  const [elevatingGroupId, setElevatingGroupId] = useState<string | null>(null);
+  const cardElementsRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const prevPositionsRef = useRef<Record<string, number>>({});
 
-  // お気に入りトグル処理（位置の入れ替えテレポートはせず、その場で点灯/消灯する直感的なUX）
-  const handleToggleFavorite = (groupId: string, e: MouseEvent) => {
+  // ピン留めグループを最上位にした順序
+  const orderedGroups = useMemo(() => {
+    if (!pinnedGroupId) return baseGroups;
+    const pinned = baseGroups.find((g) => g.id === pinnedGroupId);
+    if (!pinned) return baseGroups;
+    const others = baseGroups.filter((g) => g.id !== pinned.id);
+    return [pinned, ...others];
+  }, [baseGroups, pinnedGroupId]);
+
+  // FLIP 物理スライドアニメーションの実行
+  useLayoutEffect(() => {
+    const prevPositions = prevPositionsRef.current;
+    if (Object.keys(prevPositions).length === 0) return;
+
+    for (const group of orderedGroups) {
+      const el = cardElementsRef.current[group.id];
+      const prevTop = prevPositions[group.id];
+      if (el && prevTop !== undefined) {
+        const currentTop = el.getBoundingClientRect().top;
+        const deltaY = prevTop - currentTop;
+
+        if (deltaY !== 0) {
+          // 1. Invert: 移動前の座標へ瞬時に引き戻す
+          el.style.transform = `translateY(${deltaY}px)`;
+          el.style.transition = 'none';
+
+          // 2. Play: 次フレームで滑らかにスライド移動
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              el.style.transition = 'transform 380ms cubic-bezier(0.16, 1, 0.3, 1)';
+              el.style.transform = '';
+            });
+          });
+        }
+      }
+    }
+
+    // 浮遊状態の着地タイマー
+    const timer = setTimeout(() => {
+      setElevatingGroupId(null);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [orderedGroups]);
+
+  // ピン留めトグル（ふわりと浮いてスライド移動）
+  const handleTogglePin = (groupId: string, e: MouseEvent) => {
     e.stopPropagation();
-    const isCurrentFav = favoriteGroupId === groupId;
-    const newFav = isCurrentFav ? null : groupId;
+
+    // 1. First: アニメーション前の全カードの Y 座標を記録
+    const newPositions: Record<string, number> = {};
+    for (const group of orderedGroups) {
+      const el = cardElementsRef.current[group.id];
+      if (el) {
+        newPositions[group.id] = el.getBoundingClientRect().top;
+      }
+    }
+    prevPositionsRef.current = newPositions;
+
+    // タップされたカードを浮遊（elevation）状態にする
+    setElevatingGroupId(groupId);
+
+    const isCurrentPinned = pinnedGroupId === groupId;
+    const newPinned = isCurrentPinned ? null : groupId;
 
     try {
-      if (newFav) {
-        localStorage.setItem('taite_top_group', newFav);
+      if (newPinned) {
+        localStorage.setItem('taite_top_group', newPinned);
       } else {
         localStorage.removeItem('taite_top_group');
       }
@@ -111,16 +172,12 @@ export function PortalView() {
       // Ignored
     }
 
-    setFavoriteGroupId(newFav);
-    setAnimatingGroupId(groupId);
-    setTimeout(() => {
-      setAnimatingGroupId(null);
-    }, 400);
+    setPinnedGroupId(newPinned);
   };
 
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-3 pb-6">
-      {/* Header: Pure Minimal (ロゴのみで一切の説明テキストを排除) */}
+      {/* Header: Pure Minimal */}
       <header class="flex items-center justify-between px-1 pt-1 pb-2.5 shrink-0 border-b border-white/5">
         <div class="flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
@@ -129,10 +186,10 @@ export function PortalView() {
       </header>
 
       {/* Ticket List Area */}
-      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar">
-        {groups.map((group: GroupConfig, index: number) => {
-          const isFav = favoriteGroupId === group.id;
-          const isAnimating = animatingGroupId === group.id;
+      <main class="flex-1 min-h-0 py-3 flex flex-col gap-3 overflow-y-auto no-scrollbar relative">
+        {orderedGroups.map((group: GroupConfig, index: number) => {
+          const isPinned = pinnedGroupId === group.id;
+          const isElevating = elevatingGroupId === group.id;
           const theme = TICKET_THEMES[group.id] || DEFAULT_TICKET_THEME;
           const nextEvent = NEXT_EVENT_DATA[group.id] || {
             date: '未定',
@@ -144,17 +201,26 @@ export function PortalView() {
           return (
             <div
               key={group.id}
+              ref={(el) => {
+                cardElementsRef.current[group.id] = el;
+              }}
               onClick={() => navigateToGroup(group.id)}
-              class={`group relative rounded-xl transition-all duration-300 ease-out cursor-pointer active:scale-[0.98] border ${
-                isFav
-                  ? 'border-amber-400/60 shadow-[0_0_18px_rgba(251,191,36,0.18)] bg-stone-900/95 ring-1 ring-amber-400/30'
+              class={`group relative rounded-xl transition-[border-color,box-shadow,opacity] duration-300 ease-out cursor-pointer active:scale-[0.98] border ${
+                isPinned
+                  ? 'border-amber-400/60 bg-stone-900/95 ring-1 ring-amber-400/30'
                   : `${theme.border} bg-stone-900/90 shadow-md`
-              } hover:shadow-lg flex items-stretch overflow-hidden`}
+              } ${
+                isElevating
+                  ? 'z-30 scale-[1.02] shadow-[0_20px_40px_rgba(0,0,0,0.9),0_0_24px_rgba(251,191,36,0.3)] transition-all duration-300'
+                  : isPinned
+                  ? 'shadow-[0_0_18px_rgba(251,191,36,0.18)] z-10'
+                  : 'z-0'
+              } flex items-stretch overflow-hidden`}
             >
               {/* Background Ambient Glow */}
               <div
                 class={`absolute inset-0 bg-gradient-to-r ${
-                  isFav
+                  isPinned
                     ? 'from-amber-500/10 via-amber-500/5 to-transparent opacity-80'
                     : `${theme.glow} opacity-40 group-hover:opacity-80`
                 } pointer-events-none transition-opacity duration-300`}
@@ -174,10 +240,10 @@ export function PortalView() {
                   {group.shortName}
                 </div>
 
-                {/* Status Indicator (お気に入りはゴールド、通常はテーマカラー) */}
+                {/* Status Indicator */}
                 <span
                   class={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                    isFav
+                    isPinned
                       ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]'
                       : theme.indicator
                   }`}
@@ -197,7 +263,7 @@ export function PortalView() {
                       <h2 class="text-sm font-bold text-white tracking-wide truncate group-hover:text-rose-200 transition-colors">
                         {group.name}
                       </h2>
-                      {isFav && (
+                      {isPinned && (
                         <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0 flex items-center gap-0.5">
                           推し
                         </span>
@@ -205,7 +271,7 @@ export function PortalView() {
                     </div>
                   </div>
 
-                  {/* Right Actions: Official X & Star Toggle */}
+                  {/* Right Actions: Official X & Pin Toggle */}
                   <div class="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {xLink && (
                       <a
@@ -220,24 +286,22 @@ export function PortalView() {
                       </a>
                     )}
                     <button
-                      onClick={(e) => handleToggleFavorite(group.id, e)}
+                      onClick={(e) => handleTogglePin(group.id, e)}
                       class={`p-1.5 rounded-lg transition-all duration-200 ${
-                        isAnimating ? 'scale-125' : 'scale-100 active:scale-90'
-                      } ${
-                        isFav
+                        isPinned
                           ? 'text-amber-400 bg-amber-400/10'
-                          : 'text-stone-600 hover:text-stone-400 hover:bg-white/5'
-                      }`}
-                      title={isFav ? 'お気に入りを解除' : 'お気に入りに登録'}
-                      aria-label="お気に入り登録"
+                          : 'text-stone-600 hover:text-stone-300 hover:bg-white/5'
+                      } active:scale-90`}
+                      title={isPinned ? 'ピン留めを解除' : '最上段にピン留め'}
+                      aria-label="ピン留め設定"
                     >
                       <Icon
-                        icon={Star}
-                        size={15}
-                        class={`transition-all duration-200 ${
-                          isFav
-                            ? 'fill-amber-400 text-amber-400 filter drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]'
-                            : 'stroke-[1.5]'
+                        icon={Pin}
+                        size={14}
+                        class={`transition-all duration-300 ${
+                          isPinned
+                            ? 'fill-amber-400 rotate-[-45deg] filter drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]'
+                            : 'rotate-0'
                         }`}
                       />
                     </button>

@@ -25,6 +25,7 @@ export {
   Mic,
   Minus,
   Navigation,
+  Pin,
   Plus,
   Sparkles,
   Star,
