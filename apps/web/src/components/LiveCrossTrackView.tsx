@@ -6,12 +6,9 @@ import {
   formatMinutes,
 } from '../utils/crossTrack';
 import { PatternLocationView } from './cross-track/PatternLocationView';
-import { PatternTimerView } from './cross-track/PatternTimerView';
 import { TimelineStepper } from './cross-track/TimelineStepper';
 import { Icon } from './Icon';
 import { ChevronLeft, ExternalLink } from '../utils/icons';
-
-type ViewMode = 'location' | 'timer';
 
 interface Props {
   eventId?: string;
@@ -22,14 +19,6 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
   const event: CrossTrackEvent = useMemo(() => {
     return SAMPLE_CROSS_TRACK_EVENTS[eventId] || SAMPLE_CROSS_TRACK_EVENTS['2026-11-03/mariage'];
   }, [eventId]);
-
-  // Tab view mode: 'location' (Area-based STAGE vs BENEFIT) or 'timer' (Timer-focused countdown)
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const m = params.get('mode') || params.get('pattern');
-    if (m === 'timer') return 'timer';
-    return 'location'; // Default: Area-based
-  });
 
   // Current simulated minutes
   const [currentMinutes, setCurrentMinutes] = useState<number>(() => {
@@ -59,14 +48,6 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     return () => clearInterval(timer);
   }, [isRealTime]);
 
-  const handleSelectMode = (mode: ViewMode) => {
-    setViewMode(mode);
-    const url = new URL(window.location.href);
-    url.searchParams.set('mode', mode);
-    url.searchParams.delete('pattern');
-    window.history.replaceState({}, '', url.toString());
-  };
-
   const handleSelectMinutes = (mins: number | ((prev: number) => number)) => {
     setIsRealTime(false);
     setCurrentMinutes((prev) => {
@@ -89,7 +70,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
   };
 
   return (
-    <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3 pt-2 pb-2">
+    <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-2 pb-2">
       {/* Header: Pure Minimal */}
       <header class="flex items-center justify-between px-1 pt-1 pb-1.5 shrink-0 border-b border-white/5">
         <button
@@ -117,7 +98,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
               }`}
             />
             <span class="text-[11px] font-mono">
-              {isRealTime ? 'LIVE' : 'SIM'}: {formatMinutes(currentMinutes)}
+              {isRealTime ? 'LIVE NOW' : 'SIM'}: {formatMinutes(currentMinutes)}
             </span>
           </button>
         </div>
@@ -144,39 +125,9 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         )}
       </div>
 
-      {/* Top Segmented Tab Switcher (エリア別 vs 残り時間) */}
-      <div class="px-1 pt-2 shrink-0">
-        <div class="flex items-center bg-stone-900/90 rounded-xl p-0.5 border border-white/10 text-xs font-mono">
-          <button
-            onClick={() => handleSelectMode('location')}
-            class={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-              viewMode === 'location'
-                ? 'bg-white/15 text-white font-extrabold shadow-sm'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            エリア別 (STAGE / 物販)
-          </button>
-          <button
-            onClick={() => handleSelectMode('timer')}
-            class={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-              viewMode === 'timer'
-                ? 'bg-white/15 text-white font-extrabold shadow-sm'
-                : 'text-stone-400 hover:text-stone-200'
-            }`}
-          >
-            残り時間 (TIMER)
-          </button>
-        </div>
-      </div>
-
-      {/* Main Viewport */}
+      {/* Main Single Board View (STAGE vs BENEFIT) */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        {viewMode === 'location' ? (
-          <PatternLocationView event={event} currentMinutes={currentMinutes} />
-        ) : (
-          <PatternTimerView event={event} currentMinutes={currentMinutes} />
-        )}
+        <PatternLocationView event={event} currentMinutes={currentMinutes} />
       </main>
 
       {/* Bottom Controls: Stepper Debugger */}
