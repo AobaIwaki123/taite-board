@@ -13,8 +13,47 @@ import { ListView } from './components/ListView';
 import { CalendarView } from './components/CalendarView';
 import { LightboxModal } from './components/LightboxModal';
 import { PortalView } from './components/PortalView';
+import { LiveCrossTrackView } from './components/LiveCrossTrackView';
+
+function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
+  if (typeof window === 'undefined') return { isLive: false };
+  const url = new URL(window.location.href);
+  const pathname = url.pathname;
+  const viewParam = url.searchParams.get('view');
+
+  if (viewParam === 'live') {
+    return { isLive: true, eventId: url.searchParams.get('event') || '2026-11-03/mariage' };
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname.startsWith('live.') || pathname.startsWith('/live/')) {
+    const slug = pathname.replace(/^\/live\/?/, '') || '2026-11-03/mariage';
+    return { isLive: true, eventId: slug };
+  }
+
+  return { isLive: false };
+}
 
 export function App() {
+  const liveMode = isLiveTrackMode();
+  if (liveMode.isLive) {
+    return (
+      <LiveCrossTrackView
+        eventId={liveMode.eventId}
+        onBack={() => {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('view');
+          url.searchParams.delete('event');
+          if (url.pathname.startsWith('/live/')) {
+            window.location.href = '/';
+          } else {
+            window.location.href = url.toString();
+          }
+        }}
+      />
+    );
+  }
+
   if (isPortalMode()) {
     return <PortalView />;
   }

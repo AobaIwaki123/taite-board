@@ -192,6 +192,15 @@ export function PortalView() {
           <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
           <span class="text-xs font-bold tracking-widest text-stone-200 uppercase">Taite Board</span>
         </div>
+
+        <a
+          href="?view=live&event=2026-11-03/mariage"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+          title="合同フェスタイテを開く"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-400" />
+          <span>11/3 合同フェス進行</span>
+        </a>
       </header>
 
       {/* Ticket List Area */}
