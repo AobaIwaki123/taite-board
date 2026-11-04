@@ -296,7 +296,19 @@ export function CockpitView({
           </div>
         </div>
 
-        <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
+        <div class="flex items-start justify-between gap-2">
+          <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
+          {(session.date === '2026-11-03' || session.title.includes('マリアージュ')) && (
+            <a
+              href="/?view=live&event=2026-11-03/mariage"
+              class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-floor font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition-all shrink-0 shadow-sm"
+              title="当日の合同進行ボードを開く"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+              <span>合同進行</span>
+            </a>
+          )}
+        </div>
 
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-stone-300 min-w-0">
           <a

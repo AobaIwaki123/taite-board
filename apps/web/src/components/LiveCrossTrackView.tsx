@@ -25,7 +25,7 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     const params = new URLSearchParams(window.location.search);
     const t = params.get('time');
     if (t && t !== 'now') return parseMinutes(t);
-    // Default demo time: 12:20 (SAI²Rium live / Ribon Clock & Milky benefit)
+    // Default demo time: 12:20
     return parseMinutes('12:20');
   });
 
@@ -33,6 +33,16 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     const params = new URLSearchParams(window.location.search);
     return params.get('time') === 'now';
   });
+
+  // Delay offset (押し時間: 0, 5, 10, 15, 20分)
+  const [delayMinutes, setDelayMinutes] = useState<number>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get('delay');
+    return d ? parseInt(d, 10) : 0;
+  });
+
+  // Effective minutes considering schedule delay (押しを考慮した実効時刻)
+  const effectiveMinutes = currentMinutes - delayMinutes;
 
   // Update clock if in real-time mode
   useEffect(() => {
@@ -69,6 +79,17 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
     window.history.replaceState({}, '', url.toString());
   };
 
+  const handleChangeDelay = (m: number) => {
+    setDelayMinutes(m);
+    const url = new URL(window.location.href);
+    if (m > 0) {
+      url.searchParams.set('delay', String(m));
+    } else {
+      url.searchParams.delete('delay');
+    }
+    window.history.replaceState({}, '', url.toString());
+  };
+
   return (
     <div class="h-[100dvh] w-full max-w-sm mx-auto flex flex-col justify-between overflow-hidden relative bg-stone-950 text-stone-100 select-none px-3.5 pt-2 pb-2">
       {/* Header */}
@@ -83,6 +104,12 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         </button>
 
         <div class="flex items-center gap-2">
+          {delayMinutes > 0 && (
+            <span class="text-meta font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              +{delayMinutes}分押
+            </span>
+          )}
+
           <button
             onClick={handleSetRealTime}
             class={`flex items-center gap-2 px-2.5 py-1 rounded-full border transition-colors ${
@@ -125,9 +152,29 @@ export function LiveCrossTrackView({ eventId = '2026-11-03/mariage', onBack }: P
         )}
       </div>
 
-      {/* Main Board Viewport */}
+      {/* Delay Offset Controls (スケジュールの押し調整バー) */}
+      <div class="px-1 py-1.5 shrink-0 flex items-center justify-between border-b border-white/5">
+        <span class="text-floor font-mono text-stone-400 font-bold">進行押し調整:</span>
+        <div class="flex items-center gap-1 font-mono">
+          {[0, 5, 10, 15, 20, 30].map((m) => (
+            <button
+              key={m}
+              onClick={() => handleChangeDelay(m)}
+              class={`px-2 py-0.5 rounded text-floor font-bold transition-all ${
+                delayMinutes === m
+                  ? 'bg-amber-400 text-stone-950 font-black shadow-sm'
+                  : 'bg-white/5 text-stone-400 hover:text-stone-200 hover:bg-white/10'
+              }`}
+            >
+              {m === 0 ? '定刻' : `+${m}分`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Board Viewport (effectiveMinutes 伝達) */}
       <main class="flex-1 min-h-0 flex flex-col overflow-hidden relative">
-        <PatternLocationView event={event} currentMinutes={currentMinutes} />
+        <PatternLocationView event={event} currentMinutes={effectiveMinutes} />
       </main>
 
       {/* Bottom Controls: Stepper Debugger */}

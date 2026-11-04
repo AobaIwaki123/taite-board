@@ -340,8 +340,22 @@ export function PortalView() {
                     </span>
                   </div>
 
-                  <div class="flex items-center text-stone-500 group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all shrink-0">
-                    <Icon icon={ChevronRight} size={15} />
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    {nextEvent.title.includes('マリアージュ') && (
+                      <a
+                        href="/?view=live&event=2026-11-03/mariage"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        class="text-floor font-mono font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 hover:bg-rose-500/30 transition-colors"
+                        title="合同ライブ進行を開く"
+                      >
+                        合同進行
+                      </a>
+                    )}
+                    <div class="flex items-center text-stone-500 group-hover:text-stone-300 group-hover:translate-x-0.5 transition-all">
+                      <Icon icon={ChevronRight} size={15} />
+                    </div>
                   </div>
                 </div>
               </div>
