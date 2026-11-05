@@ -1,6 +1,5 @@
 import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
-import { resolveCurrentGroup } from '../config/group';
 import { isSessionPast, getSessionProgress, getTodayStr } from '../utils/date';
 import { Icon } from './Icon';
 import { ExpenseMemoCard } from './ExpenseMemoCard';
@@ -300,34 +299,6 @@ export function CockpitView({
         <div class="flex items-start justify-between gap-2">
           <h1 class="text-lg font-black text-white leading-snug">{session.title}</h1>
         </div>
-
-        {session.cross_track_event_id && (() => {
-          const currentGroupId = resolveCurrentGroup().id;
-          const fromGroup =
-            (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('group')) ||
-            currentGroupId ||
-            'ribonclock';
-          return (
-            <div class="pt-1">
-              <a
-                href={`/?view=live&event=${session.cross_track_event_id}&from=${fromGroup}`}
-                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-rose-950/80 via-stone-900 to-purple-950/60 border border-rose-500/40 hover:border-rose-400 transition-all group shadow-md"
-                title="当日のフェスタイムテーブルを開く"
-              >
-                <div class="flex items-center gap-2">
-                  <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
-                  <span class="text-meta font-bold text-white group-hover:text-rose-200 transition-colors">
-                    合同タイムテーブル
-                  </span>
-                </div>
-                <div class="flex items-center gap-1.5 text-floor font-mono text-rose-300 group-hover:text-rose-100 font-bold">
-                  <span>LIVE TIMELINE</span>
-                  <span class="group-hover:translate-x-0.5 transition-transform">❯</span>
-                </div>
-              </a>
-            </div>
-          );
-        })()}
 
         <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-stone-300 min-w-0">
           <a

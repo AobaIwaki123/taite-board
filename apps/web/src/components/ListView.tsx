@@ -5,19 +5,13 @@ import { MapPin } from '../utils/icons';
 
 interface ListViewProps {
   sessions: Session[];
-  currentNextId?: string;
   attendedSessionIds?: string[];
   onSelectSession: (id: string) => void;
 }
 
-export function ListView({
-  sessions,
-  currentNextId,
-  attendedSessionIds = [],
-  onSelectSession,
-}: ListViewProps) {
-  // 特典会終了後数時間の猶予時間を考慮し、今後の公演および現在指定の注目公演を抽出
-  const upcomingSessions = sessions.filter((s) => s.id === currentNextId || !isSessionPast(s));
+export function ListView({ sessions, attendedSessionIds = [], onSelectSession }: ListViewProps) {
+  // 特典会終了後数時間の猶予時間を考慮し、今後の公演のみを抽出
+  const upcomingSessions = sessions.filter((s) => !isSessionPast(s));
   const attendedCount = upcomingSessions.filter((s) => attendedSessionIds.includes(s.id)).length;
 
   return (
@@ -129,18 +123,6 @@ export function ListView({
                     </strong>
                   </span>
                 </div>
-
-                {session.cross_track_event_id && (
-                  <div class="pt-1 flex items-center justify-between text-[11px] font-mono text-rose-300">
-                    <span class="flex items-center gap-1.5 font-bold">
-                      <span class="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span>合同タイテ案内板あり</span>
-                    </span>
-                    <span class="text-[10px] text-rose-400 font-bold group-hover:translate-x-0.5 transition-transform">
-                      詳細を開く ❯
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           );

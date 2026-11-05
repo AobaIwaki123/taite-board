@@ -200,15 +200,11 @@ function ScheduleApp() {
   }
 
   const nextSession = resolveNextSession(data.sessions, data.current_next_id, now, 0, delayOffsets);
-  const designatedSession = data.current_next_id
-    ? data.sessions.find((s: Session) => s.id === data.current_next_id)
-    : null;
   const currentSession =
     (customSelectedSessionId && data.sessions.find((s: Session) => s.id === customSelectedSessionId)) ||
-    designatedSession ||
     nextSession ||
     data.sessions[0];
-  const isNextLive = currentSession?.id === (designatedSession?.id || nextSession?.id);
+  const isNextLive = currentSession?.id === nextSession?.id;
   const currentImages =
     currentSession?.images && currentSession.images.length > 0
       ? currentSession.images
@@ -259,7 +255,6 @@ function ScheduleApp() {
           <section class="w-full shrink-0 h-full snap-start px-0.5">
             <ListView
               sessions={data.sessions}
-              currentNextId={data.current_next_id}
               attendedSessionIds={attendedSessionIds}
               onSelectSession={handleSelectSession}
             />
