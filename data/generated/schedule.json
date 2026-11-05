@@ -426,18 +426,22 @@
         "map_url": "https://maps.google.com/?q=原宿RUIDO"
       },
       "live": {
-        "start_time": "--:--",
-        "end_time": "--:--",
+        "start_time": "18:05",
+        "end_time": "18:25",
         "stage": null
       },
       "benefit": {
-        "type": "未定",
-        "start_time": "--:--",
-        "end_time": "--:--",
-        "booth": "告知待ち"
+        "type": "並行",
+        "start_time": "18:30",
+        "end_time": "19:30",
+        "booth": "並行C"
       },
-      "photo": null,
-      "special_notes": "木曜無銭ライブ！※タイムテーブルは公式告知待ち",
+      "photo": {
+        "available": true,
+        "raw_text": "本日の撮影可能曲は、\n1曲目『微々々⭐︎炭酸サイダー』です！",
+        "rule": "1曲目『微々々⭐︎炭酸サイダー』撮影可能"
+      },
+      "special_notes": "木曜無銭ライブ！ / OPEN 16:00・START 16:20",
       "admission_bonus": "指名入場特典：お目当て3択（①10秒動画券 / ②写真+30秒トーク / ③券5枚⇒集合写真/券10枚⇒私物サイン）",
       "ticket": {
         "platform": "TicketDive",
@@ -455,13 +459,18 @@
           }
         ]
       },
-      "image_url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=large",
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2109237575764656308",
+      "image_url": "https://pbs.twimg.com/media/HWV8MZ-aYAAEVnK.jpg?name=large",
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/2118236876075053443",
       "images": [
         {
           "type": "flyer",
-          "label": "フライヤー (1/1)",
-          "url": "https://pbs.twimg.com/media/HUVGX80aEAEjGl8.jpg?name=large"
+          "label": "フライヤー (1/2)",
+          "url": "https://pbs.twimg.com/media/HWV8MZ-aYAAEVnK.jpg?name=large"
+        },
+        {
+          "type": "timetable",
+          "label": "タイムテーブル (2/2)",
+          "url": "https://pbs.twimg.com/media/HWV8MaCbMAAeMVK.jpg?name=large"
         }
       ],
       "source_refs": [
@@ -469,6 +478,11 @@
           "type": "x_post",
           "source_id": "2109237575764656308",
           "url": "https://x.com/Ribbon_Clock/status/2109237575764656308"
+        },
+        {
+          "type": "x_post",
+          "source_id": "2118236876075053443",
+          "url": "https://x.com/Ribbon_Clock/status/2118236876075053443"
         }
       ]
     },
@@ -956,7 +970,7 @@
     }
   ],
   "schema_version": 1,
-  "generated_at": "2026-11-01T13:37:14.772Z",
+  "generated_at": "2026-11-05T12:20:39.000Z",
   "timezone": "Asia/Tokyo",
   "group_id": "ribonclock"
 }
