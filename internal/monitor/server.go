@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	githubapi "github.com/AobaIwaki123/taite-board/internal/github"
 	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
@@ -37,11 +38,17 @@ type IntakeResolver interface {
 func NewHandler(collector *Collector) http.Handler {
 	xClient := x.NewClient(15 * time.Second)
 	res, _ := resolve.NewResolver("")
-	return NewHandlerWithDependencies(collector, xClient, res)
+	return NewHandlerWithDependenciesAndWriteback(collector, xClient, res, githubapi.NewClientFromEnv())
 }
 
 // NewHandlerWithDependencies provides full dependency injection for testing.
 func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resolver IntakeResolver) http.Handler {
+	return NewHandlerWithDependenciesAndWriteback(collector, fetcher, resolver, nil)
+}
+
+// NewHandlerWithDependenciesAndWriteback provides dependency injection for
+// both the intake sources and the GitHub writeback boundary.
+func NewHandlerWithDependenciesAndWriteback(collector *Collector, fetcher PostFetcher, resolver IntakeResolver, writeback ScheduleWriteback) http.Handler {
 	mux := http.NewServeMux()
 
 	// 1. Dashboard UI
@@ -146,24 +153,6 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		_ = json.NewEncoder(w).Encode(result)
 	})
 
-	// 6. Intake Promote API (Commit candidate to schedule.json)
-	type promoteRequest struct {
-		Group          string `json:"group"`
-		SourceID       string `json:"source_id"`
-		SourceURL      string `json:"source_url"`
-		Author         string `json:"author"`
-		Title          string `json:"title"`
-		Date           string `json:"date"`
-		Venue          string `json:"venue"`
-		LiveStart      string `json:"live_start"`
-		LiveEnd        string `json:"live_end"`
-		BenefitStart   string `json:"benefit_start"`
-		BenefitEnd     string `json:"benefit_end"`
-		Booth          string `json:"booth"`
-		ImageURL       string `json:"image_url"`
-		AdmissionBonus string `json:"admission_bonus"`
-	}
-
 	mux.HandleFunc("/api/intake/promote", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -173,6 +162,14 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		var req promoteRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, fmt.Sprintf("invalid json body: %v", err), http.StatusBadRequest)
+			return
+		}
+		if writeback != nil {
+			response, err := commitPromote(r.Context(), writeback, req)
+			if err == nil {
+				collector.RecordPromotion()
+			}
+			serveCommitResponse(w, response, err)
 			return
 		}
 
@@ -244,19 +241,6 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		})
 	})
 
-	// 7. Intake Patch API (Update perks, photo rules, and special notes on an existing session)
-	type patchRequest struct {
-		Group          string `json:"group"`
-		SessionID      string `json:"session_id"`
-		Date           string `json:"date"`
-		AdmissionBonus string `json:"admission_bonus"`
-		PhotoSong      string `json:"photo_song"`
-		PhotoDevice    string `json:"photo_device"`
-		PhotoRule      string `json:"photo_rule"`
-		SpecialNotes   string `json:"special_notes"`
-		SourceURL      string `json:"source_url"`
-	}
-
 	mux.HandleFunc("/api/intake/patch", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -266,6 +250,11 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		var req patchRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, fmt.Sprintf("invalid json body: %v", err), http.StatusBadRequest)
+			return
+		}
+		if writeback != nil {
+			response, err := commitPatch(r.Context(), writeback, req)
+			serveCommitResponse(w, response, err)
 			return
 		}
 
@@ -373,7 +362,39 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		})
 	})
 
-	// 6. AI Parser Proxy (forwards to Cloud Run)
+	// 8. GitHub Contents API writeback endpoint. The dashboard uses this
+	// endpoint so production never reports a local container write as durable.
+	mux.HandleFunc("/api/intake/commit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		if writeback == nil {
+			serveCommitUnavailable(w)
+			return
+		}
+
+		var req commitRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, fmt.Sprintf("invalid json body: %v", err), http.StatusBadRequest)
+			return
+		}
+		switch strings.ToLower(strings.TrimSpace(req.Action)) {
+		case "promote":
+			response, err := commitPromote(r.Context(), writeback, req.promote())
+			if err == nil {
+				collector.RecordPromotion()
+			}
+			serveCommitResponse(w, response, err)
+		case "patch":
+			response, err := commitPatch(r.Context(), writeback, req.patch())
+			serveCommitResponse(w, response, err)
+		default:
+			http.Error(w, "action must be promote or patch", http.StatusBadRequest)
+		}
+	})
+
+	// 9. AI Parser Proxy (forwards to Cloud Run)
 	type aiParseRequest struct {
 		SourceID string   `json:"source_id"`
 		Text     string   `json:"text"`

@@ -61,6 +61,18 @@ spec:
           env:
             - name: AI_PARSER_URL
               value: "https://taite-parser-3b7eomko6a-an.a.run.app"
+            - name: GITHUB_OWNER
+              value: "AobaIwaki123"
+            - name: GITHUB_REPOSITORY_NAME
+              value: "taite-board"
+            - name: GITHUB_BRANCH
+              value: "main"
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: taite-board-github-token
+                  key: token
+                  optional: true
           ports:
             - name: dashboard
               containerPort: 8082

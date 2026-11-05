@@ -182,7 +182,25 @@ unset DISCORD_WEBHOOK_URL
 
 検証後はCronJobを停止したままにし、ログ永続化と必要な保持期間を決めてから再開可否と常用スケジュールを判断します。
 
-## 7. トラブルシューティング
+## 7. 管理画面からの GitHub API 書き戻し
+
+管理画面の「本番カレンダーへ反映する」操作は、Monitor コンテナのローカルファイルへは書き込まず、GitHub Contents API を通じて `main` ブランチの正本へコミットします。`GITHUB_TOKEN` が未設定の場合、`/api/intake/commit` は `503 Service Unavailable` を返し、永続化されていない状態を成功扱いしません。
+
+Fine-grained PAT は対象リポジトリを `AobaIwaki123/taite-board` に限定し、Contents の Read and write 権限だけを付与してください。トークンをリポジトリへ保存せず、クラスタの Secret に登録します。
+
+```bash
+read -r -s GITHUB_TOKEN
+export GITHUB_TOKEN
+kubectl create secret generic taite-board-github-token \
+  --namespace ribonclock \
+  --from-literal=token="$GITHUB_TOKEN" \
+  --dry-run=client -o yaml | kubectl apply -f -
+unset GITHUB_TOKEN
+```
+
+`k8s/manifests/base/rollout.yaml` はこの Secret を任意参照します。Secret が存在しない環境でも Pod は起動しますが、管理画面からの GitHub 書き戻しだけが無効になります。書き戻し後は GitHub のコミットURLを確認し、Argo CD の同期状態と公開画面を確認してください。
+
+## 8. トラブルシューティング
 
 ### 画面で「オフライン表示中」が表示される場合
 - クライアント側で `schedule.json` の取得に失敗し、前回ロードした `localStorage` キャッシュで描画されています。
