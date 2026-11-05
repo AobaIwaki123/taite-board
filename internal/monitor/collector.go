@@ -29,7 +29,7 @@ type RequestRecord struct {
 
 // HourlyCount stores count of requests for a specific hour.
 type HourlyCount struct {
-	Hour          string `json:"hour"`  // "15:00"
+	Hour          string `json:"hour"` // "15:00"
 	TotalRequests int64  `json:"total_requests"`
 	PageViews     int64  `json:"page_views"`
 	Count         int64  `json:"count"` // backward compatible alias
@@ -37,17 +37,17 @@ type HourlyCount struct {
 
 // StatsSnapshot contains full aggregated metrics for API and Dashboard.
 type StatsSnapshot struct {
-	Version        string          `json:"version"`
-	UptimeSeconds  int64           `json:"uptime_seconds"`
-	TotalRequests  int64           `json:"total_requests"`
-	TodayRequests  int64           `json:"today_requests"`
-	TotalPageViews int64           `json:"total_page_views"`
-	TodayPageViews int64           `json:"today_page_views"`
-	LastHourCount  int64           `json:"last_hour_count"`
-	ErrorRate      float64         `json:"error_rate"`
-	ByRoute        map[string]int64 `json:"by_route"`
-	ByStatus       map[string]int64 `json:"by_status"`
-	Hourly         []HourlyCount   `json:"hourly"`
+	Version        string                   `json:"version"`
+	UptimeSeconds  int64                    `json:"uptime_seconds"`
+	TotalRequests  int64                    `json:"total_requests"`
+	TodayRequests  int64                    `json:"today_requests"`
+	TotalPageViews int64                    `json:"total_page_views"`
+	TodayPageViews int64                    `json:"today_page_views"`
+	LastHourCount  int64                    `json:"last_hour_count"`
+	ErrorRate      float64                  `json:"error_rate"`
+	ByRoute        map[string]int64         `json:"by_route"`
+	ByStatus       map[string]int64         `json:"by_status"`
+	Hourly         []HourlyCount            `json:"hourly"`
 	RecentRequests []RequestRecord          `json:"recent_requests"`
 	RecentIntakes  []candidate.IntakeResult `json:"recent_intakes"`
 	Pipeline       telemetry.PipelineStats  `json:"pipeline"`
@@ -118,6 +118,17 @@ func (c *Collector) SetPipelineStats(stats telemetry.PipelineStats) {
 	defer c.mu.Unlock()
 	c.pipelineStats = stats
 	c.lastPipelineScan = time.Now()
+}
+
+// RecordPromotion records a successful admin writeback in the live pipeline
+// state and persists it so the dashboard retains the result across restarts.
+func (c *Collector) RecordPromotion() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pipelineStats.PromotedSessions++
+	if c.stateFilePath != "" {
+		_ = telemetry.SavePipelineState(c.stateFilePath, c.pipelineStats)
+	}
 }
 
 func (c *Collector) refreshPipelineStatsLocked() {

@@ -100,14 +100,14 @@ func TestCollector_IntakesPersistence(t *testing.T) {
 func TestCollector_PipelineStats(t *testing.T) {
 	c := NewCollector("1.0.0")
 	c.SetPipelineStats(telemetry.PipelineStats{
-		DetectedPosts:    10,
-		FilteredPosts:    6,
-		FilterPassed:     4,
-		FilterBreakdown:  telemetry.FilterBreakdown{Media: 4, Keyword: 2},
-		AIDispatched:     4,
-		AICacheHits:      1,
-		PromotedSessions: 5,
-		SavedAPICalls:    7,
+		DetectedPosts:         10,
+		FilteredPosts:         6,
+		FilterPassed:          4,
+		FilterBreakdown:       telemetry.FilterBreakdown{Media: 4, Keyword: 2},
+		AIDispatched:          4,
+		AICacheHits:           1,
+		PromotedSessions:      5,
+		SavedAPICalls:         7,
 		EstimatedCostSavedUSD: 0.0028,
 	})
 
@@ -128,5 +128,25 @@ func TestCollector_PipelineStats(t *testing.T) {
 	}
 	if !strings.Contains(prom, "ribonclock_pipeline_promoted_sessions_total 5") {
 		t.Errorf("missing promoted sessions gauge in prometheus: %s", prom)
+	}
+}
+
+func TestCollector_RecordPromotionPersists(t *testing.T) {
+	stateFile := t.TempDir() + "/pipeline_state.json"
+	c := NewCollector("1.0.0")
+	c.SetStateFilePath(stateFile)
+	c.SetPipelineStats(telemetry.PipelineStats{PromotedSessions: 2})
+
+	c.RecordPromotion()
+
+	if got := c.Snapshot().Pipeline.PromotedSessions; got != 3 {
+		t.Fatalf("expected 3 promoted sessions, got %d", got)
+	}
+	persisted, err := telemetry.LoadPipelineState(stateFile)
+	if err != nil {
+		t.Fatalf("loading persisted pipeline state: %v", err)
+	}
+	if persisted.PromotedSessions != 3 {
+		t.Fatalf("expected persisted promoted sessions=3, got %d", persisted.PromotedSessions)
 	}
 }

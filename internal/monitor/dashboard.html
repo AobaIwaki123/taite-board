@@ -875,7 +875,7 @@
             <!-- Patch Commit Action -->
             <div id="intake-commit-container" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
               <div style="font-size: 0.75rem; color: #94a3b8;">
-                この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> の該当ライブの特典・撮可曲を上書き更新します。
+                この内容を GitHub の正本へコミットし、Argo CD 同期後に <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> の該当ライブへ反映します。
               </div>
               <button type="button" id="btn-commit-patch" onclick="commitPatchToSchedule()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; margin-bottom: 0; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 700;">
                 特典・撮可情報をカレンダーへ反映する
@@ -892,7 +892,7 @@
             <!-- Commit to Schedule Action -->
             <div id="intake-commit-container" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
               <div style="font-size: 0.75rem; color: #94a3b8;">
-                この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> のカレンダーへ即時登録します。
+                この内容を GitHub の正本へコミットし、Argo CD 同期後に <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> のカレンダーへ反映します。
               </div>
               <button type="button" id="btn-commit-schedule" onclick="commitIntakeToSchedule()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; margin-bottom: 0; background: #10b981; border-color: #10b981; color: #fff; font-weight: 700;">
                 本番カレンダーへ反映する
@@ -927,6 +927,7 @@
       const titleCandidate = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || 'ライブ出演';
 
       const payload = {
+        action: 'promote',
         group: targetGroup,
         source_id: item.source_id,
         source_url: item.url,
@@ -944,7 +945,7 @@
       };
 
       try {
-        const res = await fetch('/api/intake/promote', {
+        const res = await fetch('/api/intake/commit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -960,8 +961,9 @@
           resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
           resultDiv.style.color = '#a7f3d0';
           resultDiv.innerHTML = `
-            <div><strong>カレンダーへ登録完了しました！</strong> (Session ID: <code>${data.session_id}</code>)</div>
-            <div style="margin-top: 4px;">公開ページ: <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> に即時反映されています。</div>
+            <div><strong>GitHub 正本へのコミットが完了しました。</strong> (Session ID: <code>${data.session_id}</code>)</div>
+            <div style="margin-top: 4px;">Argo CD 同期後に公開ページ <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> へ反映されます。</div>
+            ${data.commit_url ? `<div style="margin-top: 4px;"><a href="${data.commit_url}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline;">GitHubコミットを確認する</a></div>` : ''}
           `;
         }
         await refreshTelemetry();
@@ -994,6 +996,7 @@
       const dateElem = document.getElementById('cand-date');
 
       const payload = {
+        action: 'patch',
         group: targetGroup,
         source_url: item.url,
         date: dateElem && dateElem.innerText !== '本日または直近ライブ' ? dateElem.innerText : (c.date || ''),
@@ -1004,7 +1007,7 @@
       };
 
       try {
-        const res = await fetch('/api/intake/patch', {
+        const res = await fetch('/api/intake/commit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1020,8 +1023,9 @@
           resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
           resultDiv.style.color = '#a7f3d0';
           resultDiv.innerHTML = `
-            <div><strong>特典・撮可情報をカレンダーへ反映しました！</strong> (Session ID: <code>${data.session_id}</code>)</div>
-            <div style="margin-top: 4px;">公開ページ: <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> に即時反映されています。</div>
+            <div><strong>GitHub 正本への特典・撮可情報コミットが完了しました。</strong> (Session ID: <code>${data.session_id}</code>)</div>
+            <div style="margin-top: 4px;">Argo CD 同期後に公開ページ <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> へ反映されます。</div>
+            ${data.commit_url ? `<div style="margin-top: 4px;"><a href="${data.commit_url}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline;">GitHubコミットを確認する</a></div>` : ''}
           `;
         }
         await refreshTelemetry();

@@ -205,7 +205,7 @@ func TestServer_AIParse_Mock(t *testing.T) {
 
 func TestServer_Intake_Promote(t *testing.T) {
 	collector := NewCollector("test-v1")
-	handler := NewHandler(collector)
+	handler := NewHandlerWithDependencies(collector, nil, nil)
 
 	// Create temp schedule file
 	tmpDir := t.TempDir()
@@ -217,14 +217,14 @@ func TestServer_Intake_Promote(t *testing.T) {
 	_ = os.WriteFile("data/generated/schedule.json", []byte(`{"target_group":{"name":"test"},"sessions":[]}`), 0644)
 
 	body, _ := json.Marshal(map[string]any{
-		"group":        "ribonclock",
-		"source_id":    "11223344",
-		"source_url":   "https://x.com/test/status/11223344",
-		"title":        "Girls Face in RING",
-		"date":         "2026-11-21",
-		"venue":        "渋谷RING",
-		"live_start":   "20:20",
-		"live_end":     "20:40",
+		"group":         "ribonclock",
+		"source_id":     "11223344",
+		"source_url":    "https://x.com/test/status/11223344",
+		"title":         "Girls Face in RING",
+		"date":          "2026-11-21",
+		"venue":         "渋谷RING",
+		"live_start":    "20:20",
+		"live_end":      "20:40",
 		"benefit_start": "21:10",
 		"benefit_end":   "22:10",
 	})
@@ -251,7 +251,7 @@ func TestServer_Intake_Promote(t *testing.T) {
 
 func TestServer_Intake_Patch(t *testing.T) {
 	collector := NewCollector("test-v1")
-	handler := NewHandler(collector)
+	handler := NewHandlerWithDependencies(collector, nil, nil)
 
 	// Create temp schedule file
 	tmpDir := t.TempDir()
