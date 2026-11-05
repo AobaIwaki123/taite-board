@@ -50,24 +50,31 @@ export function LiveCrossTrackView({
     return REGISTERED_GROUPS[fromGroupId]?.name || fromGroupId;
   }, [fromGroupId]);
 
+  // デバッグモード判定 (?debug=1 または ?debug=true)
+  const isDebugMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('debug') === '1' || params.get('debug') === 'true';
+  }, []);
+
   // タイムシミュレーター（デバッグステッパー）の開閉状態
   const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('debug') === '1' || params.get('debug') === 'true';
   });
 
-  // 現在のシミュレーション時刻
+  // 現在のシミュレーション時刻（デフォルトは現在時刻）
   const [currentMinutes, setCurrentMinutes] = useState<number>(() => {
     const params = new URLSearchParams(window.location.search);
     const t = params.get('time');
     if (t && t !== 'now') return parseMinutes(t);
-    // デフォルトデモ時刻: 12:20
-    return parseMinutes('12:20');
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
   });
 
   const [isRealTime, setIsRealTime] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('time') === 'now';
+    const t = params.get('time');
+    return !t || t === 'now';
   });
 
   // 進行押し時間（常時描画・現場調整用: 0, 5, 10, 15, 20, 30分）
@@ -247,7 +254,7 @@ export function LiveCrossTrackView({
         />
       </main>
 
-      {/* 5. Footer & Optional Simulator Drawer */}
+      {/* 5. Footer & Optional Simulator Drawer (デバッグ時のみ開閉可能) */}
       {isSimulatorOpen ? (
         <footer class="pt-1.5 flex flex-col gap-1 shrink-0 border-t border-stone-800 bg-stone-900/95 rounded-t-xl p-2 mt-1">
           <div class="flex items-center justify-between px-1 pb-1 text-floor font-mono text-stone-400 border-b border-stone-800">
@@ -268,14 +275,16 @@ export function LiveCrossTrackView({
       ) : (
         <footer class="pt-2 pb-1 shrink-0 border-t border-stone-800 flex items-center justify-between text-floor font-mono text-stone-400 px-1">
           <span class="tracking-wider">当日のタイムテーブル</span>
-          <button
-            onClick={handleToggleSimulator}
-            class="flex items-center gap-1 text-stone-400 hover:text-stone-200 px-2 py-0.5 rounded border border-stone-800 bg-stone-900/50 transition-colors"
-            title="時間シミュレーターを開く"
-          >
-            <Icon icon={SlidersHorizontal} size={11} />
-            <span>シミュレーター</span>
-          </button>
+          {isDebugMode && (
+            <button
+              onClick={handleToggleSimulator}
+              class="flex items-center gap-1 text-stone-400 hover:text-stone-200 px-2 py-0.5 rounded border border-stone-800 bg-stone-900/50 transition-colors"
+              title="時間シミュレーターを開く"
+            >
+              <Icon icon={SlidersHorizontal} size={11} />
+              <span>シミュレーター</span>
+            </button>
+          )}
         </footer>
       )}
     </div>
