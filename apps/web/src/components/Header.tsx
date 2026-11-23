@@ -1,5 +1,7 @@
 import { useState } from 'preact/hooks';
 import { getFreshnessInfo } from '../utils/date';
+import { Icon } from './Icon';
+import { Cloud } from '../utils/icons';
 
 interface HeaderProps {
   onLogoClick: () => void;
@@ -7,6 +9,9 @@ interface HeaderProps {
   generatedAt?: string;
   title?: string;
   logoText?: string;
+  syncUserId?: string | null;
+  isSyncing?: boolean;
+  onOpenSyncModal?: () => void;
 }
 
 export function Header({
@@ -15,6 +20,9 @@ export function Header({
   generatedAt,
   title = 'リボンクロック',
   logoText = '🎀',
+  syncUserId,
+  isSyncing = false,
+  onOpenSyncModal,
 }: HeaderProps) {
   const [isPopping, setIsPopping] = useState(false);
 
@@ -53,6 +61,22 @@ export function Header({
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             <span>{freshnessLabel}</span>
           </div>
+        )}
+        {onOpenSyncModal && (
+          <button
+            type="button"
+            onClick={onOpenSyncModal}
+            class={`flex items-center gap-1.5 h-8 px-2.5 rounded-xl border text-xs font-bold transition-all duration-150 active:scale-95 ${
+              syncUserId
+                ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/25'
+                : 'bg-white/5 border-white/5 text-stone-400 hover:text-white hover:bg-white/10'
+            }`}
+            title={syncUserId ? `クラウド同期中 (${syncUserId})` : 'ログインして家計簿を同期'}
+            aria-label={syncUserId ? `クラウド同期中 (${syncUserId})` : 'ログインして家計簿を同期'}
+          >
+            <Icon icon={Cloud} class={`w-4 h-4 ${isSyncing ? 'animate-pulse' : ''}`} />
+            {syncUserId && <span class="max-w-[72px] truncate">{syncUserId}</span>}
+          </button>
         )}
         <a
           href={typeof window !== 'undefined' && window.location.hostname.endsWith('iorin.net') ? 'https://taite.iorin.net' : '/'}

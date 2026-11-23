@@ -28,6 +28,16 @@ export function toggleAttendedSessionId(sessionId: string): string[] {
   }
 }
 
+export function setAttendedSessionIds(ids: string[]): string[] {
+  const unique = Array.from(new Set(ids.filter((id) => typeof id === 'string' && id.trim() !== '')));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(unique));
+  } catch {
+    // ignore
+  }
+  return unique;
+}
+
 export function isSessionAttended(sessionId: string, attendedIds?: string[]): boolean {
   const ids = attendedIds || getAttendedSessionIds();
   return ids.includes(sessionId);

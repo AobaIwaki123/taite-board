@@ -20,9 +20,20 @@ import { Wallet, ChevronDown, ChevronUp, Minus, Plus, Trash2 } from '../utils/ic
 interface ExpenseMemoCardProps {
   session: Session;
   isAttended: boolean;
+  syncRevision?: number;
+  syncUserId?: string | null;
+  onExpenseChanged?: () => void;
+  onOpenSyncModal?: () => void;
 }
 
-export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
+export function ExpenseMemoCard({
+  session,
+  isAttended,
+  syncRevision = 0,
+  syncUserId = null,
+  onExpenseChanged,
+  onOpenSyncModal,
+}: ExpenseMemoCardProps) {
   const [expense, setExpense] = useState<SessionExpense>(() => {
     return getSessionExpense(session.id) || defaultSessionExpense();
   });
@@ -33,7 +44,7 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
   // 初期状態: データがあれば開く、または参戦中のときは開く
   const [isOpen, setIsOpen] = useState<boolean>(() => hasData || isAttended);
 
-  // セッション切り替え時に状態を再読み込み
+  // セッション切り替え時・クラウド同期完了時に状態を再読み込み
   useEffect(() => {
     const loaded = getSessionExpense(session.id) || defaultSessionExpense();
     setExpense(loaded);
@@ -41,7 +52,7 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
     if (loadedHasData) {
       setIsOpen(true);
     }
-  }, [session.id]);
+  }, [session.id, syncRevision]);
 
   const updateExpense = (updater: (prev: SessionExpense) => SessionExpense) => {
     setExpense((prev) => {
@@ -49,12 +60,14 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
       saveSessionExpense(session.id, next);
       return next;
     });
+    onExpenseChanged?.();
   };
 
   const handleReset = () => {
     if (window.confirm('この公演の現場メモ・出費をクリアしますか？')) {
       deleteSessionExpense(session.id);
       setExpense(defaultSessionExpense());
+      onExpenseChanged?.();
     }
   };
 
@@ -90,7 +103,9 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400" />
               )}
             </div>
-            <div class="text-[10px] text-stone-400">自分用端末メモ（非公開）</div>
+            <div class="text-xs text-stone-400">
+              {syncUserId ? `クラウド同期中 (${syncUserId})` : '端末内メモ（ログインで他端末共有）'}
+            </div>
           </div>
         </div>
 
@@ -345,9 +360,22 @@ export function ExpenseMemoCard({ session, isAttended }: ExpenseMemoCardProps) {
             )}
           </div>
 
-          {/* ローカル保存に関する注意書き */}
-          <div class="text-[10px] text-stone-300 leading-relaxed bg-stone-900/60 p-2 rounded-lg border border-white/5">
-            ※ 入力内容は端末のブラウザ内（ローカルストレージ）にのみ保存されます。サーバーには送信されません。ブラウザ履歴の消去や機種変更で消失する可能性があります。
+          {/* 保存・同期に関する案内 */}
+          <div class="text-xs text-stone-300 leading-relaxed bg-stone-900/60 p-2.5 rounded-lg border border-white/5 flex items-center justify-between gap-2 flex-wrap">
+            <span>
+              {syncUserId
+                ? `入力内容は「${syncUserId}」のアカウントでクラウド同期されます。`
+                : '未ログイン時はこの端末のブラウザ内のみに保存されます。'}
+            </span>
+            {onOpenSyncModal && (
+              <button
+                type="button"
+                onClick={onOpenSyncModal}
+                class="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 font-bold text-xs hover:bg-sky-500/25"
+              >
+                {syncUserId ? '同期設定' : 'ログインして同期'}
+              </button>
+            )}
           </div>
         </div>
       )}

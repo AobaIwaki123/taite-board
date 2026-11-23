@@ -215,3 +215,49 @@ export function deleteSessionExpense(sessionId: string): void {
     console.warn('Failed to remove session expense from localStorage', e);
   }
 }
+
+export function exportAllExpenses(): Record<string, SessionExpense> {
+  const out: Record<string, SessionExpense> = {};
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return out;
+  }
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+      const sessionId = key.slice(STORAGE_PREFIX.length);
+      if (!sessionId) continue;
+      const parsed = getSessionExpense(sessionId);
+      if (parsed) {
+        out[sessionId] = parsed;
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return out;
+}
+
+export function replaceAllExpenses(expenses: Record<string, SessionExpense>): void {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(STORAGE_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    for (const k of keysToRemove) {
+      localStorage.removeItem(k);
+    }
+    for (const [sessionId, exp] of Object.entries(expenses)) {
+      if (!sessionId) continue;
+      localStorage.setItem(`${STORAGE_PREFIX}${sessionId}`, JSON.stringify(exp));
+    }
+  } catch (e) {
+    console.warn('Failed to replace expenses in localStorage', e);
+  }
+}

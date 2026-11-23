@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/monitor"
+	"github.com/AobaIwaki123/taite-board/internal/syncapi"
 	"github.com/AobaIwaki123/taite-board/internal/version"
 )
 
@@ -24,6 +26,7 @@ func main() {
 		dataDir       string
 		statePath     string
 		dashboardPort int
+		syncPort      int
 		metricsPort   int
 	)
 
@@ -32,6 +35,7 @@ func main() {
 	flag.StringVar(&dataDir, "data-dir", getEnv("DATA_DIR", "data"), "Path to data directory for pipeline telemetry")
 	flag.StringVar(&statePath, "state-path", getEnv("PIPELINE_STATE_PATH", "/var/log/ribonclock/pipeline_state.json"), "Path to persisted pipeline state file")
 	flag.IntVar(&dashboardPort, "port", 8082, "Port for access dashboard and JSON API")
+	flag.IntVar(&syncPort, "sync-port", getEnvInt("SYNC_PORT", 8083), "Port for public user auth and sync API")
 	flag.IntVar(&metricsPort, "metrics-port", 9090, "Port for Prometheus metrics")
 	flag.Parse()
 
@@ -107,10 +111,30 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	syncHandler := syncapi.NewHandler(syncapi.Config{
+		Store:       gcsStore,
+		StateBucket: stateBucket,
+		ProjectID:   getEnv("GCP_PROJECT_ID", "taite-board"),
+		APIKey:      strings.TrimSpace(os.Getenv("IDENTITY_PLATFORM_API_KEY")),
+	})
+	syncServer := &http.Server{
+		Addr:         fmt.Sprintf(":%d", syncPort),
+		Handler:      syncHandler.Mux(),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 20 * time.Second,
+	}
+
 	go func() {
 		slog.Info("Dashboard server listening", "addr", dashboardServer.Addr)
 		if err := dashboardServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Dashboard server error", "err", err)
+		}
+	}()
+
+	go func() {
+		slog.Info("User sync server listening", "addr", syncServer.Addr)
+		if err := syncServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("User sync server error", "err", err)
 		}
 	}()
 
@@ -128,6 +152,7 @@ func main() {
 	defer shutdownCancel()
 
 	_ = dashboardServer.Shutdown(shutdownCtx)
+	_ = syncServer.Shutdown(shutdownCtx)
 	_ = metricsServer.Shutdown(shutdownCtx)
 	slog.Info("Monitor cleanly stopped")
 }
@@ -135,6 +160,15 @@ func main() {
 func getEnv(key, fallback string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if val := os.Getenv(key); val != "" {
+		if n, err := strconv.Atoi(val); err == nil {
+			return n
+		}
 	}
 	return fallback
 }

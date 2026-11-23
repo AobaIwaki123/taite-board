@@ -1,0 +1,273 @@
+import { type SessionExpense, exportAllExpenses, replaceAllExpenses } from './expense.ts';
+import { getAttendedSessionIds, setAttendedSessionIds } from './attendance.ts';
+
+const SYNC_SESSION_KEY = 'taite_sync_session';
+
+export interface SyncSession {
+  userId: string;
+  idToken: string;
+  refreshToken: string;
+  expiresAt: number; // unix ms
+  lastSyncedAt?: string;
+}
+
+export interface SyncPayload {
+  schema_version: number;
+  updated_at?: string;
+  expenses: Record<string, SessionExpense>;
+  attended: string[];
+}
+
+export interface MergeResult {
+  merged: SyncPayload;
+  localChanged: boolean;
+  cloudNeedsPush: boolean;
+}
+
+export function getSyncSession(): SyncSession | null {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = localStorage.getItem(SYNC_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SyncSession;
+    if (!parsed.userId || !parsed.idToken || !parsed.refreshToken) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSyncSession(session: SyncSession): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.setItem(SYNC_SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearSyncSession(): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.removeItem(SYNC_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function parseTimeMs(iso?: string): number {
+  if (!iso) return 0;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : 0;
+}
+
+/**
+ * Merges local and cloud expense & attendance payloads using per-session Last-Write-Wins.
+ */
+export function mergeSyncData(
+  localExpenses: Record<string, SessionExpense>,
+  cloudExpenses: Record<string, SessionExpense>,
+  localAttended: string[],
+  cloudAttended: string[],
+): MergeResult {
+  const mergedExpenses: Record<string, SessionExpense> = {};
+  const allKeys = new Set([...Object.keys(localExpenses || {}), ...Object.keys(cloudExpenses || {})]);
+
+  let localChanged = false;
+  let cloudNeedsPush = false;
+
+  for (const key of allKeys) {
+    const localItem = localExpenses?.[key];
+    const cloudItem = cloudExpenses?.[key];
+
+    if (localItem && !cloudItem) {
+      mergedExpenses[key] = localItem;
+      cloudNeedsPush = true;
+    } else if (!localItem && cloudItem) {
+      mergedExpenses[key] = cloudItem;
+      localChanged = true;
+    } else if (localItem && cloudItem) {
+      const localTs = parseTimeMs(localItem.updatedAt);
+      const cloudTs = parseTimeMs(cloudItem.updatedAt);
+      if (cloudTs > localTs) {
+        mergedExpenses[key] = cloudItem;
+        if (JSON.stringify(localItem) !== JSON.stringify(cloudItem)) {
+          localChanged = true;
+        }
+      } else {
+        mergedExpenses[key] = localItem;
+        if (localTs > cloudTs || JSON.stringify(localItem) !== JSON.stringify(cloudItem)) {
+          cloudNeedsPush = true;
+        }
+      }
+    }
+  }
+
+  const mergedAttended = Array.from(new Set([...(cloudAttended || []), ...(localAttended || [])]));
+  if (mergedAttended.length !== (localAttended || []).length) {
+    localChanged = true;
+  }
+  if (mergedAttended.length !== (cloudAttended || []).length) {
+    cloudNeedsPush = true;
+  }
+
+  return {
+    merged: {
+      schema_version: 1,
+      expenses: mergedExpenses,
+      attended: mergedAttended,
+    },
+    localChanged,
+    cloudNeedsPush,
+  };
+}
+
+async function ensureValidSession(session: SyncSession): Promise<SyncSession> {
+  if (Date.now() + 60_000 < session.expiresAt) {
+    return session;
+  }
+  const res = await fetch('/api/sync/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: session.refreshToken }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    clearSyncSession();
+    throw new Error(data.error || 'セッションの有効期限が切れました');
+  }
+  const expiresSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
+  const refreshed: SyncSession = {
+    ...session,
+    idToken: data.id_token,
+    refreshToken: data.refresh_token || session.refreshToken,
+    expiresAt: Date.now() + expiresSec * 1000,
+  };
+  saveSyncSession(refreshed);
+  return refreshed;
+}
+
+export async function authenticateSyncAccount(
+  mode: 'login' | 'register',
+  userId: string,
+  password: string,
+): Promise<SyncSession> {
+  const endpoint = mode === 'register' ? '/api/sync/register' : '/api/sync/login';
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'ログインに失敗しました');
+  }
+  const expiresSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
+  const session: SyncSession = {
+    userId: data.user_id,
+    idToken: data.id_token,
+    refreshToken: data.refresh_token,
+    expiresAt: Date.now() + expiresSec * 1000,
+  };
+  saveSyncSession(session);
+  return session;
+}
+
+export async function syncWithCloud(): Promise<{
+  session: SyncSession;
+  attended: string[];
+  expenseCount: number;
+}> {
+  const current = getSyncSession();
+  if (!current) {
+    throw new Error('ログインしていません');
+  }
+  const validSession = await ensureValidSession(current);
+
+  const getRes = await fetch('/api/sync/data', {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${validSession.idToken}` },
+  });
+  const cloudRaw = await getRes.json();
+  if (!getRes.ok) {
+    if (getRes.status === 401) clearSyncSession();
+    throw new Error(cloudRaw.error || 'クラウドデータの取得に失敗しました');
+  }
+
+  const localExpenses = exportAllExpenses();
+  const localAttended = getAttendedSessionIds();
+
+  const { merged, localChanged, cloudNeedsPush } = mergeSyncData(
+    localExpenses,
+    cloudRaw.expenses || {},
+    localAttended,
+    cloudRaw.attended || [],
+  );
+
+  if (localChanged) {
+    replaceAllExpenses(merged.expenses);
+    setAttendedSessionIds(merged.attended);
+  }
+
+  let syncedAt = cloudRaw.updated_at || new Date().toISOString();
+  if (cloudNeedsPush) {
+    const putRes = await fetch('/api/sync/data', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validSession.idToken}`,
+      },
+      body: JSON.stringify(merged),
+    });
+    const putData = await putRes.json();
+    if (!putRes.ok) {
+      throw new Error(putData.error || 'クラウドへの保存に失敗しました');
+    }
+    syncedAt = putData.updated_at || new Date().toISOString();
+  }
+
+  const updatedSession: SyncSession = {
+    ...validSession,
+    lastSyncedAt: syncedAt,
+  };
+  saveSyncSession(updatedSession);
+
+  return {
+    session: updatedSession,
+    attended: merged.attended,
+    expenseCount: Object.keys(merged.expenses).length,
+  };
+}
+
+export async function pushLocalToCloud(): Promise<SyncSession | null> {
+  const current = getSyncSession();
+  if (!current) return null;
+
+  const validSession = await ensureValidSession(current);
+  const payload: SyncPayload = {
+    schema_version: 1,
+    expenses: exportAllExpenses(),
+    attended: getAttendedSessionIds(),
+  };
+
+  const putRes = await fetch('/api/sync/data', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${validSession.idToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const putData = await putRes.json();
+  if (!putRes.ok) {
+    if (putRes.status === 401) clearSyncSession();
+    throw new Error(putData.error || 'クラウドへの同期に失敗しました');
+  }
+
+  const updatedSession: SyncSession = {
+    ...validSession,
+    lastSyncedAt: putData.updated_at || new Date().toISOString(),
+  };
+  saveSyncSession(updatedSession);
+  return updatedSession;
+}
