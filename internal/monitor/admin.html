@@ -166,6 +166,9 @@
             </button>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btn-batch-commit" onclick="commitAllReady()" style="display:none; font-size: 0.78rem; padding: 0.38rem 0.85rem; margin-bottom: 0; background: #10b981; border-color: #10b981; color: #fff; font-weight: 700;">
+              準備OKをまとめて本番登録 (<span id="batch-ready-count">0</span>件)
+            </button>
             <button type="button" id="btn-batch-ai" class="outline" onclick="runAllNeededAI()" style="display:none; font-size: 0.78rem; padding: 0.38rem 0.8rem; margin-bottom: 0; border-color: #f59e0b; color: #fbbf24;">
               要AI解析をまとめて実行
             </button>
@@ -537,19 +540,27 @@
       const badge = document.getElementById('batch-progress-badge');
       const clearBtn = document.getElementById('btn-clear-queue');
       const aiAllBtn = document.getElementById('btn-batch-ai');
+      const commitAllBtn = document.getElementById('btn-batch-commit');
+      const readyCountSpan = document.getElementById('batch-ready-count');
       if (intakeQueue.length === 0) {
         badge.className = 'badge badge-muted';
         badge.innerText = '待機中';
         clearBtn.style.display = 'none';
         aiAllBtn.style.display = 'none';
+        if (commitAllBtn) commitAllBtn.style.display = 'none';
         return;
       }
       clearBtn.style.display = 'inline-block';
       const fetching = intakeQueue.filter(q => q.status === 'fetching').length;
       const committed = intakeQueue.filter(q => q.status === 'committed').length;
+      const readyCount = intakeQueue.filter(q => q.status === 'ready').length;
       const needsAI = intakeQueue.filter(q => q.status === 'ready' && q.item && q.item.needs_ai && !q.aiRunning).length;
 
       aiAllBtn.style.display = needsAI > 0 ? 'inline-block' : 'none';
+      if (commitAllBtn) {
+        commitAllBtn.style.display = (fetching === 0 && readyCount > 0) ? 'inline-block' : 'none';
+        if (readyCountSpan) readyCountSpan.innerText = String(readyCount);
+      }
       if (fetching > 0) {
         badge.className = 'badge badge-info';
         badge.innerText = `取得中... (${intakeQueue.length - fetching}/${intakeQueue.length})`;
@@ -558,7 +569,7 @@
         badge.innerText = `全 ${committed} 件 登録完了`;
       } else {
         badge.className = 'badge badge-warn';
-        badge.innerText = `${committed}/${intakeQueue.length} 件反映済み`;
+        badge.innerText = `${committed}/${intakeQueue.length} 件反映済み (未登録あり)`;
       }
     }
 
@@ -625,6 +636,16 @@
       for (const entry of targets) {
         await runAIForQueueItem(entry.qid);
       }
+    }
+
+    async function commitAllReady() {
+      const btn = document.getElementById('btn-batch-commit');
+      if (btn) btn.disabled = true;
+      const targets = intakeQueue.filter(q => q.status === 'ready');
+      for (const entry of targets) {
+        await commitQueueItem(entry.qid);
+      }
+      if (btn) btn.disabled = false;
     }
 
     async function commitQueueItem(qid) {
@@ -696,6 +717,7 @@
           errEl.style.display = 'block';
         }
         if (btn) btn.disabled = false;
+        refreshStatusAndActivities();
       }
     }
 
@@ -957,7 +979,10 @@
           } else {
             listEl.innerHTML = acts.map(a => {
               const isPatch = a.action === 'patch';
-              const actionBadge = isPatch
+              const isErr = String(a.action || '').endsWith('_error');
+              const actionBadge = isErr
+                ? `<span class="badge badge-err">${a.action === 'intake_error' ? '取得失敗' : a.action === 'patch_error' ? '更新失敗' : '登録失敗'}</span>`
+                : isPatch
                 ? '<span class="badge badge-warn">情報更新</span>'
                 : '<span class="badge badge-ok">新規追加</span>';
               const notifyBadge = a.notification_status === 'sent'
@@ -970,26 +995,27 @@
                 : '-';
 
               return `
-                <div class="activity-item ${isPatch ? 'patch' : ''}">
+                <div class="activity-item ${isPatch ? 'patch' : ''}" style="${isErr ? 'border-left-color:#f43f5e; background:rgba(244,63,94,0.06);' : ''}">
                   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       ${actionBadge}
                       <span class="badge badge-muted">${escapeHtml(a.group)}</span>
-                      <strong style="font-size:0.86rem; color:#fff;">${escapeHtml(a.title || a.session_id)}</strong>
+                      <strong style="font-size:0.86rem; color:#fff;">${escapeHtml(a.title || a.session_id || a.source_url || '処理イベント')}</strong>
                     </div>
                     <div style="display:flex; align-items:center; gap:6px;">
                       ${notifyBadge}
                       <span style="font-size:0.74rem; font-family:monospace; color:#94a3b8;">${escapeHtml(timeStr)}</span>
                     </div>
                   </div>
-                  <div style="margin-top:0.35rem; font-size:0.78rem; color:#cbd5e1;">
+                  <div style="margin-top:0.35rem; font-size:0.78rem; color:${isErr ? '#fecdd3' : '#cbd5e1'};">
                     ${a.date ? `<span style="font-family:monospace;">${escapeHtml(a.date)}</span>` : ''}
                     ${a.venue ? ` / ${escapeHtml(a.venue)}` : ''}
                     ${a.summary ? ` — ${escapeHtml(a.summary)}` : ''}
+                    ${a.error ? `エラー: ${escapeHtml(a.error)}` : ''}
                   </div>
                   <div style="margin-top:0.25rem; font-size:0.72rem; color:#94a3b8; display:flex; gap:10px; flex-wrap:wrap;">
-                    <span>ID: <code>${escapeHtml(a.session_id)}</code></span>
-                    ${a.source_url ? `<a href="${escapeHtml(a.source_url)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;">出典ポスト &nearr;</a>` : ''}
+                    ${a.session_id ? `<span>ID: <code>${escapeHtml(a.session_id)}</code></span>` : ''}
+                    ${a.source_url ? `<a href="${escapeHtml(a.source_url)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;">元リンク &nearr;</a>` : ''}
                   </div>
                 </div>
               `;

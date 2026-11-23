@@ -14,8 +14,15 @@ import (
 // FormatDiscordNotification formats an ActivityEntry into a concise Japanese Discord message.
 func FormatDiscordNotification(entry ActivityEntry) string {
 	actionLabel := "新規ライブ登録"
-	if entry.Action == "patch" {
+	switch entry.Action {
+	case "patch":
 		actionLabel = "ライブ情報更新"
+	case "intake_error":
+		actionLabel = "[失敗] リンク取得・解析エラー"
+	case "promote_error":
+		actionLabel = "[失敗] 新規ライブ登録エラー"
+	case "patch_error":
+		actionLabel = "[失敗] ライブ情報更新エラー"
 	}
 
 	groupLabel := entry.Group
@@ -39,6 +46,9 @@ func FormatDiscordNotification(entry ActivityEntry) string {
 	}
 	if entry.Summary != "" {
 		lines = append(lines, fmt.Sprintf("- 内容: %s", entry.Summary))
+	}
+	if entry.Error != "" {
+		lines = append(lines, fmt.Sprintf("- エラー: `%s`", entry.Error))
 	}
 	if entry.SessionID != "" {
 		lines = append(lines, fmt.Sprintf("- Session ID: `%s`", entry.SessionID))

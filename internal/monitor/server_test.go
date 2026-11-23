@@ -718,3 +718,72 @@ func TestDomainRoutingFetcher_And_TimeTreePromote(t *testing.T) {
 		t.Errorf("expected timetree_event source_ref and empty source_tweet_url, got: %s", string(saved))
 	}
 }
+
+func TestServer_FailureNotifications_IntakeAndPromote(t *testing.T) {
+	store := newMemoryObjectStore()
+	_ = store.PutObject(context.Background(), "taite-board-data", "data/groups/ribonclock/schedule.json", "", "", []byte(`{
+		"schema_version": 1, "generated_at": "2026-11-20T00:00:00Z", "timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"}, "sessions": []
+	}`))
+
+	var mu sync.Mutex
+	var payloads []string
+	webhookSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		payloads = append(payloads, string(b))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer webhookSrv.Close()
+
+	collector := NewCollector("test-v1")
+	handler := NewHandlerWithConfig(collector, &mockFetcher{err: errors.New("fetch failed 404")}, &mockResolver{}, HandlerConfig{
+		Store:            store,
+		DataBucket:       "taite-board-data",
+		StateBucket:      "taite-board-state",
+		WebhookURL:       webhookSrv.URL,
+		NotifyHTTPClient: webhookSrv.Client(),
+		NotifySync:       true,
+	})
+
+	// 1. Intake fetch error -> 422 + Discord failure notification
+	intakeReq, _ := json.Marshal(map[string]string{"url": "https://x.com/Ribbon_Clock/status/999"})
+	intakeRec := httptest.NewRecorder()
+	handler.ServeHTTP(intakeRec, httptest.NewRequest(http.MethodPost, "/api/intake", bytes.NewReader(intakeReq)))
+	if intakeRec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 on intake failure, got %d", intakeRec.Code)
+	}
+
+	// 2. Promote validation error -> 422 + Discord failure notification
+	badPromote, _ := json.Marshal(map[string]any{
+		"group":      "ribonclock",
+		"title":      "失敗テスト公演",
+		"date":       "2026-11-28",
+		"venue":      "渋谷RING",
+		"live_start": "20:00",
+		"live_end":   "19:00",
+	})
+	promRec := httptest.NewRecorder()
+	handler.ServeHTTP(promRec, httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(badPromote)))
+	if promRec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 on promote validation failure, got %d", promRec.Code)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(payloads) != 2 {
+		t.Fatalf("expected 2 failure webhook notifications, got %d", len(payloads))
+	}
+	if !strings.Contains(payloads[0], "リンク取得・解析エラー") || !strings.Contains(payloads[0], "fetch failed 404") {
+		t.Errorf("unexpected intake failure payload: %s", payloads[0])
+	}
+	if !strings.Contains(payloads[1], "新規ライブ登録エラー") || !strings.Contains(payloads[1], "失敗テスト公演") {
+		t.Errorf("unexpected promote failure payload: %s", payloads[1])
+	}
+
+	acts := collector.RecentActivities()
+	if len(acts) != 2 || acts[0].Action != "promote_error" || acts[1].Action != "intake_error" {
+		t.Errorf("unexpected recorded failure activities: %+v", acts)
+	}
+}

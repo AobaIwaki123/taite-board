@@ -37,17 +37,18 @@ type HourlyCount struct {
 	Count         int64  `json:"count"` // backward compatible alias
 }
 
-// ActivityEntry records a schedule promotion or update and its notification status.
+// ActivityEntry records a schedule promotion/update or failure and its notification status.
 type ActivityEntry struct {
 	ID                 string `json:"id"`
 	Timestamp          string `json:"timestamp"`
-	Action             string `json:"action"` // "promote" | "patch"
+	Action             string `json:"action"` // "promote" | "patch" | "intake_error" | "promote_error" | "patch_error"
 	Group              string `json:"group"`
 	SessionID          string `json:"session_id"`
 	Date               string `json:"date"`
 	Title              string `json:"title"`
 	Venue              string `json:"venue,omitempty"`
 	Summary            string `json:"summary"`
+	Error              string `json:"error,omitempty"`
 	SourceURL          string `json:"source_url,omitempty"`
 	Domain             string `json:"domain"`
 	NotificationStatus string `json:"notification_status"` // "sent" | "skipped_unconfigured" | "failed" | "pending"

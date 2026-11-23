@@ -17,6 +17,19 @@
   },
   "promotions": [
     {
+      "id": "promo-koron-birthday-cf",
+      "type": "hero",
+      "badge": "18TH BIRTHDAY",
+      "title": "絵夢ころん 生誕祭クラウドファンディング",
+      "subtitle": "ついに18歳・クリスマスイブ開催🎄 特別で素敵な1日にするためのクラファン開催中🤍",
+      "cta_label": "CAMPFIREで支援する ↗",
+      "cta_url": "https://camp-fire.jp/projects/981035/view?utm_campaign=cp_po_share_c_msg_mypage_projects_show",
+      "image_url": "https://pbs.twimg.com/media/HXoxieqaoAAID75.jpg?name=large",
+      "deadline": "2026-12-10",
+      "priority": 110,
+      "active": true
+    },
+    {
       "id": "promo-ayyu-birthday-cf",
       "type": "hero",
       "badge": "20TH BIRTHDAY",
@@ -27,7 +40,7 @@
       "image_url": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
       "deadline": "2026-11-22",
       "priority": 100,
-      "active": true
+      "active": false
     },
     {
       "id": "promo-ayyu-birthday-live",
