@@ -655,3 +655,66 @@ func TestServer_UISplit_And_DiscordNotification(t *testing.T) {
 		t.Errorf("expected 400 when DISCORD_WEBHOOK_URL is unset, got %d", unconfRec.Code)
 	}
 }
+
+func TestDomainRoutingFetcher_And_TimeTreePromote(t *testing.T) {
+	router := &DomainRoutingFetcher{
+		X: &mockFetcher{
+			post: &raw.Post{Source: "x", SourceID: "111", URL: "https://x.com/Ribbon_Clock/status/111", Author: "X Author", Text: "11/28 渋谷RING LIVE 18:00-18:20"},
+		},
+		TimeTree: &mockFetcher{
+			post: &raw.Post{Source: "timetree", SourceID: "3093691568935820727", URL: "https://timetreeapp.com/public_calendars/ribbon_clock/events/3093691568935820727", Author: "リボンクロック 公式LIVE予定", Text: "11/28(土) 会場: LUMINE 0 出演: 10:45〜11:00"},
+		},
+	}
+
+	xPost, err := router.FetchPost(context.Background(), "https://x.com/Ribbon_Clock/status/111")
+	if err != nil || xPost.Source != "x" {
+		t.Fatalf("expected x source, got post=%+v err=%v", xPost, err)
+	}
+
+	ttPost, err := router.FetchPost(context.Background(), "https://timetreeapp.com/public_calendars/ribbon_clock/events/3093691568935820727")
+	if err != nil || ttPost.Source != "timetree" {
+		t.Fatalf("expected timetree source, got post=%+v err=%v", ttPost, err)
+	}
+
+	ttShortPost, err := router.FetchPost(context.Background(), "https://timetr.ee/p/ribbon_clock/3093691568935820727")
+	if err != nil || ttShortPost.Source != "timetree" {
+		t.Fatalf("expected timetree source for timetr.ee, got post=%+v err=%v", ttShortPost, err)
+	}
+
+	if _, err := router.FetchPost(context.Background(), "https://example.com/live/123"); err == nil {
+		t.Errorf("expected unsupported domain error for example.com")
+	}
+
+	// Verify promoting a TimeTree event passes schedule schema validation (source_tweet_url stays empty, source_refs records timetree_event)
+	store := newMemoryObjectStore()
+	_ = store.PutObject(context.Background(), "taite-board-data", "data/groups/ribonclock/schedule.json", "", "", []byte(`{
+		"schema_version": 1, "generated_at": "2026-11-20T00:00:00Z", "timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"}, "sessions": []
+	}`))
+
+	handler := NewHandlerWithConfig(NewCollector("test-v1"), router, &mockResolver{}, HandlerConfig{
+		Store:       store,
+		DataBucket:  "taite-board-data",
+		StateBucket: "taite-board-state",
+	})
+
+	promBody, _ := json.Marshal(map[string]any{
+		"group":      "ribonclock",
+		"source_id":  "3093691568935820727",
+		"source_url": "https://timetreeapp.com/public_calendars/ribbon_clock/events/3093691568935820727",
+		"title":      "アイコレ",
+		"date":       "2026-11-28",
+		"venue":      "LUMINE 0",
+		"live_start": "10:45",
+		"live_end":   "11:00",
+	})
+	promRec := httptest.NewRecorder()
+	handler.ServeHTTP(promRec, httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(promBody)))
+	if promRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 promoting timetree event, got %d: %s", promRec.Code, promRec.Body.String())
+	}
+	saved, _ := store.GetObject(context.Background(), "taite-board-data", "schedule.json")
+	if !strings.Contains(string(saved), `"type": "timetree_event"`) || !strings.Contains(string(saved), `"source_tweet_url": ""`) {
+		t.Errorf("expected timetree_event source_ref and empty source_tweet_url, got: %s", string(saved))
+	}
+}

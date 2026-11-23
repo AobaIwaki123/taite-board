@@ -19,7 +19,6 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
-	"github.com/AobaIwaki123/taite-board/internal/source/x"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 )
 
@@ -90,7 +89,7 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 // NewHandlerWithConfig provides full dependency and storage injection for testing and production.
 func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver IntakeResolver, cfg HandlerConfig) http.Handler {
 	if fetcher == nil {
-		fetcher = x.NewClient(15 * time.Second)
+		fetcher = newDefaultSourceFetcher()
 	}
 	if resolver == nil {
 		resolver, _ = resolve.NewResolver("")

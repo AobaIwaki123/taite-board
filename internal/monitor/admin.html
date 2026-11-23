@@ -139,7 +139,7 @@
         <div>
           <strong style="font-size: 1.05rem; color: #fff;">複数告知リンク 一括登録・更新</strong>
           <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
-            X（旧Twitter）の告知ポストURLを改行区切りで複数貼り付けて、まとめて取得・確認・登録できます（最大20件）。
+            X（旧Twitter）ポストや TimeTree 公開イベントの URL を改行区切りで貼り付けて、まとめて取得・登録できます（最大20件）。
           </small>
         </div>
         <span id="batch-progress-badge" class="badge badge-muted">待機中</span>
@@ -147,12 +147,12 @@
 
       <form id="batch-intake-form" onsubmit="handleBatchIntake(event)" style="margin-top: 0.9rem; margin-bottom: 0;">
         <label for="intake-urls" style="font-size: 0.78rem; color: var(--pico-muted-color); margin-bottom: 4px;">
-          X ポスト URL（1行に1リンクずつ貼り付け）
+          告知リンク（X / TimeTree URL を1行に1リンクずつ貼り付け）
         </label>
         <textarea
           id="intake-urls"
           rows="4"
-          placeholder="https://x.com/Ribbon_Clock/status/...&#10;https://x.com/Ribbon_Clock/status/..."
+          placeholder="https://x.com/Ribbon_Clock/status/...&#10;https://timetreeapp.com/public_calendars/ribbon_clock/events/..."
           style="font-size: 0.84rem; font-family: monospace; margin-bottom: 0.7rem;"
         ></textarea>
 
@@ -384,6 +384,11 @@
       }
     }
 
+    function extractTicketUrl(text) {
+      const m = String(text || '').match(/https?:\/\/(?:[\w-]+\.)?(?:livepocket\.jp|tiget\.net|t-dv\.com|ticketdive\.com|eplus\.jp|ticketvillage\.jp|pia\.jp|l-tike\.com)\/[^\s)\]>」』"']+/i);
+      return m ? m[0] : '';
+    }
+
     function deriveDefaultForm(item) {
       const c = item.candidate || {};
       const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -402,7 +407,7 @@
         benefitEnd: c.benefit_end_raw || '',
         booth: c.benefit_booth_raw || '',
         bonus: defaultBonus,
-        ticketUrl: '',
+        ticketUrl: extractTicketUrl(item.text),
         notes: '',
         patchSessionId: pickPreferredSessionId(c.date || ''),
         patchBonus: c.admission_bonus || '',
@@ -881,9 +886,10 @@
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                 <span class="badge badge-info">#${num}</span>
+                ${item.source === 'timetree' ? '<span class="badge badge-ok">TimeTree</span>' : item.source === 'x' ? '<span class="badge badge-muted">X</span>' : ''}
                 ${statusBadge}
                 <strong style="font-size:0.88rem; color:#fff;">${escapeHtml(item.author || '告知ポスト')}</strong>
-                ${entry.url ? `<a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.74rem; color:#94a3b8; font-family:monospace;">投稿を開く &nearr;</a>` : ''}
+                ${entry.url ? `<a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.74rem; color:#94a3b8; font-family:monospace;">元ページを開く &nearr;</a>` : ''}
               </div>
               <div style="display:flex; gap:6px; align-items:center;">
                 <button type="button" class="outline" onclick="toggleQueueMode(${entry.qid}, ${!f.isPatch})" style="font-size:0.72rem; padding:0.18rem 0.55rem; margin-bottom:0;">

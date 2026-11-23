@@ -62,7 +62,7 @@ var (
 
 	liveTimeRegex    = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 	benefitTimeRegex = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
-	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\s\n\r]+)`)
+	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\n\r]+)`)
 	genericTimeRegex = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 
 	admissionBonusRegex = regexp.MustCompile(`(?i)(?:入場特典|お目当て特典|指名入場特典|動員特典|来場特典|🎁|🎀入場特典決定🎀)\s*[:：]?\s*([^\n\r]+)`)

@@ -318,16 +318,20 @@ export function CockpitView({
             <Icon icon={MapPin} class="w-3.5 h-3.5 text-rose-400 shrink-0" />
             <span class="font-semibold underline underline-offset-2 truncate">{session.venue.name}</span>
           </a>
-          {session.source_tweet_url && (
-            <a
-              href={session.source_tweet_url}
-              target="_blank"
-              rel="noreferrer noopener"
-              class="flex items-center gap-1 text-stone-400 hover:text-rose-300 transition-colors shrink-0"
-            >
-              <span>公式告知 ↗</span>
-            </a>
-          )}
+          {(() => {
+            const officialSourceUrl = session.source_tweet_url || session.source_refs?.find((r) => r.url)?.url;
+            if (!officialSourceUrl) return null;
+            return (
+              <a
+                href={officialSourceUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                class="flex items-center gap-1 text-stone-400 hover:text-rose-300 transition-colors shrink-0"
+              >
+                <span>公式告知 ↗</span>
+              </a>
+            );
+          })()}
         </div>
       </div>
 

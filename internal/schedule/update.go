@@ -10,7 +10,35 @@ import (
 	"time"
 )
 
-var statusIDRegex = regexp.MustCompile(`status/(\d+)`)
+var (
+	statusIDRegex        = regexp.MustCompile(`status/(\d+)`)
+	timetreeEventIDRegex = regexp.MustCompile(`(?:timetreeapp\.com/public_calendars/[^/]+/events|timetr\.ee/p/[^/]+)/([^/?#]+)`)
+)
+
+func buildSourceRefFromURL(rawURL string) (ref map[string]interface{}, isXPost bool) {
+	u := strings.TrimSpace(rawURL)
+	if u == "" {
+		return nil, false
+	}
+	if matches := statusIDRegex.FindStringSubmatch(u); len(matches) > 1 {
+		return map[string]interface{}{
+			"type":      "x_post",
+			"source_id": matches[1],
+			"url":       u,
+		}, true
+	}
+	if matches := timetreeEventIDRegex.FindStringSubmatch(u); len(matches) > 1 {
+		return map[string]interface{}{
+			"type":      "timetree_event",
+			"source_id": matches[1],
+			"url":       u,
+		}, false
+	}
+	return map[string]interface{}{
+		"type": "web",
+		"url":  u,
+	}, false
+}
 
 type UpdateSessionOptions struct {
 	SessionID         string
@@ -140,31 +168,29 @@ func ApplyUpdateSession(raw []byte, opts UpdateSessionOptions) ([]byte, error) {
 
 			// 4. Update Source Tweet URL and Source Refs
 			if opts.SourceTweetURL != "" {
-				if opts.UpdateOfficialURL {
+				newRef, isX := buildSourceRefFromURL(opts.SourceTweetURL)
+				if opts.UpdateOfficialURL && isX {
 					sMap["source_tweet_url"] = opts.SourceTweetURL
 				}
 
-				matches := statusIDRegex.FindStringSubmatch(opts.SourceTweetURL)
-				if len(matches) > 1 {
-					sourceID := matches[1]
+				if newRef != nil {
 					refsRaw, _ := sMap["source_refs"].([]interface{})
+					newID, _ := newRef["source_id"].(string)
+					newURL, _ := newRef["url"].(string)
 					hasRef := false
 					for _, r := range refsRaw {
 						rMap, ok := r.(map[string]interface{})
 						if !ok {
 							continue
 						}
-						if rID, _ := rMap["source_id"].(string); rID == sourceID {
+						rID, _ := rMap["source_id"].(string)
+						rURL, _ := rMap["url"].(string)
+						if (newID != "" && rID == newID) || (newURL != "" && rURL == newURL) {
 							hasRef = true
 							break
 						}
 					}
 					if !hasRef {
-						newRef := map[string]interface{}{
-							"type":      "x_post",
-							"source_id": sourceID,
-							"url":       opts.SourceTweetURL,
-						}
 						sMap["source_refs"] = append(refsRaw, newRef)
 					}
 				}
