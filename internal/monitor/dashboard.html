@@ -152,6 +152,9 @@
             </span>
           </li>
           <li>
+            <a href="/" id="btn-back-to-public" role="button" class="outline" style="display: none; font-size: 0.8rem; padding: 0.35rem 0.75rem; margin-right: 0.5rem;">
+              公開サイトへ &larr;
+            </a>
             <a href="https://grafana.iorin.net" target="_blank" rel="noopener noreferrer" role="button" class="outline" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
               Grafana を開く &nearr;
             </a>
@@ -159,6 +162,14 @@
         </ul>
       </nav>
     </header>
+
+    <div id="admin-auth-banner" style="display: none; margin-bottom: 1.5rem; padding: 1rem; border-radius: 8px; background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.35); color: #fecdd3; font-size: 0.85rem;">
+      <strong id="admin-auth-title" style="display:block; margin-bottom:4px;">管理者認証が必要です</strong>
+      <div id="admin-auth-message">公開サイトで admin ロールのアカウントにログインしてから、もう一度このページを開いてください。</div>
+      <div style="margin-top: 0.65rem;">
+        <a href="/" role="button" style="font-size: 0.8rem; padding: 0.35rem 0.85rem;">トップページでログインする</a>
+      </div>
+    </div>
 
     <!-- Multi-Group Switcher (ADR-0018 / Multi-Group Extension) -->
     <div style="margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.65rem 1rem; border-radius: 8px;">
@@ -574,9 +585,77 @@
       });
     }
 
+    const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/');
+    if (isAdminRoute) {
+      const backBtn = document.getElementById('btn-back-to-public');
+      if (backBtn) backBtn.style.display = 'inline-block';
+    }
+
+    function showAdminAuthBanner(title, msg) {
+      const banner = document.getElementById('admin-auth-banner');
+      if (!banner) return;
+      document.getElementById('admin-auth-title').innerText = title;
+      document.getElementById('admin-auth-message').innerText = msg;
+      banner.style.display = 'block';
+    }
+
+    async function getAdminAuthToken() {
+      const raw = localStorage.getItem('taite_sync_session');
+      if (!raw) return null;
+      let session;
+      try {
+        session = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      if (!session || !session.idToken) return null;
+
+      if (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt) {
+        try {
+          const refRes = await fetch('/api/sync/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: session.refreshToken })
+          });
+          if (refRes.ok) {
+            const refData = await refRes.json();
+            const expSec = parseInt(String(refData.expires_in || '3600'), 10) || 3600;
+            session.idToken = refData.id_token;
+            session.refreshToken = refData.refresh_token || session.refreshToken;
+            session.expiresAt = Date.now() + expSec * 1000;
+            localStorage.setItem('taite_sync_session', JSON.stringify(session));
+          }
+        } catch {
+          // ignore refresh errors and let API return 401
+        }
+      }
+      return session.idToken;
+    }
+
+    async function apiFetch(subpath, options = {}) {
+      const url = (isAdminRoute ? '/api/admin' : '/api') + subpath;
+      const headers = Object.assign({}, options.headers || {});
+      if (isAdminRoute) {
+        const token = await getAdminAuthToken();
+        if (!token) {
+          showAdminAuthBanner('管理者ログインが必要です', '公開サイト側で admin ロールのアカウントにログインした状態で開いてください。');
+          throw new Error('管理者ログインが必要です');
+        }
+        headers['Authorization'] = 'Bearer ' + token;
+      }
+      const res = await fetch(url, Object.assign({}, options, { headers }));
+      if (isAdminRoute && (res.status === 401 || res.status === 403)) {
+        const msg = res.status === 403
+          ? '現在ログイン中のアカウントには admin 権限がありません（roles.json で昇格が必要です）。'
+          : 'ログインセッションが切れています。トップページから再ログインしてください。';
+        showAdminAuthBanner('アクセス拒否 (' + res.status + ')', msg);
+      }
+      return res;
+    }
+
     async function refreshTelemetry() {
       try {
-        const res = await fetch('/api/stats');
+        const res = await apiFetch('/stats');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
 
@@ -801,7 +880,7 @@
       resultEl.style.display = 'none';
 
       try {
-        const res = await fetch('/api/intake', {
+        const res = await apiFetch('/intake', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url })
@@ -857,7 +936,7 @@
       if (!sel) return;
       sel.innerHTML = '<option value="">読み込み中...</option>';
       try {
-        const res = await fetch('/api/sessions?group=' + encodeURIComponent(groupId));
+        const res = await apiFetch('/sessions?group=' + encodeURIComponent(groupId));
         const data = await res.json();
         if (!res.ok || !Array.isArray(data.sessions)) {
           throw new Error(data.error || 'failed to load sessions');
@@ -1106,7 +1185,7 @@
       };
 
       try {
-        const res = await fetch('/api/intake/promote', {
+        const res = await apiFetch('/intake/promote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1167,7 +1246,7 @@
       };
 
       try {
-        const res = await fetch('/api/intake/patch', {
+        const res = await apiFetch('/intake/patch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1211,7 +1290,7 @@
         const images = JSON.parse(decodeURIComponent(encodedImages));
         const text = decodeURIComponent(encodedText);
 
-        const res = await fetch('/api/intake/ai-parse', {
+        const res = await apiFetch('/intake/ai-parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ source_id: sourceId, images, text })

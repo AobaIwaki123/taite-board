@@ -3,8 +3,11 @@ import { getAttendedSessionIds, setAttendedSessionIds } from './attendance.ts';
 
 const SYNC_SESSION_KEY = 'taite_sync_session';
 
+export type SyncRole = 'user' | 'admin';
+
 export interface SyncSession {
   userId: string;
+  role?: SyncRole;
   idToken: string;
   refreshToken: string;
   expiresAt: number; // unix ms
@@ -165,12 +168,27 @@ export async function authenticateSyncAccount(
   const expiresSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
   const session: SyncSession = {
     userId: data.user_id,
+    role: data.role === 'admin' ? 'admin' : 'user',
     idToken: data.id_token,
     refreshToken: data.refresh_token,
     expiresAt: Date.now() + expiresSec * 1000,
   };
   saveSyncSession(session);
   return session;
+}
+
+async function fetchCurrentRole(idToken: string): Promise<SyncRole | null> {
+  try {
+    const res = await fetch('/api/sync/me', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.role === 'admin' ? 'admin' : 'user';
+  } catch {
+    return null;
+  }
 }
 
 export async function syncWithCloud(): Promise<{
@@ -226,8 +244,11 @@ export async function syncWithCloud(): Promise<{
     syncedAt = putData.updated_at || new Date().toISOString();
   }
 
+  const latestRole = await fetchCurrentRole(validSession.idToken);
+
   const updatedSession: SyncSession = {
     ...validSession,
+    role: latestRole ?? validSession.role ?? 'user',
     lastSyncedAt: syncedAt,
   };
   saveSyncSession(updatedSession);

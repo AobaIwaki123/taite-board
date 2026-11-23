@@ -112,16 +112,18 @@ func main() {
 	}
 
 	syncHandler := syncapi.NewHandler(syncapi.Config{
-		Store:       gcsStore,
-		StateBucket: stateBucket,
-		ProjectID:   getEnv("GCP_PROJECT_ID", "taite-board"),
-		APIKey:      strings.TrimSpace(os.Getenv("IDENTITY_PLATFORM_API_KEY")),
+		Store:         gcsStore,
+		StateBucket:   stateBucket,
+		ProjectID:     getEnv("GCP_PROJECT_ID", "taite-board"),
+		APIKey:        strings.TrimSpace(os.Getenv("IDENTITY_PLATFORM_API_KEY")),
+		AdminHandler:  handler,
+		DashboardHTML: monitor.DashboardHTML,
 	})
 	syncServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", syncPort),
 		Handler:      syncHandler.Mux(),
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 20 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
 	go func() {

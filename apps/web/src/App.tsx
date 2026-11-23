@@ -271,6 +271,7 @@ function ScheduleApp() {
           title={group.name}
           logoText={group.logoText}
           syncUserId={syncSession?.userId || null}
+          syncRole={syncSession?.role || null}
           isSyncing={isSyncing}
           onOpenSyncModal={() => setIsSyncModalOpen(true)}
         />

@@ -34,6 +34,7 @@
 | **Step 13** | **データ正本の GCS クラウド移行とリアルタイム Intake 同期** | 公開スケジュール JSON (`gs://taite-board-data`) と運用状態 (`gs://taite-board-state`) の GCS 移行、Go 標準ライブラリ GCS クライアント (`internal/gcs`)、Nginx リバースプロキシ配信、`ribonclock-dashboard` スマホ編集フォーム対応、および `taite gcs push/pull` 同期 (ADR-0022) | 完了 |
 | **Step 14** | **Git タグ起点の自動バージョニングとビルド時焼き込み** | Conventional Commits に基づく次バージョン自動算出 (`scripts/next-version.sh`)、Go `-ldflags` / Vite `APP_VERSION` による全イメージ・OCI ラベルへのバージョン焼き込み、CI での自動タグ＆GitHub Release 発行、および Argo CD `semver` 追従 (ADR-0023) | 完了 |
 | **Step 15** | **Identity Platform による簡易認証と家計簿・参戦チェックのクラウド同期** | `identitytoolkit.googleapis.com` によるユーザーID/パスワード認証、分離ポート (`:8083`) の同期 API (`internal/syncapi`) + Google X.509 JWT 検証、`gs://taite-board-state/users/<uid_hash>/sync.json` 永続化、および Web 同期モーダル (ADR-0024) | 完了 |
+| **Step 16** | **ロールベースアクセス制御 (user / admin) と管理画面導線の統合** | `gs://taite-board-state/auth/roles.json` によるロール管理（初期登録 `user`、GCS 直接編集で `admin` 昇格）、`requireAdmin` RBAC 保護付き `/admin` & `/api/admin/*`（Tailscale `:8082` も並行維持）、および管理者ログイン時のみの管理画面ボタン表示 | 完了 |
 
 > **備考**:
 > - ADR-0011 に基づく iOS ネイティブ版（SwiftUI）は、Web との二重保守オーバーヘッド防止のため 2026-11-01 に正式凍結し、コード資産（`apps/ios/`）および作業 Worktree を完全撤去しました。クライアント開発は Preact Web PWA へ一本化されています。

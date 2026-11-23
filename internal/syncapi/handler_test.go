@@ -80,15 +80,16 @@ func generateTestCertAndKey(t *testing.T) (*rsa.PrivateKey, string) {
 	return priv, string(pemBytes)
 }
 
-func signTestJWT(t *testing.T, priv *rsa.PrivateKey, kid, aud, iss, sub string, exp int64) string {
+func signTestJWT(t *testing.T, priv *rsa.PrivateKey, kid, aud, iss, sub, email string, exp int64) string {
 	t.Helper()
 	h, _ := json.Marshal(map[string]string{"alg": "RS256", "kid": kid, "typ": "JWT"})
 	c, _ := json.Marshal(map[string]any{
-		"aud": aud,
-		"iss": iss,
-		"sub": sub,
-		"iat": exp - 3600,
-		"exp": exp,
+		"aud":   aud,
+		"iss":   iss,
+		"sub":   sub,
+		"email": email,
+		"iat":   exp - 3600,
+		"exp":   exp,
 	})
 	unsigned := base64.RawURLEncoding.EncodeToString(h) + "." + base64.RawURLEncoding.EncodeToString(c)
 	sum := sha256.Sum256([]byte(unsigned))
@@ -119,15 +120,26 @@ func TestNormalizeUserID(t *testing.T) {
 func TestAuthRegisterLoginAndSyncData(t *testing.T) {
 	priv, certPEM := generateTestCertAndKey(t)
 	now := time.Unix(1700000000, 0)
-	validJWT := signTestJWT(t, priv, "kid-1", "taite-board", "https://securetoken.google.com/taite-board", "uid-abc-123", now.Add(time.Hour).Unix())
-	expiredJWT := signTestJWT(t, priv, "kid-1", "taite-board", "https://securetoken.google.com/taite-board", "uid-abc-123", now.Add(-time.Minute).Unix())
+	validJWT := signTestJWT(t, priv, "kid-1", "taite-board", "https://securetoken.google.com/taite-board", "uid-abc-123", "aoba@users.taite.local", now.Add(time.Hour).Unix())
+	adminJWT := signTestJWT(t, priv, "kid-1", "taite-board", "https://securetoken.google.com/taite-board", "uid-admin-999", "boss@users.taite.local", now.Add(time.Hour).Unix())
+	expiredJWT := signTestJWT(t, priv, "kid-1", "taite-board", "https://securetoken.google.com/taite-board", "uid-abc-123", "aoba@users.taite.local", now.Add(-time.Minute).Unix())
 
 	store := newMemStore()
+	_ = store.PutObject(context.Background(), "taite-board-state", RolesObjectPath, "application/json", "", []byte(`{"roles":{"boss":"admin"}}`))
+
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("/api/stats", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"admin_ok":true}`))
+	})
+
 	h := NewHandler(Config{
 		Store:              store,
 		StateBucket:        "taite-board-state",
 		ProjectID:          "taite-board",
 		APIKey:             "test-api-key",
+		AdminHandler:       adminMux,
+		DashboardHTML:      []byte("<html>admin</html>"),
 		IdentityBaseURL:    "https://identity.test",
 		SecureTokenBaseURL: "https://securetoken.test",
 		GoogleCertsURL:     "https://certs.test/x509",
@@ -233,5 +245,54 @@ func TestAuthRegisterLoginAndSyncData(t *testing.T) {
 	mux.ServeHTTP(get2Rec, get2Req)
 	if get2Rec.Code != http.StatusOK || !strings.Contains(get2Rec.Body.String(), `"ticketFee":2500`) {
 		t.Fatalf("subsequent get mismatch (%d): %s", get2Rec.Code, get2Rec.Body.String())
+	}
+
+	// 8. Role check via /api/sync/me (regular user vs admin)
+	meUserReq := httptest.NewRequest(http.MethodGet, "/api/sync/me", nil)
+	meUserReq.Header.Set("Authorization", "Bearer "+validJWT)
+	meUserRec := httptest.NewRecorder()
+	mux.ServeHTTP(meUserRec, meUserReq)
+	if meUserRec.Code != http.StatusOK || !strings.Contains(meUserRec.Body.String(), `"role":"user"`) {
+		t.Fatalf("expected role=user for aoba, got (%d): %s", meUserRec.Code, meUserRec.Body.String())
+	}
+
+	meAdminReq := httptest.NewRequest(http.MethodGet, "/api/sync/me", nil)
+	meAdminReq.Header.Set("Authorization", "Bearer "+adminJWT)
+	meAdminRec := httptest.NewRecorder()
+	mux.ServeHTTP(meAdminRec, meAdminReq)
+	if meAdminRec.Code != http.StatusOK || !strings.Contains(meAdminRec.Body.String(), `"role":"admin"`) {
+		t.Fatalf("expected role=admin for boss, got (%d): %s", meAdminRec.Code, meAdminRec.Body.String())
+	}
+
+	// 9. /api/admin/stats rejects unauthenticated (401) and regular user (403), allows admin (200)
+	admUnauth := httptest.NewRequest(http.MethodGet, "/api/admin/stats", nil)
+	admUnauthRec := httptest.NewRecorder()
+	mux.ServeHTTP(admUnauthRec, admUnauth)
+	if admUnauthRec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for unauth admin api, got %d", admUnauthRec.Code)
+	}
+
+	admUser := httptest.NewRequest(http.MethodGet, "/api/admin/stats", nil)
+	admUser.Header.Set("Authorization", "Bearer "+validJWT)
+	admUserRec := httptest.NewRecorder()
+	mux.ServeHTTP(admUserRec, admUser)
+	if admUserRec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for regular user admin api, got %d", admUserRec.Code)
+	}
+
+	admOk := httptest.NewRequest(http.MethodGet, "/api/admin/stats", nil)
+	admOk.Header.Set("Authorization", "Bearer "+adminJWT)
+	admOkRec := httptest.NewRecorder()
+	mux.ServeHTTP(admOkRec, admOk)
+	if admOkRec.Code != http.StatusOK || !strings.Contains(admOkRec.Body.String(), `"admin_ok":true`) {
+		t.Errorf("expected 200 for admin user, got (%d): %s", admOkRec.Code, admOkRec.Body.String())
+	}
+
+	// 10. /admin returns dashboard HTML
+	admPage := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	admPageRec := httptest.NewRecorder()
+	mux.ServeHTTP(admPageRec, admPage)
+	if admPageRec.Code != http.StatusOK || !strings.Contains(admPageRec.Body.String(), "<html>admin</html>") {
+		t.Errorf("expected /admin HTML, got (%d): %s", admPageRec.Code, admPageRec.Body.String())
 	}
 }
