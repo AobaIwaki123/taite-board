@@ -224,7 +224,7 @@ export function SyncAccountModal({
                 maxLength={32}
                 pattern="[a-zA-Z0-9._-]{3,32}"
                 autoComplete="username"
-                placeholder="例: aoba_01 (半角英数3〜32文字)"
+                placeholder="例: ribbon_01 (半角英数3〜32文字)"
                 value={userId}
                 onInput={(e) => setUserId((e.target as HTMLInputElement).value)}
                 class="w-full px-3 py-2 rounded-xl bg-stone-950 border border-white/15 text-stone-100 text-sm focus:outline-none focus:border-sky-400"
