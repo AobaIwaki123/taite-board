@@ -4,18 +4,21 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
     paths-ignore:
       - k8s/manifests/**
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional semantic version override (e.g. 1.5.0)'
+        required: false
+        type: string
 
 concurrency:
   group: gitops-deploy
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
@@ -29,8 +32,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (full history for SemVer tag derivation)
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolve semantic version
+        id: ver
+        run: |
+          set -euo pipefail
+          chmod +x scripts/next-version.sh
+          if [[ -n "${{ inputs.version }}" ]]; then
+            ./scripts/next-version.sh --override "${{ inputs.version }}" --github-output
+          else
+            ./scripts/next-version.sh --github-output
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,61 +58,78 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push web image
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
-          tags="--tag ${IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            tags="${tags} --tag ${IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
-          docker build ${tags} .
+          app_ver="${{ steps.ver.outputs.app_version }}"
+          tag_name="${{ steps.ver.outputs.tag_name }}"
+          docker build \
+            --build-arg "APP_VERSION=${app_ver}" \
+            --build-arg "GIT_SHA=${GITHUB_SHA}" \
+            --tag "${IMAGE_NAME}:${short_sha}" \
+            --tag "${IMAGE_NAME}:${tag_name}" \
+            .
           docker push "${IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            docker push "${IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
+          docker push "${IMAGE_NAME}:${tag_name}"
 
       - name: Build and push access report image
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
+          app_ver="${{ steps.ver.outputs.app_version }}"
+          tag_name="${{ steps.ver.outputs.tag_name }}"
           docker build \
             --file deploy/access-report.Dockerfile \
+            --build-arg "APP_VERSION=${app_ver}" \
+            --build-arg "GIT_SHA=${GITHUB_SHA}" \
             --tag "${ACCESS_REPORT_IMAGE_NAME}:${short_sha}" \
+            --tag "${ACCESS_REPORT_IMAGE_NAME}:${tag_name}" \
             .
           docker push "${ACCESS_REPORT_IMAGE_NAME}:${short_sha}"
+          docker push "${ACCESS_REPORT_IMAGE_NAME}:${tag_name}"
 
       - name: Build and push monitor image
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
-          tags="--tag ${MONITOR_IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            tags="${tags} --tag ${MONITOR_IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
+          app_ver="${{ steps.ver.outputs.app_version }}"
+          tag_name="${{ steps.ver.outputs.tag_name }}"
           docker build \
             --file deploy/monitor.Dockerfile \
-            ${tags} \
+            --build-arg "APP_VERSION=${app_ver}" \
+            --build-arg "GIT_SHA=${GITHUB_SHA}" \
+            --tag "${MONITOR_IMAGE_NAME}:${short_sha}" \
+            --tag "${MONITOR_IMAGE_NAME}:${tag_name}" \
             .
           docker push "${MONITOR_IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            docker push "${MONITOR_IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
+          docker push "${MONITOR_IMAGE_NAME}:${tag_name}"
 
       - name: Build and push crawler image
         run: |
           set -euo pipefail
           short_sha="sha-${GITHUB_SHA:0:7}"
-          tags="--tag ${CRAWLER_IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            tags="${tags} --tag ${CRAWLER_IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
+          app_ver="${{ steps.ver.outputs.app_version }}"
+          tag_name="${{ steps.ver.outputs.tag_name }}"
           docker build \
             --file crawler/Dockerfile \
-            ${tags} \
+            --build-arg "APP_VERSION=${app_ver}" \
+            --build-arg "GIT_SHA=${GITHUB_SHA}" \
+            --tag "${CRAWLER_IMAGE_NAME}:${short_sha}" \
+            --tag "${CRAWLER_IMAGE_NAME}:${tag_name}" \
             crawler
           docker push "${CRAWLER_IMAGE_NAME}:${short_sha}"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            docker push "${CRAWLER_IMAGE_NAME}:${GITHUB_REF_NAME}"
-          fi
+          docker push "${CRAWLER_IMAGE_NAME}:${tag_name}"
 
+      - name: Create Git tag and GitHub Release
+        if: steps.ver.outputs.needs_tag == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag_name="${{ steps.ver.outputs.tag_name }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${tag_name}" -m "Release ${tag_name}"
+          git push origin "${tag_name}"
+          gh release create "${tag_name}" --title "Release ${tag_name}" --generate-notes || true

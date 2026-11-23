@@ -79,8 +79,9 @@ AI対話時における「コマンドを打つたびに処理が停止するオ
    # 例: ./scripts/ship.sh "feat(schedule): update photo rules" "Summary of changes"
    ```
    - 途中で対話型コマンドを複数回打つことを禁止し、出荷パイプラインに処理を委譲します。
-4. **機能追加・バグ修正時の適宜バージョニング (`scripts/release.sh`)**:
-   - 機能追加（`minor`）やバグ修正（`patch`）の実装・PRマージ完了後は、バージョン番号を放置せず、`./scripts/release.sh [patch|minor|major]` を実行して `VERSION` および `apps/web/package.json` の更新、Git タグ（`vX.Y.Z`）の付与、および GitHub Release の発行を適宜実施します。
+4. **自動バージョニングとビルド時焼き込み (ADR-0023)**:
+   - `main` への PR マージ時に GitHub Actions（`.github/workflows/deploy.yml`）が `scripts/next-version.sh` を用いて直近の `v*` タグと Conventional Commits（`feat!:`/`BREAKING CHANGE` -> major、`feat:` -> minor、その他 -> patch）から次バージョンを自動算出します。
+   - 算出されたバージョンは `VERSION` ファイル書き換えコミットを行わずに `--build-arg APP_VERSION=...` および Go `-ldflags` で全コンテナイメージ・バイナリ・OCI ラベルへ焼き込まれ、Push 完了後に Git タグ（`vX.Y.Z`）と GitHub Release が自動発行されます（手動リリース時は `./scripts/release.sh` または `workflow_dispatch` を利用可能）。
 
 ---
 
