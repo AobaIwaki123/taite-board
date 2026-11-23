@@ -94,3 +94,4 @@ YYYY-MM-DD
 | [ADR-0020](0020-festival-cross-track-timeline-and-dynamic-session-binding.md) | フェス合同タイムテーブル機能のアーキテクチャ・データスキーマ・動的セッションバインディング | Accepted | 2026-11-04 |
 | [ADR-0021](0021-github-api-writeback-pipeline-for-admin-intake.md) | 管理画面インテークにおける GitHub API 書き戻しパイプラインと GitOps 整合性の担保 | Accepted (Superseded by ADR-0022) | 2026-11-05 |
 | [ADR-0022](0022-gcs-cloud-data-storage-and-live-intake-sync.md) | Google Cloud Storage (GCS) によるデータ正本移行とリアルタイム配信同期 | Accepted | 2026-11-23 |
+| [ADR-0023](0023-automated-tag-version-and-build-time-embedding.md) | Git タグ起点の自動バージョニングとコンテナビルド時バージョン焼き込み | Accepted | 2026-11-23 |
