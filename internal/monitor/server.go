@@ -173,10 +173,12 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 		post, err := fetcher.FetchPost(ctx, targetURL)
 		if err != nil {
+			errMsg := fmt.Sprintf("failed to fetch post: %v", err)
+			recordAndNotifyFailure(collector, cfg, "intake_error", "ribonclock", "", "", "", targetURL, errMsg)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = json.NewEncoder(w).Encode(map[string]string{
-				"error": fmt.Sprintf("failed to fetch post: %v", err),
+				"error": errMsg,
 			})
 			return
 		}
@@ -347,7 +349,9 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 		currentBytes, _, err := readGroupSchedule(ctx, cfg, group)
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading schedule: %v", err))
+			errMsg := fmt.Sprintf("reading schedule: %v", err)
+			recordAndNotifyFailure(collector, cfg, "promote_error", group, strings.TrimSpace(req.Date), title, venue, strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -367,17 +371,22 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			AdmissionBonus:   strings.TrimSpace(req.AdmissionBonus),
 		})
 		if err != nil {
-			writeJSONError(w, http.StatusUnprocessableEntity, fmt.Sprintf("failed to add session: %v", err))
+			errMsg := fmt.Sprintf("failed to add session: %v", err)
+			recordAndNotifyFailure(collector, cfg, "promote_error", group, strings.TrimSpace(req.Date), title, venue, strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusUnprocessableEntity, errMsg)
 			return
 		}
 
 		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
 			var vErr *validationError
 			if errors.As(err, &vErr) {
+				recordAndNotifyFailure(collector, cfg, "promote_error", group, strings.TrimSpace(req.Date), title, venue, strings.TrimSpace(req.SourceURL), vErr.Error())
 				writeJSONError(w, http.StatusUnprocessableEntity, vErr.Error())
 				return
 			}
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("saving schedule: %v", err))
+			errMsg := fmt.Sprintf("saving schedule: %v", err)
+			recordAndNotifyFailure(collector, cfg, "promote_error", group, strings.TrimSpace(req.Date), title, venue, strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -464,7 +473,9 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 		rawBytes, _, err := readGroupSchedule(ctx, cfg, group)
 		if err != nil {
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading schedule: %v", err))
+			errMsg := fmt.Sprintf("reading schedule: %v", err)
+			recordAndNotifyFailure(collector, cfg, "patch_error", group, strings.TrimSpace(req.Date), strings.TrimSpace(req.SessionID), "", strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -501,7 +512,9 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		}
 
 		if sessionID == "" {
-			writeJSONError(w, http.StatusNotFound, "target session not found in schedule")
+			errMsg := "target session not found in schedule"
+			recordAndNotifyFailure(collector, cfg, "patch_error", group, strings.TrimSpace(req.Date), "", "", strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusNotFound, errMsg)
 			return
 		}
 
@@ -537,17 +550,22 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			UpdateOfficialURL: req.UpdateOfficialURL,
 		})
 		if err != nil {
-			writeJSONError(w, http.StatusUnprocessableEntity, fmt.Sprintf("failed to update session: %v", err))
+			errMsg := fmt.Sprintf("failed to update session: %v", err)
+			recordAndNotifyFailure(collector, cfg, "patch_error", group, targetDate, targetTitle, targetVenue, strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusUnprocessableEntity, errMsg)
 			return
 		}
 
 		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
 			var vErr *validationError
 			if errors.As(err, &vErr) {
+				recordAndNotifyFailure(collector, cfg, "patch_error", group, targetDate, targetTitle, targetVenue, strings.TrimSpace(req.SourceURL), vErr.Error())
 				writeJSONError(w, http.StatusUnprocessableEntity, vErr.Error())
 				return
 			}
-			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("saving updated schedule: %v", err))
+			errMsg := fmt.Sprintf("saving updated schedule: %v", err)
+			recordAndNotifyFailure(collector, cfg, "patch_error", group, targetDate, targetTitle, targetVenue, strings.TrimSpace(req.SourceURL), errMsg)
+			writeJSONError(w, http.StatusInternalServerError, errMsg)
 			return
 		}
 
@@ -711,6 +729,21 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 	})
 
 	return mux
+}
+
+func recordAndNotifyFailure(collector *Collector, cfg HandlerConfig, action, group, date, title, venue, sourceURL, errMsg string) ActivityEntry {
+	return recordAndNotifyActivity(collector, cfg, ActivityEntry{
+		ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+		Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+		Action:    action,
+		Group:     normalizeGroupName(group),
+		Date:      date,
+		Title:     title,
+		Venue:     venue,
+		Error:     errMsg,
+		SourceURL: sourceURL,
+		Domain:    fmt.Sprintf("%s.iorin.net", normalizeGroupName(group)),
+	})
 }
 
 func recordAndNotifyActivity(collector *Collector, cfg HandlerConfig, entry ActivityEntry) ActivityEntry {
