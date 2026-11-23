@@ -79,6 +79,12 @@ spec:
                   name: ribonclock-auth
                   key: IDENTITY_PLATFORM_API_KEY
                   optional: true
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ribonclock-access-report
+                  key: DISCORD_WEBHOOK_URL
+                  optional: true
           ports:
             - name: dashboard
               containerPort: 8082

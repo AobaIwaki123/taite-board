@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -504,5 +505,153 @@ func TestServer_GCS_PromotePatchAndSessions(t *testing.T) {
 	handler.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Errorf("expected 422 for invalid live times, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestServer_UISplit_And_DiscordNotification(t *testing.T) {
+	store := newMemoryObjectStore()
+	initial := `{
+		"schema_version": 1,
+		"generated_at": "2026-11-20T00:00:00Z",
+		"timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"},
+		"sessions": []
+	}`
+	_ = store.PutObject(context.Background(), "taite-board-data", "data/groups/ribonclock/schedule.json", "", "", []byte(initial))
+
+	var mu sync.Mutex
+	var webhookPayloads []string
+	webhookSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		webhookPayloads = append(webhookPayloads, string(b))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer webhookSrv.Close()
+
+	collector := NewCollector("test-v1")
+	collector.SetCloudStorage(store, "taite-board-data", "taite-board-state")
+	handler := NewHandlerWithConfig(collector, &mockFetcher{}, &mockResolver{}, HandlerConfig{
+		Store:            store,
+		DataBucket:       "taite-board-data",
+		StateBucket:      "taite-board-state",
+		WebhookURL:       webhookSrv.URL,
+		NotifyHTTPClient: webhookSrv.Client(),
+		NotifySync:       true,
+	})
+
+	// 1. UI Split: / serves dashboard, /register and /admin serve admin registration UI
+	dashRec := httptest.NewRecorder()
+	handler.ServeHTTP(dashRec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if dashRec.Code != http.StatusOK || strings.Contains(dashRec.Body.String(), "batch-intake-form") || !strings.Contains(dashRec.Body.String(), "Ribbon Clock Access Monitor") {
+		t.Errorf("expected clean observability dashboard on /, got code=%d", dashRec.Code)
+	}
+
+	for _, path := range []string{"/register", "/admin"} {
+		regRec := httptest.NewRecorder()
+		handler.ServeHTTP(regRec, httptest.NewRequest(http.MethodGet, path, nil))
+		if regRec.Code != http.StatusOK || !strings.Contains(regRec.Body.String(), "batch-intake-form") || !strings.Contains(regRec.Body.String(), "Ribbon Clock Admin") {
+			t.Errorf("expected registration UI on %s, got code=%d", path, regRec.Code)
+		}
+	}
+
+	// 2. Promote with ticket_url triggers Discord webhook and records activity
+	promoteBody, _ := json.Marshal(map[string]any{
+		"group":         "ribonclock",
+		"source_id":     "990088",
+		"source_url":    "https://x.com/Ribbon_Clock/status/990088",
+		"title":         "通知テスト公演",
+		"date":          "2026-11-28",
+		"venue":         "Spotify O-EAST",
+		"live_start":    "18:00",
+		"live_end":      "18:25",
+		"benefit_start": "18:45",
+		"benefit_end":   "19:45",
+		"ticket_url":    "https://t.livepocket.jp/e/test990088",
+	})
+	promRec := httptest.NewRecorder()
+	handler.ServeHTTP(promRec, httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(promoteBody)))
+	if promRec.Code != http.StatusOK {
+		t.Fatalf("promote failed (%d): %s", promRec.Code, promRec.Body.String())
+	}
+
+	schedBytes, _ := store.GetObject(context.Background(), "taite-board-data", "schedule.json")
+	if !strings.Contains(string(schedBytes), "https://t.livepocket.jp/e/test990088") {
+		t.Errorf("expected ticket_url persisted in schedule.json, got %s", string(schedBytes))
+	}
+
+	// 3. Patch triggers Discord webhook and records patch activity
+	patchBody, _ := json.Marshal(map[string]any{
+		"group":           "ribonclock",
+		"session_id":      "20261128-1",
+		"admission_bonus": "ランダムチェキ",
+		"source_url":      "https://x.com/Ribbon_Clock/status/990089",
+	})
+	patchRec := httptest.NewRecorder()
+	handler.ServeHTTP(patchRec, httptest.NewRequest(http.MethodPost, "/api/intake/patch", bytes.NewReader(patchBody)))
+	if patchRec.Code != http.StatusOK {
+		t.Fatalf("patch failed (%d): %s", patchRec.Code, patchRec.Body.String())
+	}
+
+	// 4. Stats snapshot returns both recent_activities and discord_notify_enabled=true
+	statsRec := httptest.NewRecorder()
+	handler.ServeHTTP(statsRec, httptest.NewRequest(http.MethodGet, "/api/stats", nil))
+	if statsRec.Code != http.StatusOK {
+		t.Fatalf("stats failed (%d)", statsRec.Code)
+	}
+	var snap StatsSnapshot
+	if err := json.Unmarshal(statsRec.Body.Bytes(), &snap); err != nil {
+		t.Fatalf("decode stats: %v", err)
+	}
+	if !snap.DiscordNotifyEnabled {
+		t.Errorf("expected discord_notify_enabled=true")
+	}
+	if len(snap.RecentActivities) != 2 {
+		t.Fatalf("expected 2 recent activities, got %d", len(snap.RecentActivities))
+	}
+	if snap.RecentActivities[0].Action != "patch" || snap.RecentActivities[0].NotificationStatus != "sent" {
+		t.Errorf("expected latest activity=patch/sent, got %+v", snap.RecentActivities[0])
+	}
+	if snap.RecentActivities[1].Action != "promote" || snap.RecentActivities[1].NotificationStatus != "sent" {
+		t.Errorf("expected older activity=promote/sent, got %+v", snap.RecentActivities[1])
+	}
+
+	// 5. Verify activities.json was persisted to state bucket
+	actBytes, err := store.GetObject(context.Background(), "taite-board-state", "activities.json")
+	if err != nil || !strings.Contains(string(actBytes), "通知テスト公演") {
+		t.Errorf("expected activities.json in state bucket, err=%v", err)
+	}
+
+	// 6. Test notification endpoint (configured -> 200, unconfigured -> 400)
+	testRec := httptest.NewRecorder()
+	handler.ServeHTTP(testRec, httptest.NewRequest(http.MethodPost, "/api/notify/test", nil))
+	if testRec.Code != http.StatusOK {
+		t.Errorf("expected 200 on /api/notify/test, got %d: %s", testRec.Code, testRec.Body.String())
+	}
+
+	mu.Lock()
+	payloadCount := len(webhookPayloads)
+	var firstPayload, secondPayload string
+	if payloadCount >= 2 {
+		firstPayload = webhookPayloads[0]
+		secondPayload = webhookPayloads[1]
+	}
+	mu.Unlock()
+	if payloadCount != 3 {
+		t.Fatalf("expected 3 webhook calls (promote, patch, test), got %d", payloadCount)
+	}
+	if !strings.Contains(firstPayload, "新規ライブ登録") || !strings.Contains(firstPayload, "通知テスト公演") {
+		t.Errorf("unexpected promote webhook payload: %s", firstPayload)
+	}
+	if !strings.Contains(secondPayload, "ライブ情報更新") || !strings.Contains(secondPayload, "ランダムチェキ") {
+		t.Errorf("unexpected patch webhook payload: %s", secondPayload)
+	}
+
+	unconfHandler := NewHandlerWithDependencies(NewCollector("test-v1"), &mockFetcher{}, &mockResolver{})
+	unconfRec := httptest.NewRecorder()
+	unconfHandler.ServeHTTP(unconfRec, httptest.NewRequest(http.MethodPost, "/api/notify/test", nil))
+	if unconfRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 when DISCORD_WEBHOOK_URL is unset, got %d", unconfRec.Code)
 	}
 }

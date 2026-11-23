@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ribbon Clock Admin — ライブ登録・運用</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root {
+      --pico-background-color: #0c0a09;
+      --pico-card-background-color: #1c1917;
+      --pico-card-border-color: rgba(255, 255, 255, 0.08);
+      --pico-primary: #f43f5e;
+      --pico-primary-hover: #e11d48;
+      --pico-color: #e7e5e4;
+      --pico-muted-color: #a8a29e;
+      --pico-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      padding: 1.5rem 1rem;
+      background: radial-gradient(circle at top right, #2e1018 0%, #0c0a09 42%);
+      min-height: 100vh;
+    }
+    .container { max-width: 1120px; }
+    .badge {
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      display: inline-block;
+      line-height: 1.4;
+    }
+    .badge-ok { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warn { background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.16); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-err { background: rgba(244, 63, 94, 0.16); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+    .badge-muted { background: rgba(255, 255, 255, 0.08); color: #a8a29e; }
+    .queue-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .queue-card.committed {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .queue-card.error {
+      border-color: rgba(244, 63, 94, 0.35);
+      background: rgba(244, 63, 94, 0.05);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 0.65rem;
+      margin-top: 0.75rem;
+    }
+    .form-grid label {
+      font-size: 0.74rem;
+      color: var(--pico-muted-color);
+      margin-bottom: 2px;
+      display: block;
+    }
+    .form-grid input, .form-grid select {
+      font-size: 0.82rem;
+      padding: 0.4rem 0.6rem;
+      margin-bottom: 0;
+      height: auto;
+    }
+    .activity-item {
+      padding: 0.75rem 0.9rem;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-left: 3px solid #10b981;
+      margin-bottom: 0.6rem;
+    }
+    .activity-item.patch {
+      border-left-color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <!-- Header -->
+    <header style="margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.9rem;">
+      <nav style="align-items: center;">
+        <ul>
+          <li>
+            <strong style="font-size: 1.25rem; color: #fff;">Ribbon Clock Admin</strong>
+            <small id="sub-header" style="display:block; color:var(--pico-muted-color); font-size:0.78rem;">
+              ライブ登録・スケジュール運用画面
+            </small>
+          </li>
+        </ul>
+        <ul style="gap: 0.5rem; flex-wrap: wrap;">
+          <li>
+            <a id="nav-dashboard-link" href="/admin/dashboard" role="button" class="outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
+              監視ダッシュボード &rarr;
+            </a>
+          </li>
+          <li>
+            <a id="nav-public-link" href="/" role="button" class="outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;">
+              公開サイトへ &larr;
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Admin Auth Error Banner (Public /admin RBAC route only) -->
+    <div id="admin-auth-banner" style="display: none; margin-bottom: 1.25rem; padding: 1rem; border-radius: 8px; background: rgba(244, 63, 94, 0.14); border: 1px solid rgba(244, 63, 94, 0.35); color: #fecdd3; font-size: 0.85rem;">
+      <strong id="admin-auth-title" style="display:block; margin-bottom:4px;">管理者認証が必要です</strong>
+      <div id="admin-auth-message">公開サイトで admin ロールのアカウントにログインしてから、もう一度このページを開いてください。</div>
+      <div style="margin-top: 0.65rem;">
+        <a href="/" role="button" style="font-size: 0.8rem; padding: 0.35rem 0.85rem;">トップページでログインする</a>
+      </div>
+    </div>
+
+    <!-- Group Target Switcher -->
+    <div style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 0.65rem 1rem; border-radius: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: #e2e8f0;">登録先グループ:</span>
+        <div style="display: flex; gap: 6px;">
+          <button id="group-btn-ribonclock" style="font-size: 0.76rem; padding: 0.25rem 0.7rem; margin-bottom: 0;" onclick="switchGroup('ribonclock')">リボンクロック</button>
+          <button id="group-btn-dollykiss" class="outline" style="font-size: 0.76rem; padding: 0.25rem 0.7rem; margin-bottom: 0;" onclick="switchGroup('dollykiss')">Dolly Kiss</button>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.75rem; font-family: monospace;">
+        <span id="storage-badge" style="color: #94a3b8;">Storage: -</span>
+        <span>反映先: <strong id="current-group-domain" style="color: #38bdf8;">ribonclock.iorin.net</strong></span>
+      </div>
+    </div>
+
+    <!-- Section 1: Batch X Post Intake & Registration Queue -->
+    <article style="margin-bottom: 1.5rem; border: 1px solid rgba(244, 63, 94, 0.25);">
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.05rem; color: #fff;">複数告知リンク 一括登録・更新</strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            X（旧Twitter）の告知ポストURLを改行区切りで複数貼り付けて、まとめて取得・確認・登録できます（最大20件）。
+          </small>
+        </div>
+        <span id="batch-progress-badge" class="badge badge-muted">待機中</span>
+      </header>
+
+      <form id="batch-intake-form" onsubmit="handleBatchIntake(event)" style="margin-top: 0.9rem; margin-bottom: 0;">
+        <label for="intake-urls" style="font-size: 0.78rem; color: var(--pico-muted-color); margin-bottom: 4px;">
+          X ポスト URL（1行に1リンクずつ貼り付け）
+        </label>
+        <textarea
+          id="intake-urls"
+          rows="4"
+          placeholder="https://x.com/Ribbon_Clock/status/...&#10;https://x.com/Ribbon_Clock/status/..."
+          style="font-size: 0.84rem; font-family: monospace; margin-bottom: 0.7rem;"
+        ></textarea>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="submit" id="btn-batch-fetch" style="font-size: 0.82rem; padding: 0.45rem 1rem; margin-bottom: 0;">
+              まとめて取得・解析
+            </button>
+            <button type="button" class="outline" onclick="addManualQueueItem()" style="font-size: 0.82rem; padding: 0.45rem 0.9rem; margin-bottom: 0;">
+              + 手入力で新規登録枠を追加
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btn-batch-ai" class="outline" onclick="runAllNeededAI()" style="display:none; font-size: 0.78rem; padding: 0.38rem 0.8rem; margin-bottom: 0; border-color: #f59e0b; color: #fbbf24;">
+              要AI解析をまとめて実行
+            </button>
+            <button type="button" id="btn-clear-queue" class="outline" onclick="clearQueue()" style="display:none; font-size: 0.78rem; padding: 0.38rem 0.8rem; margin-bottom: 0;">
+              一覧をクリア
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div id="batch-error" style="display: none; margin-top: 0.75rem; padding: 0.65rem 0.85rem; border-radius: 6px; background: rgba(244, 63, 94, 0.15); color: #fecdd3; font-size: 0.82rem;"></div>
+
+      <!-- Queue Items Container -->
+      <div id="queue-container" style="margin-top: 1.2rem;"></div>
+    </article>
+
+    <!-- Section 2: Activity & Notification Progress Feed -->
+    <article style="margin-bottom: 1.5rem; border: 1px solid rgba(16, 185, 129, 0.25);">
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.02rem; color: #fff;">追加・更新の進行状況（通知履歴）</strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            カレンダーへ反映されたライブ追加・情報更新の一覧と、Discord 通知の送信結果です。
+          </small>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span id="discord-status-badge" class="badge badge-muted">Discord通知: 確認中</span>
+          <button type="button" id="btn-test-notify" class="outline" onclick="sendTestNotification()" style="font-size: 0.75rem; padding: 0.28rem 0.7rem; margin-bottom: 0;">
+            テスト通知を送信
+          </button>
+        </div>
+      </header>
+
+      <div id="test-notify-result" style="display: none; margin-top: 0.75rem; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem;"></div>
+
+      <div id="activities-list" style="margin-top: 0.9rem;">
+        <p style="font-size: 0.82rem; color: var(--pico-muted-color);">まだ登録・更新履歴はありません。</p>
+      </div>
+    </article>
+
+    <!-- Section 3: Registered Schedule Sessions -->
+    <article>
+      <header style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <strong style="font-size: 1.02rem; color: #fff;">登録済みスケジュール確認</strong>
+          <small style="display:block; color:var(--pico-muted-color); font-size: 0.78rem;">
+            <span id="sessions-group-label">ribonclock.iorin.net</span> に現在公開中の予定（<span id="sessions-count">0</span>件）
+          </small>
+        </div>
+        <button type="button" class="outline" onclick="loadCurrentSessions()" style="font-size: 0.75rem; padding: 0.28rem 0.7rem; margin-bottom: 0;">
+          再読み込み
+        </button>
+      </header>
+
+      <div style="overflow-x: auto; margin-top: 0.8rem; max-height: 360px;">
+        <table class="striped" style="font-size: 0.82rem; margin-bottom: 0;">
+          <thead>
+            <tr>
+              <th>日付</th>
+              <th>時間</th>
+              <th>公演名</th>
+              <th>会場</th>
+              <th>特典・撮可メモ</th>
+            </tr>
+          </thead>
+          <tbody id="sessions-tbody">
+            <tr><td colspan="5" style="text-align:center; color:var(--pico-muted-color);">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </main>
+
+  <script>
+    const isAdminRoute = window.location.pathname === '/admin' || window.location.pathname.startsWith('/admin/');
+    let currentGroup = 'ribonclock';
+    let cachedSessions = [];
+    let intakeQueue = [];
+    let queueSeq = 0;
+
+    // Navigation adjustment between public RBAC (/admin) and Tailscale (/register)
+    (function configureNavLinks() {
+      const dashLink = document.getElementById('nav-dashboard-link');
+      const pubLink = document.getElementById('nav-public-link');
+      if (isAdminRoute) {
+        if (dashLink) dashLink.href = '/admin/dashboard';
+        if (pubLink) pubLink.href = '/';
+      } else {
+        if (dashLink) dashLink.href = '/';
+        if (pubLink) {
+          pubLink.href = 'https://ribonclock.iorin.net';
+          pubLink.target = '_blank';
+          pubLink.rel = 'noopener noreferrer';
+        }
+      }
+    })();
+
+    function showAdminAuthBanner(title, msg) {
+      const banner = document.getElementById('admin-auth-banner');
+      if (!banner) return;
+      document.getElementById('admin-auth-title').innerText = title;
+      document.getElementById('admin-auth-message').innerText = msg;
+      banner.style.display = 'block';
+    }
+
+    async function getAdminAuthToken() {
+      const raw = localStorage.getItem('taite_sync_session');
+      if (!raw) return null;
+      let session;
+      try {
+        session = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+      if (!session || !session.idToken) return null;
+
+      if (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt) {
+        try {
+          const refRes = await fetch('/api/sync/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: session.refreshToken })
+          });
+          if (refRes.ok) {
+            const refData = await refRes.json();
+            const expSec = parseInt(String(refData.expires_in || '3600'), 10) || 3600;
+            session.idToken = refData.id_token;
+            session.refreshToken = refData.refresh_token || session.refreshToken;
+            session.expiresAt = Date.now() + expSec * 1000;
+            localStorage.setItem('taite_sync_session', JSON.stringify(session));
+          }
+        } catch {
+          // let API validate token
+        }
+      }
+      return session.idToken;
+    }
+
+    async function apiFetch(subpath, options = {}) {
+      const url = (isAdminRoute ? '/api/admin' : '/api') + subpath;
+      const headers = Object.assign({}, options.headers || {});
+      if (isAdminRoute) {
+        const token = await getAdminAuthToken();
+        if (!token) {
+          showAdminAuthBanner('管理者ログインが必要です', '公開サイト側で admin ロールのアカウントにログインした状態で開いてください。');
+          throw new Error('管理者ログインが必要です');
+        }
+        headers['Authorization'] = 'Bearer ' + token;
+      }
+      const res = await fetch(url, Object.assign({}, options, { headers }));
+      if (isAdminRoute && (res.status === 401 || res.status === 403)) {
+        const msg = res.status === 403
+          ? '現在ログイン中のアカウントには admin 権限がありません（roles.json で昇格が必要です）。'
+          : 'ログインセッションが切れています。トップページから再ログインしてください。';
+        showAdminAuthBanner('アクセス拒否 (' + res.status + ')', msg);
+      }
+      return res;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function switchGroup(groupId) {
+      currentGroup = groupId === 'dollykiss' ? 'dollykiss' : 'ribonclock';
+      ['ribonclock', 'dollykiss'].forEach(g => {
+        const btn = document.getElementById('group-btn-' + g);
+        if (btn) btn.className = (g === currentGroup) ? '' : 'outline';
+      });
+      document.getElementById('current-group-domain').innerText = currentGroup + '.iorin.net';
+      document.getElementById('sessions-group-label').innerText = currentGroup + '.iorin.net';
+      loadCurrentSessions().then(() => {
+        // Update patch session selectors in existing queue items
+        renderQueue();
+      });
+    }
+
+    async function loadCurrentSessions() {
+      const tbody = document.getElementById('sessions-tbody');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--pico-muted-color);">読み込み中...</td></tr>';
+      try {
+        const res = await apiFetch('/sessions?group=' + encodeURIComponent(currentGroup));
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data.sessions)) {
+          throw new Error(data.error || 'failed to load sessions');
+        }
+        cachedSessions = data.sessions;
+        document.getElementById('sessions-count').innerText = cachedSessions.length;
+        if (tbody) {
+          if (cachedSessions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--pico-muted-color);">登録済みライブはありません。</td></tr>';
+          } else {
+            tbody.innerHTML = cachedSessions.slice().reverse().map(s => {
+              const timeStr = (s.live_start || '--:--') + (s.live_end ? ' - ' + s.live_end : '');
+              const benStr = s.benefit_start ? ` / 特典 ${s.benefit_start}-${s.benefit_end || ''}` : '';
+              const extras = [s.admission_bonus ? '特典: ' + s.admission_bonus : '', s.photo_rule || ''].filter(Boolean).join(' / ');
+              return `
+                <tr>
+                  <td style="white-space:nowrap; font-family:monospace;">${escapeHtml(s.date)}</td>
+                  <td style="white-space:nowrap; font-family:monospace;">${escapeHtml(timeStr + benStr)}</td>
+                  <td><strong>${escapeHtml(s.title)}</strong></td>
+                  <td>${escapeHtml(s.venue)}</td>
+                  <td style="color:#a8a29e;">${escapeHtml(extras || '-')}</td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+      } catch (err) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#fb7185;">読み込みエラー: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    function deriveDefaultForm(item) {
+      const c = item.candidate || {};
+      const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const rawTitle = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || '';
+      const cleanTitle = rawTitle.replace(/[『』｢｣]/g, '').trim();
+      const defaultBonus = c.admission_bonus || lines.find(l => l.includes('特典') || l.includes('入場')) || '';
+
+      return {
+        isPatch: Boolean(c.is_patch),
+        title: cleanTitle,
+        date: c.date || '',
+        venue: c.venue_raw || '',
+        liveStart: c.live_start_raw || '',
+        liveEnd: c.live_end_raw || '',
+        benefitStart: c.benefit_start_raw || '',
+        benefitEnd: c.benefit_end_raw || '',
+        booth: c.benefit_booth_raw || '',
+        bonus: defaultBonus,
+        ticketUrl: '',
+        notes: '',
+        patchSessionId: pickPreferredSessionId(c.date || ''),
+        patchBonus: c.admission_bonus || '',
+        patchPhotoSong: c.photo_song || '',
+        patchPhotoDevice: c.photo_device || '',
+        patchNotes: '',
+        patchUpdateUrl: false
+      };
+    }
+
+    function pickPreferredSessionId(preferredDate) {
+      if (cachedSessions.length === 0) return '';
+      if (preferredDate) {
+        const matched = cachedSessions.find(s => s.date === preferredDate);
+        if (matched) return matched.id;
+      }
+      return cachedSessions[cachedSessions.length - 1].id;
+    }
+
+    async function handleBatchIntake(e) {
+      e.preventDefault();
+      const textarea = document.getElementById('intake-urls');
+      const errBox = document.getElementById('batch-error');
+      const btn = document.getElementById('btn-batch-fetch');
+      errBox.style.display = 'none';
+
+      const lines = (textarea.value || '')
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      const uniqueUrls = Array.from(new Set(lines));
+      if (uniqueUrls.length === 0) {
+        errBox.innerText = 'X ポストの URL を1つ以上入力してください。';
+        errBox.style.display = 'block';
+        return;
+      }
+      if (uniqueUrls.length > 20) {
+        errBox.innerText = '一度に取得できる URL は最大 20 件までです（現在 ' + uniqueUrls.length + ' 件）。';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      const startIndex = intakeQueue.length;
+      for (const u of uniqueUrls) {
+        intakeQueue.push({
+          qid: ++queueSeq,
+          url: u,
+          status: 'fetching',
+          error: '',
+          item: null,
+          form: null,
+          commitInfo: null,
+          aiRunning: false
+        });
+      }
+      textarea.value = '';
+      renderQueue();
+      updateBatchProgressBadge();
+
+      for (let i = startIndex; i < intakeQueue.length; i++) {
+        const entry = intakeQueue[i];
+        try {
+          const res = await apiFetch('/intake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: entry.url })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || '取得に失敗しました');
+          }
+          entry.item = data;
+          entry.form = deriveDefaultForm(data);
+          entry.status = 'ready';
+        } catch (err) {
+          entry.status = 'error';
+          entry.error = err.message || '取得エラー';
+        }
+        renderQueue();
+        updateBatchProgressBadge();
+      }
+
+      btn.disabled = false;
+      refreshStatusAndActivities();
+    }
+
+    function addManualQueueItem() {
+      const dummyItem = {
+        source: 'manual',
+        source_id: 'manual-' + Date.now(),
+        url: '',
+        author: '手入力フォーム',
+        text: '',
+        images: [],
+        needs_ai: false,
+        candidate: {}
+      };
+      intakeQueue.push({
+        qid: ++queueSeq,
+        url: '',
+        status: 'ready',
+        error: '',
+        item: dummyItem,
+        form: deriveDefaultForm(dummyItem),
+        commitInfo: null,
+        aiRunning: false
+      });
+      renderQueue();
+      updateBatchProgressBadge();
+    }
+
+    function removeQueueItem(qid) {
+      intakeQueue = intakeQueue.filter(q => q.qid !== qid);
+      renderQueue();
+      updateBatchProgressBadge();
+    }
+
+    function clearQueue() {
+      intakeQueue = [];
+      renderQueue();
+      updateBatchProgressBadge();
+    }
+
+    function updateBatchProgressBadge() {
+      const badge = document.getElementById('batch-progress-badge');
+      const clearBtn = document.getElementById('btn-clear-queue');
+      const aiAllBtn = document.getElementById('btn-batch-ai');
+      if (intakeQueue.length === 0) {
+        badge.className = 'badge badge-muted';
+        badge.innerText = '待機中';
+        clearBtn.style.display = 'none';
+        aiAllBtn.style.display = 'none';
+        return;
+      }
+      clearBtn.style.display = 'inline-block';
+      const fetching = intakeQueue.filter(q => q.status === 'fetching').length;
+      const committed = intakeQueue.filter(q => q.status === 'committed').length;
+      const needsAI = intakeQueue.filter(q => q.status === 'ready' && q.item && q.item.needs_ai && !q.aiRunning).length;
+
+      aiAllBtn.style.display = needsAI > 0 ? 'inline-block' : 'none';
+      if (fetching > 0) {
+        badge.className = 'badge badge-info';
+        badge.innerText = `取得中... (${intakeQueue.length - fetching}/${intakeQueue.length})`;
+      } else if (committed === intakeQueue.length) {
+        badge.className = 'badge badge-ok';
+        badge.innerText = `全 ${committed} 件 登録完了`;
+      } else {
+        badge.className = 'badge badge-warn';
+        badge.innerText = `${committed}/${intakeQueue.length} 件反映済み`;
+      }
+    }
+
+    function updateFormField(qid, field, val) {
+      const entry = intakeQueue.find(q => q.qid === qid);
+      if (entry && entry.form) {
+        entry.form[field] = val;
+      }
+    }
+
+    function toggleQueueMode(qid, isPatch) {
+      const entry = intakeQueue.find(q => q.qid === qid);
+      if (!entry || !entry.form) return;
+      entry.form.isPatch = isPatch;
+      if (isPatch && !entry.form.patchSessionId) {
+        entry.form.patchSessionId = pickPreferredSessionId(entry.form.date);
+      }
+      renderQueue();
+    }
+
+    async function runAIForQueueItem(qid) {
+      const entry = intakeQueue.find(q => q.qid === qid);
+      if (!entry || !entry.item) return;
+      entry.aiRunning = true;
+      renderQueue();
+
+      try {
+        const res = await apiFetch('/intake/ai-parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_id: entry.item.source_id,
+            images: entry.item.images || [],
+            text: entry.item.text || ''
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'AI parse failed');
+        }
+        if (data.candidate) {
+          const c = data.candidate;
+          if (c.date) entry.form.date = c.date;
+          if (c.venue_raw) entry.form.venue = c.venue_raw;
+          if (c.live_start_raw) entry.form.liveStart = c.live_start_raw;
+          if (c.live_end_raw) entry.form.liveEnd = c.live_end_raw;
+          if (c.benefit_start_raw) entry.form.benefitStart = c.benefit_start_raw;
+          if (c.benefit_end_raw) entry.form.benefitEnd = c.benefit_end_raw;
+          if (c.benefit_booth_raw) entry.form.booth = c.benefit_booth_raw;
+        }
+        entry.item.needs_ai = false;
+        entry.item.status = 'completed';
+      } catch (err) {
+        alert('AI解析エラー: ' + err.message);
+      } finally {
+        entry.aiRunning = false;
+        renderQueue();
+        updateBatchProgressBadge();
+      }
+    }
+
+    async function runAllNeededAI() {
+      const targets = intakeQueue.filter(q => q.status === 'ready' && q.item && q.item.needs_ai);
+      for (const entry of targets) {
+        await runAIForQueueItem(entry.qid);
+      }
+    }
+
+    async function commitQueueItem(qid) {
+      const entry = intakeQueue.find(q => q.qid === qid);
+      if (!entry || !entry.form) return;
+
+      const f = entry.form;
+      const errEl = document.getElementById('q-err-' + qid);
+      const btn = document.getElementById('q-commit-btn-' + qid);
+      if (errEl) errEl.style.display = 'none';
+      if (btn) btn.disabled = true;
+
+      try {
+        let res, data;
+        if (f.isPatch) {
+          const photoSong = (f.patchPhotoSong || '').trim();
+          res = await apiFetch('/intake/patch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              group: currentGroup,
+              session_id: f.patchSessionId,
+              source_url: entry.item.url || '',
+              date: f.date || '',
+              admission_bonus: (f.patchBonus || '').trim(),
+              photo_song: photoSong,
+              photo_device: f.patchPhotoDevice || '',
+              photo_rule: photoSong ? '撮可: ' + photoSong : '',
+              special_notes: (f.patchNotes || '').trim(),
+              update_official_url: Boolean(f.patchUpdateUrl)
+            })
+          });
+        } else {
+          res = await apiFetch('/intake/promote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              group: currentGroup,
+              source_id: entry.item.source_id || '',
+              source_url: entry.item.url || '',
+              author: entry.item.author || '',
+              title: (f.title || '').trim(),
+              date: (f.date || '').trim(),
+              venue: (f.venue || '').trim(),
+              live_start: (f.liveStart || '').trim(),
+              live_end: (f.liveEnd || '').trim(),
+              benefit_start: (f.benefitStart || '').trim(),
+              benefit_end: (f.benefitEnd || '').trim(),
+              booth: (f.booth || '').trim(),
+              ticket_url: (f.ticketUrl || '').trim(),
+              image_url: (entry.item.images && entry.item.images.length > 0) ? entry.item.images[0] : '',
+              admission_bonus: (f.bonus || '').trim(),
+              special_notes: (f.notes || '').trim()
+            })
+          });
+        }
+        data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || '反映に失敗しました');
+        }
+        entry.status = 'committed';
+        entry.commitInfo = data;
+        renderQueue();
+        updateBatchProgressBadge();
+        await Promise.all([loadCurrentSessions(), refreshStatusAndActivities()]);
+      } catch (err) {
+        if (errEl) {
+          errEl.innerText = err.message;
+          errEl.style.display = 'block';
+        }
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    function renderQueue() {
+      const container = document.getElementById('queue-container');
+      if (!container) return;
+      if (intakeQueue.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = intakeQueue.map((entry, index) => {
+        const num = index + 1;
+        if (entry.status === 'fetching') {
+          return `
+            <div class="queue-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <div>
+                  <span class="badge badge-info">#${num} 取得中</span>
+                  <span style="font-size:0.78rem; font-family:monospace; color:#cbd5e1; margin-left:6px;">${escapeHtml(entry.url)}</span>
+                </div>
+                <span aria-busy="true"></span>
+              </div>
+            </div>
+          `;
+        }
+
+        if (entry.status === 'error') {
+          return `
+            <div class="queue-card error">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div>
+                  <span class="badge badge-err">#${num} 取得エラー</span>
+                  <span style="font-size:0.78rem; font-family:monospace; color:#cbd5e1; margin-left:6px;">${escapeHtml(entry.url)}</span>
+                </div>
+                <button type="button" class="outline" onclick="removeQueueItem(${entry.qid})" style="font-size:0.72rem; padding:0.18rem 0.55rem; margin-bottom:0;">閉じる</button>
+              </div>
+              <div style="margin-top:0.5rem; font-size:0.8rem; color:#fecdd3;">${escapeHtml(entry.error)}</div>
+            </div>
+          `;
+        }
+
+        const item = entry.item;
+        const f = entry.form;
+
+        if (entry.status === 'committed') {
+          const info = entry.commitInfo || {};
+          const act = info.activity || {};
+          return `
+            <div class="queue-card committed">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                <div>
+                  <span class="badge badge-ok">#${num} 反映完了 (${escapeHtml(info.session_id || '')})</span>
+                  <strong style="margin-left:8px; font-size:0.9rem; color:#fff;">${escapeHtml(f.isPatch ? '既存公演を更新' : (f.title || f.date))}</strong>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <a href="https://${escapeHtml(info.domain || (currentGroup + '.iorin.net'))}" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:#38bdf8;">公開ページで確認 &nearr;</a>
+                  <button type="button" class="outline" onclick="removeQueueItem(${entry.qid})" style="font-size:0.72rem; padding:0.18rem 0.55rem; margin-bottom:0;">閉じる</button>
+                </div>
+              </div>
+              <div style="margin-top:0.4rem; font-size:0.76rem; color:#a7f3d0;">
+                ${escapeHtml(info.message || '登録が完了しました')}
+                ${act.notification_status === 'sent' ? ' / Discord通知送信済み' : ''}
+              </div>
+            </div>
+          `;
+        }
+
+        const statusBadge = entry.aiRunning
+          ? '<span class="badge badge-warn">AI解析中...</span>'
+          : item.needs_ai
+          ? '<span class="badge badge-warn">AI時刻読取推奨</span>'
+          : '<span class="badge badge-ok">入力準備OK</span>';
+
+        const mediaHtml = (item.images && item.images.length > 0) ? `
+          <div style="display:flex; gap:8px; overflow-x:auto; margin-top:0.55rem; padding-bottom:4px;">
+            ${item.images.map(img => `
+              <a href="${escapeHtml(img)}" target="_blank" rel="noopener noreferrer">
+                <img src="${escapeHtml(img)}" style="height:96px; border-radius:6px; border:1px solid rgba(255,255,255,0.12); object-fit:cover;" />
+              </a>
+            `).join('')}
+          </div>
+        ` : '';
+
+        const aiBoxHtml = (item.images && item.images.length > 0) ? `
+          <div style="margin-top:0.55rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:0.5rem 0.7rem; border-radius:6px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.22);">
+            <span style="font-size:0.76rem; color:#fde68a;">
+              ${item.needs_ai ? '画像内のタイムテーブルから日付・出番・特典会時刻を AI で抽出できます。' : '添付画像から AI で時刻を再抽出できます。'}
+            </span>
+            <button type="button" ${entry.aiRunning ? 'disabled' : ''} onclick="runAIForQueueItem(${entry.qid})" style="font-size:0.74rem; padding:0.25rem 0.7rem; margin-bottom:0; background:#f59e0b; border-color:#f59e0b; color:#000; font-weight:700;">
+              ${entry.aiRunning ? '解析中...' : 'AIで時刻を読み取る'}
+            </button>
+          </div>
+        ` : '';
+
+        const sessionOptionsHtml = cachedSessions.length > 0
+          ? cachedSessions.slice().reverse().map(s => {
+              const label = `${s.date} ${s.live_start || '--:--'} | ${s.title} (${s.venue})`;
+              const sel = s.id === f.patchSessionId ? 'selected' : '';
+              return `<option value="${escapeHtml(s.id)}" ${sel}>${escapeHtml(label)}</option>`;
+            }).join('')
+          : '<option value="">直近ライブ (自動判定)</option>';
+
+        const formBodyHtml = f.isPatch ? `
+          <div class="form-grid">
+            <div style="grid-column: 1 / -1;">
+              <label>更新対象のライブ公演</label>
+              <select onchange="updateFormField(${entry.qid}, 'patchSessionId', this.value)">
+                ${sessionOptionsHtml}
+              </select>
+            </div>
+            <div>
+              <label>入場特典</label>
+              <input type="text" value="${escapeHtml(f.patchBonus)}" oninput="updateFormField(${entry.qid}, 'patchBonus', this.value)" placeholder="例: 写メ券" />
+            </div>
+            <div>
+              <label>撮影可能曲</label>
+              <input type="text" value="${escapeHtml(f.patchPhotoSong)}" oninput="updateFormField(${entry.qid}, 'patchPhotoSong', this.value)" placeholder="例: 微々々⭐︎炭酸サイダー" />
+            </div>
+            <div>
+              <label>撮影種別</label>
+              <select onchange="updateFormField(${entry.qid}, 'patchPhotoDevice', this.value)">
+                <option value="" ${!f.patchPhotoDevice ? 'selected' : ''}>指定なし</option>
+                <option value="still_only" ${f.patchPhotoDevice === 'still_only' ? 'selected' : ''}>静止画のみOK</option>
+                <option value="video_ok" ${f.patchPhotoDevice === 'video_ok' ? 'selected' : ''}>動画・静止画OK</option>
+              </select>
+            </div>
+            <div>
+              <label>特記事項</label>
+              <input type="text" value="${escapeHtml(f.patchNotes)}" oninput="updateFormField(${entry.qid}, 'patchNotes', this.value)" placeholder="任意メモ" />
+            </div>
+          </div>
+          <label style="font-size:0.75rem; display:flex; align-items:center; gap:6px; margin-top:0.6rem; cursor:pointer;">
+            <input type="checkbox" ${f.patchUpdateUrl ? 'checked' : ''} onchange="updateFormField(${entry.qid}, 'patchUpdateUrl', this.checked)" style="margin-bottom:0;" />
+            公式告知リンクもこの投稿 URL に更新する
+          </label>
+        ` : `
+          <div class="form-grid">
+            <div style="grid-column: 1 / -1;">
+              <label>イベントタイトル</label>
+              <input type="text" value="${escapeHtml(f.title)}" oninput="updateFormField(${entry.qid}, 'title', this.value)" placeholder="イベント名" />
+            </div>
+            <div>
+              <label>日付 (YYYY-MM-DD)</label>
+              <input type="date" value="${escapeHtml(f.date)}" oninput="updateFormField(${entry.qid}, 'date', this.value)" />
+            </div>
+            <div>
+              <label>会場</label>
+              <input type="text" value="${escapeHtml(f.venue)}" oninput="updateFormField(${entry.qid}, 'venue', this.value)" placeholder="例: 渋谷RING" />
+            </div>
+            <div>
+              <label>出番開始</label>
+              <input type="text" value="${escapeHtml(f.liveStart)}" oninput="updateFormField(${entry.qid}, 'liveStart', this.value)" placeholder="HH:MM または --:--" />
+            </div>
+            <div>
+              <label>出番終了</label>
+              <input type="text" value="${escapeHtml(f.liveEnd)}" oninput="updateFormField(${entry.qid}, 'liveEnd', this.value)" placeholder="HH:MM" />
+            </div>
+            <div>
+              <label>特典会開始</label>
+              <input type="text" value="${escapeHtml(f.benefitStart)}" oninput="updateFormField(${entry.qid}, 'benefitStart', this.value)" placeholder="HH:MM または --:--" />
+            </div>
+            <div>
+              <label>特典会終了</label>
+              <input type="text" value="${escapeHtml(f.benefitEnd)}" oninput="updateFormField(${entry.qid}, 'benefitEnd', this.value)" placeholder="HH:MM" />
+            </div>
+            <div>
+              <label>特典会ブース</label>
+              <input type="text" value="${escapeHtml(f.booth)}" oninput="updateFormField(${entry.qid}, 'booth', this.value)" placeholder="例: 並行A" />
+            </div>
+            <div>
+              <label>入場特典</label>
+              <input type="text" value="${escapeHtml(f.bonus)}" oninput="updateFormField(${entry.qid}, 'bonus', this.value)" placeholder="例: 2S写メ券" />
+            </div>
+            <div>
+              <label>チケット URL (任意)</label>
+              <input type="url" value="${escapeHtml(f.ticketUrl)}" oninput="updateFormField(${entry.qid}, 'ticketUrl', this.value)" placeholder="https://t.livepocket.jp/..." />
+            </div>
+            <div>
+              <label>特記事項 (任意)</label>
+              <input type="text" value="${escapeHtml(f.notes)}" oninput="updateFormField(${entry.qid}, 'notes', this.value)" placeholder="任意メモ" />
+            </div>
+          </div>
+        `;
+
+        return `
+          <div class="queue-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span class="badge badge-info">#${num}</span>
+                ${statusBadge}
+                <strong style="font-size:0.88rem; color:#fff;">${escapeHtml(item.author || '告知ポスト')}</strong>
+                ${entry.url ? `<a href="${escapeHtml(entry.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.74rem; color:#94a3b8; font-family:monospace;">投稿を開く &nearr;</a>` : ''}
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button type="button" class="outline" onclick="toggleQueueMode(${entry.qid}, ${!f.isPatch})" style="font-size:0.72rem; padding:0.18rem 0.55rem; margin-bottom:0;">
+                  ${f.isPatch ? '新規登録へ切替' : '既存更新(Patch)へ切替'}
+                </button>
+                <button type="button" class="outline" onclick="removeQueueItem(${entry.qid})" style="font-size:0.72rem; padding:0.18rem 0.55rem; margin-bottom:0;">除外</button>
+              </div>
+            </div>
+
+            ${item.text ? `
+              <div style="margin-top:0.55rem; font-size:0.78rem; background:rgba(0,0,0,0.35); padding:0.55rem 0.7rem; border-radius:6px; white-space:pre-line; max-height:140px; overflow-y:auto; color:#d6d3d1;">
+                ${escapeHtml(item.text)}
+              </div>
+            ` : ''}
+
+            ${mediaHtml}
+            ${aiBoxHtml}
+            ${formBodyHtml}
+
+            <div id="q-err-${entry.qid}" style="display:none; margin-top:0.65rem; padding:0.55rem 0.7rem; border-radius:6px; background:rgba(244,63,94,0.15); color:#fecdd3; font-size:0.78rem;"></div>
+
+            <div style="margin-top:0.85rem; padding-top:0.75rem; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:0.74rem; color:var(--pico-muted-color);">
+                反映先: <strong style="color:#38bdf8;">${escapeHtml(currentGroup)}.iorin.net</strong>
+              </span>
+              <button type="button" id="q-commit-btn-${entry.qid}" onclick="commitQueueItem(${entry.qid})" style="font-size:0.8rem; padding:0.4rem 0.95rem; margin-bottom:0; background:${f.isPatch ? '#f59e0b' : '#10b981'}; border-color:${f.isPatch ? '#f59e0b' : '#10b981'}; color:${f.isPatch ? '#000' : '#fff'}; font-weight:700;">
+                ${f.isPatch ? '特典・撮可情報を反映する' : 'この公演を本番登録する'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function refreshStatusAndActivities() {
+      try {
+        const res = await apiFetch('/stats');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const csBadge = document.getElementById('storage-badge');
+        if (csBadge) {
+          csBadge.innerText = data.cloud_storage_enabled && data.data_bucket
+            ? 'GCS: gs://' + data.data_bucket
+            : 'Storage: Local';
+          csBadge.style.color = data.cloud_storage_enabled ? '#34d399' : '#94a3b8';
+        }
+
+        const discBadge = document.getElementById('discord-status-badge');
+        if (discBadge) {
+          if (data.discord_notify_enabled) {
+            discBadge.className = 'badge badge-ok';
+            discBadge.innerText = 'Discord通知: 有効';
+          } else {
+            discBadge.className = 'badge badge-muted';
+            discBadge.innerText = 'Discord通知: Webhook未設定';
+          }
+        }
+
+        const listEl = document.getElementById('activities-list');
+        if (listEl) {
+          const acts = data.recent_activities || [];
+          if (acts.length === 0) {
+            listEl.innerHTML = '<p style="font-size: 0.82rem; color: var(--pico-muted-color);">まだ登録・更新履歴はありません。</p>';
+          } else {
+            listEl.innerHTML = acts.map(a => {
+              const isPatch = a.action === 'patch';
+              const actionBadge = isPatch
+                ? '<span class="badge badge-warn">情報更新</span>'
+                : '<span class="badge badge-ok">新規追加</span>';
+              const notifyBadge = a.notification_status === 'sent'
+                ? '<span class="badge badge-info">Discord通知済</span>'
+                : a.notification_status === 'failed'
+                ? `<span class="badge badge-err" title="${escapeHtml(a.notification_detail || '')}">通知エラー</span>`
+                : '<span class="badge badge-muted">履歴のみ</span>';
+              const timeStr = a.timestamp
+                ? new Date(a.timestamp).toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                : '-';
+
+              return `
+                <div class="activity-item ${isPatch ? 'patch' : ''}">
+                  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                      ${actionBadge}
+                      <span class="badge badge-muted">${escapeHtml(a.group)}</span>
+                      <strong style="font-size:0.86rem; color:#fff;">${escapeHtml(a.title || a.session_id)}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      ${notifyBadge}
+                      <span style="font-size:0.74rem; font-family:monospace; color:#94a3b8;">${escapeHtml(timeStr)}</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:0.35rem; font-size:0.78rem; color:#cbd5e1;">
+                    ${a.date ? `<span style="font-family:monospace;">${escapeHtml(a.date)}</span>` : ''}
+                    ${a.venue ? ` / ${escapeHtml(a.venue)}` : ''}
+                    ${a.summary ? ` — ${escapeHtml(a.summary)}` : ''}
+                  </div>
+                  <div style="margin-top:0.25rem; font-size:0.72rem; color:#94a3b8; display:flex; gap:10px; flex-wrap:wrap;">
+                    <span>ID: <code>${escapeHtml(a.session_id)}</code></span>
+                    ${a.source_url ? `<a href="${escapeHtml(a.source_url)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;">出典ポスト &nearr;</a>` : ''}
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+      } catch {
+        // handled cleanly by apiFetch banner when unauthenticated
+      }
+    }
+
+    async function sendTestNotification() {
+      const btn = document.getElementById('btn-test-notify');
+      const resBox = document.getElementById('test-notify-result');
+      if (btn) btn.disabled = true;
+      resBox.style.display = 'none';
+      try {
+        const res = await apiFetch('/notify/test', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'テスト通知に失敗しました');
+        }
+        resBox.style.display = 'block';
+        resBox.style.background = 'rgba(16, 185, 129, 0.14)';
+        resBox.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        resBox.style.color = '#a7f3d0';
+        resBox.innerText = data.message || 'テスト通知を送信しました。';
+      } catch (err) {
+        resBox.style.display = 'block';
+        resBox.style.background = 'rgba(244, 63, 94, 0.14)';
+        resBox.style.border = '1px solid rgba(244, 63, 94, 0.3)';
+        resBox.style.color = '#fecdd3';
+        resBox.innerText = err.message;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCurrentSessions();
+      refreshStatusAndActivities();
+      setInterval(refreshStatusAndActivities, 10000);
+    });
+  </script>
+</body>
+</html>

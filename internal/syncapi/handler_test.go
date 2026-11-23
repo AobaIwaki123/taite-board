@@ -139,7 +139,8 @@ func TestAuthRegisterLoginAndSyncData(t *testing.T) {
 		ProjectID:          "taite-board",
 		APIKey:             "test-api-key",
 		AdminHandler:       adminMux,
-		DashboardHTML:      []byte("<html>admin</html>"),
+		AdminHTML:          []byte("<html>admin-register</html>"),
+		DashboardHTML:      []byte("<html>admin-dashboard</html>"),
 		IdentityBaseURL:    "https://identity.test",
 		SecureTokenBaseURL: "https://securetoken.test",
 		GoogleCertsURL:     "https://certs.test/x509",
@@ -288,11 +289,18 @@ func TestAuthRegisterLoginAndSyncData(t *testing.T) {
 		t.Errorf("expected 200 for admin user, got (%d): %s", admOkRec.Code, admOkRec.Body.String())
 	}
 
-	// 10. /admin returns dashboard HTML
+	// 10. /admin returns AdminHTML and /admin/dashboard returns DashboardHTML
 	admPage := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	admPageRec := httptest.NewRecorder()
 	mux.ServeHTTP(admPageRec, admPage)
-	if admPageRec.Code != http.StatusOK || !strings.Contains(admPageRec.Body.String(), "<html>admin</html>") {
+	if admPageRec.Code != http.StatusOK || !strings.Contains(admPageRec.Body.String(), "<html>admin-register</html>") {
 		t.Errorf("expected /admin HTML, got (%d): %s", admPageRec.Code, admPageRec.Body.String())
+	}
+
+	dashPage := httptest.NewRequest(http.MethodGet, "/admin/dashboard", nil)
+	dashPageRec := httptest.NewRecorder()
+	mux.ServeHTTP(dashPageRec, dashPage)
+	if dashPageRec.Code != http.StatusOK || !strings.Contains(dashPageRec.Body.String(), "<html>admin-dashboard</html>") {
+		t.Errorf("expected /admin/dashboard HTML, got (%d): %s", dashPageRec.Code, dashPageRec.Body.String())
 	}
 }

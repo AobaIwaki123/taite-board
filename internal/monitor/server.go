@@ -26,11 +26,17 @@ import (
 //go:embed dashboard.html
 var DashboardHTML []byte
 
-// HandlerConfig configures optional cloud storage backing for the monitor server.
+//go:embed admin.html
+var AdminHTML []byte
+
+// HandlerConfig configures optional cloud storage and notifications for the monitor server.
 type HandlerConfig struct {
-	Store       gcs.ObjectStore
-	DataBucket  string
-	StateBucket string
+	Store            gcs.ObjectStore
+	DataBucket       string
+	StateBucket      string
+	WebhookURL       string
+	NotifyHTTPClient *http.Client
+	NotifySync       bool
 }
 
 type validationError struct {
@@ -55,6 +61,7 @@ type IntakeResolver interface {
 func NewHandler(collector *Collector) http.Handler {
 	dataBucket := strings.TrimSpace(os.Getenv("GCS_DATA_BUCKET"))
 	stateBucket := strings.TrimSpace(os.Getenv("GCS_STATE_BUCKET"))
+	webhookURL := strings.TrimSpace(os.Getenv("DISCORD_WEBHOOK_URL"))
 	var store gcs.ObjectStore
 	if dataBucket != "" || stateBucket != "" {
 		if client, err := gcs.NewClientFromEnv(); err == nil && client != nil {
@@ -64,10 +71,14 @@ func NewHandler(collector *Collector) http.Handler {
 			}
 		}
 	}
+	if collector != nil {
+		collector.SetDiscordNotifyEnabled(webhookURL != "")
+	}
 	return NewHandlerWithConfig(collector, nil, nil, HandlerConfig{
 		Store:       store,
 		DataBucket:  dataBucket,
 		StateBucket: stateBucket,
+		WebhookURL:  webhookURL,
 	})
 }
 
@@ -84,9 +95,12 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 	if resolver == nil {
 		resolver, _ = resolve.NewResolver("")
 	}
+	if collector != nil {
+		collector.SetDiscordNotifyEnabled(strings.TrimSpace(cfg.WebhookURL) != "")
+	}
 	mux := http.NewServeMux()
 
-	// 1. Dashboard UI
+	// 1. Dashboard UI (observability & pipeline monitoring)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -96,6 +110,17 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(DashboardHTML)
 	})
+
+	// 1.5 Admin Registration & Operations UI (/register and /admin for Tailscale access)
+	serveAdmin := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(AdminHTML)
+	}
+	mux.HandleFunc("/register", serveAdmin)
+	mux.HandleFunc("/register/", serveAdmin)
+	mux.HandleFunc("/admin", serveAdmin)
+	mux.HandleFunc("/admin/", serveAdmin)
 
 	// 2. JSON Stats API for Dashboard
 	mux.HandleFunc("/api/stats", func(w http.ResponseWriter, r *http.Request) {
@@ -290,6 +315,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		BenefitStart   string `json:"benefit_start"`
 		BenefitEnd     string `json:"benefit_end"`
 		Booth          string `json:"booth"`
+		TicketURL      string `json:"ticket_url"`
 		ImageURL       string `json:"image_url"`
 		AdmissionBonus string `json:"admission_bonus"`
 		SpecialNotes   string `json:"special_notes"`
@@ -335,6 +361,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			BenefitStartTime: strings.TrimSpace(req.BenefitStart),
 			BenefitEndTime:   strings.TrimSpace(req.BenefitEnd),
 			Booth:            strings.TrimSpace(req.Booth),
+			TicketURL:        strings.TrimSpace(req.TicketURL),
 			ImageURL:         strings.TrimSpace(req.ImageURL),
 			SourceTweetURL:   strings.TrimSpace(req.SourceURL),
 			SpecialNotes:     strings.TrimSpace(req.SpecialNotes),
@@ -359,16 +386,50 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			collector.IncrementPromoted()
 		}
 
+		domain := fmt.Sprintf("%s.iorin.net", group)
+		summaryParts := []string{}
+		if strings.TrimSpace(req.LiveStart) != "" {
+			t := strings.TrimSpace(req.LiveStart)
+			if strings.TrimSpace(req.LiveEnd) != "" {
+				t += "-" + strings.TrimSpace(req.LiveEnd)
+			}
+			summaryParts = append(summaryParts, "出演 "+t)
+		}
+		if strings.TrimSpace(req.BenefitStart) != "" {
+			b := strings.TrimSpace(req.BenefitStart)
+			if strings.TrimSpace(req.BenefitEnd) != "" {
+				b += "-" + strings.TrimSpace(req.BenefitEnd)
+			}
+			summaryParts = append(summaryParts, "特典会 "+b)
+		}
+		if strings.TrimSpace(req.AdmissionBonus) != "" {
+			summaryParts = append(summaryParts, "入場特典: "+strings.TrimSpace(req.AdmissionBonus))
+		}
+		act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
+			ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+			Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+			Action:    "promote",
+			Group:     group,
+			SessionID: sessionID,
+			Date:      strings.TrimSpace(req.Date),
+			Title:     title,
+			Venue:     venue,
+			Summary:   strings.Join(summaryParts, " / "),
+			SourceURL: strings.TrimSpace(req.SourceURL),
+			Domain:    domain,
+		})
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":     "success",
 			"session_id": sessionID,
 			"group":      group,
-			"domain":     fmt.Sprintf("%s.iorin.net", group),
+			"domain":     domain,
 			"storage":    storageModeLabel(cfg),
 			"bucket":     cfg.DataBucket,
-			"message":    fmt.Sprintf("Session %s successfully committed to %s.iorin.net (%s)", sessionID, group, storageModeLabel(cfg)),
+			"activity":   act,
+			"message":    fmt.Sprintf("Session %s successfully committed to %s (%s)", sessionID, domain, storageModeLabel(cfg)),
 		})
 	})
 
@@ -408,18 +469,22 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			return
 		}
 
-		// Resolve target Session ID if empty
+		// Resolve target Session ID (and capture metadata for activity notification)
+		var schedDoc struct {
+			CurrentNextID string `json:"current_next_id"`
+			Sessions      []struct {
+				ID    string `json:"id"`
+				Date  string `json:"date"`
+				Title string `json:"title"`
+				Venue struct {
+					Name string `json:"name"`
+				} `json:"venue"`
+			} `json:"sessions"`
+		}
+		_ = json.Unmarshal(rawBytes, &schedDoc)
+
 		sessionID := strings.TrimSpace(req.SessionID)
 		if sessionID == "" {
-			var schedDoc struct {
-				CurrentNextID string `json:"current_next_id"`
-				Sessions      []struct {
-					ID   string `json:"id"`
-					Date string `json:"date"`
-				} `json:"sessions"`
-			}
-			_ = json.Unmarshal(rawBytes, &schedDoc)
-
 			if req.Date != "" {
 				for _, s := range schedDoc.Sessions {
 					if s.Date == req.Date {
@@ -439,6 +504,16 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		if sessionID == "" {
 			writeJSONError(w, http.StatusNotFound, "target session not found in schedule")
 			return
+		}
+
+		var targetDate, targetTitle, targetVenue string
+		for _, s := range schedDoc.Sessions {
+			if s.ID == sessionID {
+				targetDate = s.Date
+				targetTitle = s.Title
+				targetVenue = s.Venue.Name
+				break
+			}
 		}
 
 		photoRule := strings.TrimSpace(req.PhotoRule)
@@ -477,16 +552,42 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			return
 		}
 
+		domain := fmt.Sprintf("%s.iorin.net", group)
+		patchSummary := []string{}
+		if strings.TrimSpace(req.AdmissionBonus) != "" {
+			patchSummary = append(patchSummary, "入場特典: "+strings.TrimSpace(req.AdmissionBonus))
+		}
+		if photoRule != "" {
+			patchSummary = append(patchSummary, photoRule)
+		}
+		if strings.TrimSpace(req.SpecialNotes) != "" {
+			patchSummary = append(patchSummary, "メモ: "+strings.TrimSpace(req.SpecialNotes))
+		}
+		act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
+			ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+			Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+			Action:    "patch",
+			Group:     group,
+			SessionID: sessionID,
+			Date:      targetDate,
+			Title:     targetTitle,
+			Venue:     targetVenue,
+			Summary:   strings.Join(patchSummary, " / "),
+			SourceURL: strings.TrimSpace(req.SourceURL),
+			Domain:    domain,
+		})
+
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":     "success",
 			"session_id": sessionID,
 			"group":      group,
-			"domain":     fmt.Sprintf("%s.iorin.net", group),
+			"domain":     domain,
 			"storage":    storageModeLabel(cfg),
 			"bucket":     cfg.DataBucket,
-			"message":    fmt.Sprintf("Perks & photo regulations updated on session %s (%s.iorin.net)", sessionID, group),
+			"activity":   act,
+			"message":    fmt.Sprintf("Perks & photo regulations updated on session %s (%s)", sessionID, domain),
 		})
 	})
 
@@ -585,7 +686,75 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		_, _ = w.Write(respBytes)
 	})
 
+	// 7. Test Discord Notification Endpoint
+	mux.HandleFunc("/api/notify/test", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		webhookURL := strings.TrimSpace(cfg.WebhookURL)
+		if webhookURL == "" {
+			writeJSONError(w, http.StatusBadRequest, "DISCORD_WEBHOOK_URL が設定されていません")
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		msg := "**[Ribbon Clock Admin] テスト通知**\n管理画面からの通知連携テストです。ライブ追加・更新時にこのチャンネルへ通知されます。"
+		if err := SendDiscordWebhook(ctx, cfg.NotifyHTTPClient, webhookURL, msg); err != nil {
+			writeJSONError(w, http.StatusBadGateway, fmt.Sprintf("Discord 通知エラー: %v", err))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status":  "sent",
+			"message": "Discord へテスト通知を送信しました。",
+		})
+	})
+
 	return mux
+}
+
+func recordAndNotifyActivity(collector *Collector, cfg HandlerConfig, entry ActivityEntry) ActivityEntry {
+	webhookURL := strings.TrimSpace(cfg.WebhookURL)
+	if webhookURL == "" {
+		entry.NotificationStatus = "skipped_unconfigured"
+		if collector != nil {
+			collector.RecordActivity(entry)
+		}
+		return entry
+	}
+
+	dispatch := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		msg := FormatDiscordNotification(entry)
+		err := SendDiscordWebhook(ctx, cfg.NotifyHTTPClient, webhookURL, msg)
+		if err != nil {
+			entry.NotificationStatus = "failed"
+			entry.NotificationDetail = err.Error()
+		} else {
+			entry.NotificationStatus = "sent"
+			entry.NotificationDetail = ""
+		}
+		if collector != nil && !cfg.NotifySync {
+			collector.UpdateActivityNotificationStatus(entry.ID, entry.NotificationStatus, entry.NotificationDetail)
+		}
+	}
+
+	if cfg.NotifySync {
+		dispatch()
+		if collector != nil {
+			collector.RecordActivity(entry)
+		}
+		return entry
+	}
+
+	entry.NotificationStatus = "pending"
+	if collector != nil {
+		collector.RecordActivity(entry)
+	}
+	go dispatch()
+	return entry
 }
 
 func normalizeGroupName(raw string) string {

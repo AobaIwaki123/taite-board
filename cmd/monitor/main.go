@@ -77,10 +77,14 @@ func main() {
 	// Start log tailer in background
 	go monitor.StartTailer(ctx, logPath, collector)
 
+	webhookURL := strings.TrimSpace(os.Getenv("DISCORD_WEBHOOK_URL"))
+	collector.SetDiscordNotifyEnabled(webhookURL != "")
+
 	handler := monitor.NewHandlerWithConfig(collector, nil, nil, monitor.HandlerConfig{
 		Store:       gcsStore,
 		DataBucket:  dataBucket,
 		StateBucket: stateBucket,
+		WebhookURL:  webhookURL,
 	})
 
 	// Dashboard Server (port 8082)
@@ -117,6 +121,7 @@ func main() {
 		ProjectID:     getEnv("GCP_PROJECT_ID", "taite-board"),
 		APIKey:        strings.TrimSpace(os.Getenv("IDENTITY_PLATFORM_API_KEY")),
 		AdminHandler:  handler,
+		AdminHTML:     monitor.AdminHTML,
 		DashboardHTML: monitor.DashboardHTML,
 	})
 	syncServer := &http.Server{
