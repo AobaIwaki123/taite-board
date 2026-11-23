@@ -703,7 +703,45 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		_, _ = w.Write(respBytes)
 	})
 
-	// 7. Test Discord Notification Endpoint
+	// 7. Test Discord Notification Endpoint & Process Start Notification Endpoint
+	mux.HandleFunc("/api/notify/start", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Action    string `json:"action"`
+			Group     string `json:"group"`
+			Title     string `json:"title"`
+			Summary   string `json:"summary"`
+			SourceURL string `json:"source_url"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid json body", http.StatusBadRequest)
+			return
+		}
+		action := strings.TrimSpace(req.Action)
+		if action != "intake_start" && action != "promote_start" {
+			action = "intake_start"
+		}
+		group := normalizeGroupName(req.Group)
+		act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
+			ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+			Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+			Action:    action,
+			Group:     group,
+			Title:     strings.TrimSpace(req.Title),
+			Summary:   strings.TrimSpace(req.Summary),
+			SourceURL: strings.TrimSpace(req.SourceURL),
+			Domain:    fmt.Sprintf("%s.iorin.net", group),
+		})
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status":   "ok",
+			"activity": act,
+		})
+	})
+
 	mux.HandleFunc("/api/notify/test", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
