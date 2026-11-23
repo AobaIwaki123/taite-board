@@ -92,4 +92,5 @@ YYYY-MM-DD
 | [ADR-0018](0018-automated-x-crawler-and-multi-stage-pipeline.md) | 自宅k8sヘッドレス巡回と多段前処理による告知自動取得パイプライン | Accepted | 2026-11-02 |
 | [ADR-0019](0019-portal-wallet-card-stack-architecture.md) | ポータルウォレットカードスタックとピン留め状態管理アーキテクチャ | Accepted | 2026-11-03 |
 | [ADR-0020](0020-festival-cross-track-timeline-and-dynamic-session-binding.md) | フェス合同タイムテーブル機能のアーキテクチャ・データスキーマ・動的セッションバインディング | Accepted | 2026-11-04 |
-| [ADR-0021](0021-github-api-writeback-pipeline-for-admin-intake.md) | 管理画面インテークにおける GitHub API 書き戻しパイプラインと GitOps 整合性の担保 | Accepted | 2026-11-05 |
+| [ADR-0021](0021-github-api-writeback-pipeline-for-admin-intake.md) | 管理画面インテークにおける GitHub API 書き戻しパイプラインと GitOps 整合性の担保 | Accepted (Superseded by ADR-0022) | 2026-11-05 |
+| [ADR-0022](0022-gcs-cloud-data-storage-and-live-intake-sync.md) | Google Cloud Storage (GCS) によるデータ正本移行とリアルタイム配信同期 | Accepted | 2026-11-23 |

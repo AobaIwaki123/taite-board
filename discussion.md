@@ -31,6 +31,7 @@
 | **Step 10** | **家計簿・月間収支集計 & 複数グループ展開構想** | チェキ・チケット代の現場簡易家計簿、カレンダー月間・週別収支集計、マルチグループハブおよび推し活コンパニオンアプリ設計策定 (docs/multi-group-hub...) | 完了 |
 | **Step 11** | **ポータル・ウォレットカードスタック UI 実装** | ルートドメイン（taite.iorin.net）向けスクロールゼロのカードスタック UI、最推しトップ固定、Slide-Over 物理モーション (note/16, ADR-0019) | 完了 |
 | **Step 12** | **サーキット・対バン合同タイテ横断把握 (Cross-Track Signboard)** | 複数並行グループの出番・特典会を単一タイムラインで同時把握するパタパタ案内板風 UI（PatternSignboardDetailed）、タイムラインステッパー、進行押し調整（+5m〜+30m）、公式画像からの全28組56セッション完全データ化 (ADR-0020) | 完了 |
+| **Step 13** | **データ正本の GCS クラウド移行とリアルタイム Intake 同期** | 公開スケジュール JSON (`gs://taite-board-data`) と運用状態 (`gs://taite-board-state`) の GCS 移行、Go 標準ライブラリ GCS クライアント (`internal/gcs`)、Nginx リバースプロキシ配信、`ribonclock-dashboard` スマホ編集フォーム対応、および `taite gcs push/pull` 同期 (ADR-0022) | 完了 |
 
 > **備考**:
 > - ADR-0011 に基づく iOS ネイティブ版（SwiftUI）は、Web との二重保守オーバーヘッド防止のため 2026-11-01 に正式凍結し、コード資産（`apps/ios/`）および作業 Worktree を完全撤去しました。クライアント開発は Preact Web PWA へ一本化されています。

@@ -8,9 +8,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/monitor"
 	"github.com/AobaIwaki123/taite-board/internal/version"
 )
@@ -36,6 +38,21 @@ func main() {
 	ver := version.Get()
 	slog.Info("Starting Ribbon Clock Access Monitor", "version", ver, "logPath", logPath, "intakesPath", intakesPath, "dataDir", dataDir, "statePath", statePath, "dashboardPort", dashboardPort, "metricsPort", metricsPort)
 
+	dataBucket := strings.TrimSpace(os.Getenv("GCS_DATA_BUCKET"))
+	stateBucket := strings.TrimSpace(os.Getenv("GCS_STATE_BUCKET"))
+	var gcsStore gcs.ObjectStore
+	if dataBucket != "" || stateBucket != "" {
+		client, err := gcs.NewClientFromEnv()
+		if err != nil {
+			slog.Warn("Failed to initialize GCS client; falling back to local filesystem", "err", err)
+		} else if client != nil {
+			gcsStore = client
+			slog.Info("GCS Cloud Storage initialized", "dataBucket", dataBucket, "stateBucket", stateBucket)
+		} else {
+			slog.Warn("GCS buckets configured without credentials; falling back to local filesystem")
+		}
+	}
+
 	collector := monitor.NewCollector(ver)
 	if intakesPath != "" {
 		collector.SetIntakesPath(intakesPath)
@@ -46,6 +63,9 @@ func main() {
 	if dataDir != "" {
 		collector.SetDataDir(dataDir)
 	}
+	if gcsStore != nil {
+		collector.SetCloudStorage(gcsStore, dataBucket, stateBucket)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -53,14 +73,19 @@ func main() {
 	// Start log tailer in background
 	go monitor.StartTailer(ctx, logPath, collector)
 
-	handler := monitor.NewHandler(collector)
+	handler := monitor.NewHandlerWithConfig(collector, nil, nil, monitor.HandlerConfig{
+		Store:       gcsStore,
+		DataBucket:  dataBucket,
+		StateBucket: stateBucket,
+	})
 
 	// Dashboard Server (port 8082)
+	// WriteTimeout must exceed Cloud Run AI parser timeout (35s).
 	dashboardServer := &http.Server{
 		Addr:         fmt.Sprintf(":%d", dashboardPort),
 		Handler:      handler,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
 	// Metrics Server (port 9090, separate port for internal Prometheus scraping)

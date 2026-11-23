@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -128,5 +129,39 @@ func TestCollector_PipelineStats(t *testing.T) {
 	}
 	if !strings.Contains(prom, "ribonclock_pipeline_promoted_sessions_total 5") {
 		t.Errorf("missing promoted sessions gauge in prometheus: %s", prom)
+	}
+}
+
+func TestCollector_GCSStatePersistence(t *testing.T) {
+	store := newMemoryObjectStore()
+	c1 := NewCollector("1.0.0")
+	c1.SetCloudStorage(store, "taite-board-data", "taite-board-state")
+
+	c1.AddIntake(candidate.IntakeResult{
+		Source:   "x",
+		SourceID: "778899",
+		Text:     "GCS persisted intake",
+	})
+	c1.IncrementPromoted()
+
+	// Simulate fresh pod restart with no local disk
+	c2 := NewCollector("1.0.0")
+	c2.SetCloudStorage(store, "taite-board-data", "taite-board-state")
+
+	intakes := c2.RecentIntakes()
+	if len(intakes) != 1 || intakes[0].SourceID != "778899" {
+		t.Fatalf("expected 1 intake restored from GCS state bucket, got %+v", intakes)
+	}
+	snap := c2.Snapshot()
+	if !snap.CloudStorageEnabled || snap.DataBucket != "taite-board-data" {
+		t.Errorf("expected cloud storage enabled in snapshot, got %+v", snap)
+	}
+	if snap.Pipeline.PromotedSessions != 1 {
+		t.Errorf("expected promoted sessions 1 restored from GCS, got %d", snap.Pipeline.PromotedSessions)
+	}
+
+	// Verify state exists in store
+	if _, err := store.GetObject(context.Background(), "taite-board-state", "intakes.json"); err != nil {
+		t.Errorf("expected intakes.json in state bucket: %v", err)
 	}
 }

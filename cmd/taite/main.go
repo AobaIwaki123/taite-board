@@ -57,6 +57,8 @@ func main() {
 		}
 	case "update-session":
 		runUpdateSession(os.Args[2:])
+	case "gcs":
+		runGCS(os.Args[2:])
 	case "build":
 		runBuild(os.Args[2:])
 	case "version", "-v", "--version":
@@ -86,6 +88,7 @@ The commands are:
   stats           Display ingestion funnel telemetry, filter metrics, and cost savings
   add-session     Add a new session with auto ID derivation (YYYYMMDD-N) and auto-sort
   update-session  Update session photo rules, notes, official tweet URL, and auto-sync
+  gcs             Push or pull public schedule JSON files with Google Cloud Storage
   build           Build web client bundle via Vite
   version         Print current application version`)
 }

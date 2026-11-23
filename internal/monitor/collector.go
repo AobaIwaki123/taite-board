@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 )
 
@@ -48,9 +50,11 @@ type StatsSnapshot struct {
 	ByRoute        map[string]int64 `json:"by_route"`
 	ByStatus       map[string]int64 `json:"by_status"`
 	Hourly         []HourlyCount   `json:"hourly"`
-	RecentRequests []RequestRecord          `json:"recent_requests"`
-	RecentIntakes  []candidate.IntakeResult `json:"recent_intakes"`
-	Pipeline       telemetry.PipelineStats  `json:"pipeline"`
+	RecentRequests      []RequestRecord          `json:"recent_requests"`
+	RecentIntakes       []candidate.IntakeResult `json:"recent_intakes"`
+	Pipeline            telemetry.PipelineStats  `json:"pipeline"`
+	CloudStorageEnabled bool                     `json:"cloud_storage_enabled"`
+	DataBucket          string                   `json:"data_bucket,omitempty"`
 }
 
 // Collector collects, aggregates, and stores access statistics in memory.
@@ -71,11 +75,15 @@ type Collector struct {
 	maxIntakes    int
 	intakesPath   string
 
-	dataDir            string
-	stateFilePath      string
-	pipelineStats      telemetry.PipelineStats
-	lastPipelineScan   time.Time
-	pipelineScanPeriod time.Duration
+	dataDir             string
+	stateFilePath       string
+	pipelineStats       telemetry.PipelineStats
+	lastPipelineScan    time.Time
+	pipelineScanPeriod  time.Duration
+	stateStore          gcs.ObjectStore
+	dataBucket          string
+	stateBucket         string
+	cloudStorageEnabled bool
 }
 
 // NewCollector creates a new Collector instance.
@@ -158,7 +166,91 @@ func (c *Collector) SetIntakesPath(path string) {
 	}
 }
 
-// AddIntake records an intake result to the recent intakes list and persists it to disk.
+// SetCloudStorage configures GCS backing for schedule metadata and state persistence.
+func (c *Collector) SetCloudStorage(store gcs.ObjectStore, dataBucket, stateBucket string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.stateStore = store
+	c.dataBucket = dataBucket
+	c.stateBucket = stateBucket
+	c.cloudStorageEnabled = store != nil && dataBucket != ""
+
+	if store == nil || stateBucket == "" {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if data, err := store.GetObject(ctx, stateBucket, "intakes.json"); err == nil {
+		var loaded []candidate.IntakeResult
+		if err := json.Unmarshal(data, &loaded); err == nil && len(loaded) > 0 {
+			if len(loaded) > c.maxIntakes {
+				loaded = loaded[:c.maxIntakes]
+			}
+			c.recentIntakes = loaded
+			if c.intakesPath != "" {
+				_ = os.WriteFile(c.intakesPath, data, 0644)
+			}
+		}
+	}
+
+	if data, err := store.GetObject(ctx, stateBucket, "pipeline_state.json"); err == nil {
+		var saved telemetry.PipelineStats
+		if err := json.Unmarshal(data, &saved); err == nil {
+			if saved.AIDispatched > c.pipelineStats.AIDispatched {
+				c.pipelineStats.AIDispatched = saved.AIDispatched
+			}
+			if saved.PromotedSessions > c.pipelineStats.PromotedSessions {
+				c.pipelineStats.PromotedSessions = saved.PromotedSessions
+			}
+			if saved.DetectedPosts > c.pipelineStats.DetectedPosts {
+				c.pipelineStats.DetectedPosts = saved.DetectedPosts
+			}
+			if c.stateFilePath != "" {
+				_ = telemetry.SavePipelineState(c.stateFilePath, c.pipelineStats)
+			}
+		}
+	}
+}
+
+func (c *Collector) persistIntakesLocked() {
+	data, err := json.MarshalIndent(c.recentIntakes, "", "  ")
+	if err != nil {
+		return
+	}
+	if c.intakesPath != "" {
+		_ = os.WriteFile(c.intakesPath, data, 0644)
+	}
+	if c.stateStore != nil && c.stateBucket != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = c.stateStore.PutObject(ctx, c.stateBucket, "intakes.json", "application/json; charset=utf-8", "no-cache, max-age=0", data)
+	}
+}
+
+func (c *Collector) persistPipelineStateLocked() {
+	if c.stateFilePath != "" {
+		_ = telemetry.SavePipelineState(c.stateFilePath, c.pipelineStats)
+	}
+	if c.stateStore != nil && c.stateBucket != "" {
+		if data, err := json.MarshalIndent(c.pipelineStats, "", "  "); err == nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = c.stateStore.PutObject(ctx, c.stateBucket, "pipeline_state.json", "application/json; charset=utf-8", "no-cache, max-age=0", data)
+		}
+	}
+}
+
+// IncrementPromoted increments the promoted sessions counter and persists state.
+func (c *Collector) IncrementPromoted() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.pipelineStats.PromotedSessions++
+	c.persistPipelineStateLocked()
+}
+
+// AddIntake records an intake result to the recent intakes list and persists it to disk and GCS.
 func (c *Collector) AddIntake(res candidate.IntakeResult) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -166,11 +258,7 @@ func (c *Collector) AddIntake(res candidate.IntakeResult) {
 	if len(c.recentIntakes) > c.maxIntakes {
 		c.recentIntakes = c.recentIntakes[:c.maxIntakes]
 	}
-	if c.intakesPath != "" {
-		if data, err := json.MarshalIndent(c.recentIntakes, "", "  "); err == nil {
-			_ = os.WriteFile(c.intakesPath, data, 0644)
-		}
-	}
+	c.persistIntakesLocked()
 }
 
 // UpdateIntakeAIResult updates an existing intake record with Cloud Run AI Vision results.
@@ -209,14 +297,10 @@ func (c *Collector) UpdateIntakeAIResult(sourceID string, cand candidate.EventCa
 
 	// Increment pipeline AI dispatched counter
 	c.pipelineStats.AIDispatched++
-	if c.stateFilePath != "" {
-		_ = telemetry.SavePipelineState(c.stateFilePath, c.pipelineStats)
-	}
+	c.persistPipelineStateLocked()
 
-	if found && c.intakesPath != "" {
-		if data, err := json.MarshalIndent(c.recentIntakes, "", "  "); err == nil {
-			_ = os.WriteFile(c.intakesPath, data, 0644)
-		}
+	if found {
+		c.persistIntakesLocked()
 	}
 }
 
@@ -382,9 +466,11 @@ func (c *Collector) Snapshot() StatsSnapshot {
 		ByRoute:        routes,
 		ByStatus:       statuses,
 		Hourly:         hourlyList,
-		RecentRequests: recentReversed,
-		RecentIntakes:  intakesCopy,
-		Pipeline:       c.pipelineStats,
+		RecentRequests:      recentReversed,
+		RecentIntakes:       intakesCopy,
+		Pipeline:            c.pipelineStats,
+		CloudStorageEnabled: c.cloudStorageEnabled,
+		DataBucket:          c.dataBucket,
 	}
 }
 

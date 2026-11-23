@@ -42,9 +42,6 @@ type rootDoc struct {
 // updates the root generated_at timestamp, writes back formatted JSON, and syncs copies.
 // It preserves unedited sessions as raw bytes to prevent unnecessary key reordering diffs.
 func UpdateSession(opts UpdateSessionOptions) error {
-	if opts.SessionID == "" {
-		return fmt.Errorf("session ID is required")
-	}
 	if opts.FilePath == "" {
 		opts.FilePath = "data/generated/schedule.json"
 	}
@@ -54,9 +51,40 @@ func UpdateSession(opts UpdateSessionOptions) error {
 		return fmt.Errorf("reading schedule file: %w", err)
 	}
 
+	updatedBytes, err := ApplyUpdateSession(raw, opts)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(opts.FilePath, updatedBytes, 0644); err != nil {
+		return fmt.Errorf("writing updated schedule file: %w", err)
+	}
+
+	// Sync to targets if configured
+	if len(opts.SyncTargets) > 0 {
+		if _, err := Sync(opts.FilePath, opts.SyncTargets...); err != nil {
+			return fmt.Errorf("syncing after update: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ApplyUpdateSession updates a session inside schedule JSON bytes and returns formatted JSON bytes.
+func ApplyUpdateSession(raw []byte, opts UpdateSessionOptions) ([]byte, error) {
+	if opts.SessionID == "" {
+		return nil, fmt.Errorf("session ID is required")
+	}
+
 	var doc rootDoc
 	if err := json.Unmarshal(raw, &doc); err != nil {
-		return fmt.Errorf("unmarshaling schedule json: %w", err)
+		return nil, fmt.Errorf("unmarshaling schedule json: %w", err)
+	}
+	if doc.SchemaVersion < 1 {
+		doc.SchemaVersion = 1
+	}
+	if doc.Timezone == "" {
+		doc.Timezone = "Asia/Tokyo"
 	}
 
 	found := false
@@ -110,7 +138,7 @@ func UpdateSession(opts UpdateSessionOptions) error {
 				}
 			}
 
-			// 3. Update Source Tweet URL and Source Refs
+			// 4. Update Source Tweet URL and Source Refs
 			if opts.SourceTweetURL != "" {
 				if opts.UpdateOfficialURL {
 					sMap["source_tweet_url"] = opts.SourceTweetURL
@@ -148,7 +176,7 @@ func UpdateSession(opts UpdateSessionOptions) error {
 			sessEnc.SetEscapeHTML(false)
 			sessEnc.SetIndent("      ", "  ")
 			if err := sessEnc.Encode(sMap); err != nil {
-				return fmt.Errorf("encoding updated session %s: %w", opts.SessionID, err)
+				return nil, fmt.Errorf("encoding updated session %s: %w", opts.SessionID, err)
 			}
 			doc.Sessions[i] = bytes.TrimSpace(sessBuf.Bytes())
 			break
@@ -156,7 +184,7 @@ func UpdateSession(opts UpdateSessionOptions) error {
 	}
 
 	if !found {
-		return fmt.Errorf("session ID '%s' not found in %s", opts.SessionID, opts.FilePath)
+		return nil, fmt.Errorf("session ID '%s' not found", opts.SessionID)
 	}
 
 	// Update root generated_at
@@ -168,19 +196,8 @@ func UpdateSession(opts UpdateSessionOptions) error {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(doc); err != nil {
-		return fmt.Errorf("marshaling updated schedule: %w", err)
+		return nil, fmt.Errorf("marshaling updated schedule: %w", err)
 	}
 
-	if err := os.WriteFile(opts.FilePath, buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("writing updated schedule file: %w", err)
-	}
-
-	// Sync to targets if configured
-	if len(opts.SyncTargets) > 0 {
-		if _, err := Sync(opts.FilePath, opts.SyncTargets...); err != nil {
-			return fmt.Errorf("syncing after update: %w", err)
-		}
-	}
-
-	return nil
+	return buf.Bytes(), nil
 }

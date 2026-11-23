@@ -67,6 +67,16 @@ func ValidateFileWithOptions(filePath string, opts Options) (*ValidationReport, 
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
+	return ValidateBytesWithOptions(data, opts)
+}
+
+// ValidateBytes checks the given schedule JSON bytes against ADR-0001 rules and integrity constraints.
+func ValidateBytes(data []byte) (*ValidationReport, error) {
+	return ValidateBytesWithOptions(data, Options{})
+}
+
+// ValidateBytesWithOptions checks the given schedule JSON bytes with configurable validation options.
+func ValidateBytesWithOptions(data []byte, opts Options) (*ValidationReport, error) {
 
 	var root struct {
 		SchemaVersion int                      `json:"schema_version"`

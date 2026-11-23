@@ -28,9 +28,30 @@ func SortSchedule(filePath string, syncTargets ...string) (int, error) {
 		return 0, fmt.Errorf("reading schedule file: %w", err)
 	}
 
+	sortedBytes, count, err := ApplySortSchedule(raw)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := os.WriteFile(filePath, sortedBytes, 0644); err != nil {
+		return 0, fmt.Errorf("writing sorted schedule file: %w", err)
+	}
+
+	// Sync
+	if len(syncTargets) > 0 {
+		if _, err := Sync(filePath, syncTargets...); err != nil {
+			return 0, fmt.Errorf("syncing sorted schedule: %w", err)
+		}
+	}
+
+	return count, nil
+}
+
+// ApplySortSchedule sorts sessions chronologically in schedule JSON bytes and updates generated_at.
+func ApplySortSchedule(raw []byte) ([]byte, int, error) {
 	var doc rootDoc
 	if err := json.Unmarshal(raw, &doc); err != nil {
-		return 0, fmt.Errorf("unmarshaling schedule json: %w", err)
+		return nil, 0, fmt.Errorf("unmarshaling schedule json: %w", err)
 	}
 
 	keys := make([]sessionSortKey, len(doc.Sessions))
@@ -83,19 +104,8 @@ func SortSchedule(filePath string, syncTargets ...string) (int, error) {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(doc); err != nil {
-		return 0, fmt.Errorf("marshaling sorted schedule: %w", err)
+		return nil, 0, fmt.Errorf("marshaling sorted schedule: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, buf.Bytes(), 0644); err != nil {
-		return 0, fmt.Errorf("writing sorted schedule file: %w", err)
-	}
-
-	// Sync
-	if len(syncTargets) > 0 {
-		if _, err := Sync(filePath, syncTargets...); err != nil {
-			return 0, fmt.Errorf("syncing sorted schedule: %w", err)
-		}
-	}
-
-	return len(doc.Sessions), nil
+	return buf.Bytes(), len(doc.Sessions), nil
 }

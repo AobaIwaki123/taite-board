@@ -5,6 +5,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,15 +14,32 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/source/x"
+	"github.com/AobaIwaki123/taite-board/internal/validate"
 )
 
 //go:embed dashboard.html
 var DashboardHTML []byte
+
+// HandlerConfig configures optional cloud storage backing for the monitor server.
+type HandlerConfig struct {
+	Store       gcs.ObjectStore
+	DataBucket  string
+	StateBucket string
+}
+
+type validationError struct {
+	Errors []string
+}
+
+func (e *validationError) Error() string {
+	return "schedule validation failed: " + strings.Join(e.Errors, "; ")
+}
 
 // PostFetcher defines the interface for retrieving raw post data.
 type PostFetcher interface {
@@ -35,13 +53,37 @@ type IntakeResolver interface {
 
 // Handler creates an http.Handler that serves the dashboard, API, metrics, and intake endpoint.
 func NewHandler(collector *Collector) http.Handler {
-	xClient := x.NewClient(15 * time.Second)
-	res, _ := resolve.NewResolver("")
-	return NewHandlerWithDependencies(collector, xClient, res)
+	dataBucket := strings.TrimSpace(os.Getenv("GCS_DATA_BUCKET"))
+	stateBucket := strings.TrimSpace(os.Getenv("GCS_STATE_BUCKET"))
+	var store gcs.ObjectStore
+	if dataBucket != "" || stateBucket != "" {
+		if client, err := gcs.NewClientFromEnv(); err == nil && client != nil {
+			store = client
+			if collector != nil {
+				collector.SetCloudStorage(store, dataBucket, stateBucket)
+			}
+		}
+	}
+	return NewHandlerWithConfig(collector, nil, nil, HandlerConfig{
+		Store:       store,
+		DataBucket:  dataBucket,
+		StateBucket: stateBucket,
+	})
 }
 
-// NewHandlerWithDependencies provides full dependency injection for testing.
+// NewHandlerWithDependencies provides dependency injection for testing in local filesystem mode.
 func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resolver IntakeResolver) http.Handler {
+	return NewHandlerWithConfig(collector, fetcher, resolver, HandlerConfig{})
+}
+
+// NewHandlerWithConfig provides full dependency and storage injection for testing and production.
+func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver IntakeResolver, cfg HandlerConfig) http.Handler {
+	if fetcher == nil {
+		fetcher = x.NewClient(15 * time.Second)
+	}
+	if resolver == nil {
+		resolver, _ = resolve.NewResolver("")
+	}
 	mux := http.NewServeMux()
 
 	// 1. Dashboard UI
@@ -146,7 +188,95 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		_ = json.NewEncoder(w).Encode(result)
 	})
 
-	// 6. Intake Promote API (Commit candidate to schedule.json)
+	// 5.5 Sessions list API (for selecting patch target session on mobile)
+	mux.HandleFunc("/api/sessions", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		group := normalizeGroupName(r.URL.Query().Get("group"))
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+
+		rawBytes, _, err := readGroupSchedule(ctx, cfg, group)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading schedule for %s: %v", group, err))
+			return
+		}
+
+		var doc struct {
+			CurrentNextID string `json:"current_next_id"`
+			Sessions      []struct {
+				ID    string `json:"id"`
+				Date  string `json:"date"`
+				Title string `json:"title"`
+				Venue struct {
+					Name string `json:"name"`
+				} `json:"venue"`
+				Live struct {
+					StartTime string `json:"start_time"`
+					EndTime   string `json:"end_time"`
+				} `json:"live"`
+				Benefit *struct {
+					StartTime string `json:"start_time"`
+					EndTime   string `json:"end_time"`
+					Booth     string `json:"booth"`
+				} `json:"benefit"`
+				AdmissionBonus string `json:"admission_bonus"`
+				Photo          *struct {
+					Rule string `json:"rule"`
+				} `json:"photo"`
+			} `json:"sessions"`
+		}
+		if err := json.Unmarshal(rawBytes, &doc); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("parsing schedule json: %v", err))
+			return
+		}
+
+		type sessionSummary struct {
+			ID             string `json:"id"`
+			Date           string `json:"date"`
+			Title          string `json:"title"`
+			Venue          string `json:"venue"`
+			LiveStart      string `json:"live_start"`
+			LiveEnd        string `json:"live_end"`
+			BenefitStart   string `json:"benefit_start"`
+			BenefitEnd     string `json:"benefit_end"`
+			AdmissionBonus string `json:"admission_bonus,omitempty"`
+			PhotoRule      string `json:"photo_rule,omitempty"`
+		}
+		items := make([]sessionSummary, 0, len(doc.Sessions))
+		for _, s := range doc.Sessions {
+			item := sessionSummary{
+				ID:             s.ID,
+				Date:           s.Date,
+				Title:          s.Title,
+				Venue:          s.Venue.Name,
+				LiveStart:      s.Live.StartTime,
+				LiveEnd:        s.Live.EndTime,
+				AdmissionBonus: s.AdmissionBonus,
+			}
+			if s.Benefit != nil {
+				item.BenefitStart = s.Benefit.StartTime
+				item.BenefitEnd = s.Benefit.EndTime
+			}
+			if s.Photo != nil {
+				item.PhotoRule = s.Photo.Rule
+			}
+			items = append(items, item)
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"group":           group,
+			"current_next_id": doc.CurrentNextID,
+			"storage":         storageModeLabel(cfg),
+			"sessions":        items,
+		})
+	})
+
+	// 6. Intake Promote API (Commit candidate to GCS or local schedule.json)
 	type promoteRequest struct {
 		Group          string `json:"group"`
 		SourceID       string `json:"source_id"`
@@ -162,6 +292,7 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		Booth          string `json:"booth"`
 		ImageURL       string `json:"image_url"`
 		AdmissionBonus string `json:"admission_bonus"`
+		SpecialNotes   string `json:"special_notes"`
 	}
 
 	mux.HandleFunc("/api/intake/promote", func(w http.ResponseWriter, r *http.Request) {
@@ -176,61 +307,56 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 			return
 		}
 
-		group := strings.TrimSpace(req.Group)
-		if group == "" || group == "all" || group == "rincent" {
-			group = "ribonclock"
-		}
-
-		filePath := "data/generated/schedule.json"
-		var syncTargets []string
-		if group == "ribonclock" {
-			filePath = "data/generated/schedule.json"
-			syncTargets = []string{
-				"apps/web/public/schedule.json",
-				"apps/web/dist/schedule.json",
-				"data/groups/ribonclock/schedule.json",
-				"apps/web/public/data/groups/ribonclock/schedule.json",
-			}
-		} else {
-			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
-			syncTargets = []string{
-				fmt.Sprintf("apps/web/public/data/groups/%s/schedule.json", group),
-				fmt.Sprintf("apps/web/dist/data/groups/%s/schedule.json", group),
-			}
-		}
-
+		group := normalizeGroupName(req.Group)
 		title := strings.TrimSpace(req.Title)
 		if title == "" {
 			title = fmt.Sprintf("ライブ出演 (%s)", req.Date)
 		}
-
 		venue := strings.TrimSpace(req.Venue)
 		if venue == "" {
 			venue = "未定"
 		}
 
-		sessionID, err := schedule.AddSession(schedule.AddSessionOptions{
-			Date:             req.Date,
+		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+		defer cancel()
+
+		currentBytes, _, err := readGroupSchedule(ctx, cfg, group)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading schedule: %v", err))
+			return
+		}
+
+		updatedBytes, sessionID, err := schedule.ApplyAddSession(currentBytes, schedule.AddSessionOptions{
+			Date:             strings.TrimSpace(req.Date),
 			Title:            title,
 			VenueName:        venue,
-			LiveStartTime:    req.LiveStart,
-			LiveEndTime:      req.LiveEnd,
-			BenefitStartTime: req.BenefitStart,
-			BenefitEndTime:   req.BenefitEnd,
-			Booth:            req.Booth,
-			ImageURL:         req.ImageURL,
-			SourceTweetURL:   req.SourceURL,
-			AdmissionBonus:   req.AdmissionBonus,
-			FilePath:         filePath,
-			SyncTargets:      syncTargets,
+			LiveStartTime:    strings.TrimSpace(req.LiveStart),
+			LiveEndTime:      strings.TrimSpace(req.LiveEnd),
+			BenefitStartTime: strings.TrimSpace(req.BenefitStart),
+			BenefitEndTime:   strings.TrimSpace(req.BenefitEnd),
+			Booth:            strings.TrimSpace(req.Booth),
+			ImageURL:         strings.TrimSpace(req.ImageURL),
+			SourceTweetURL:   strings.TrimSpace(req.SourceURL),
+			SpecialNotes:     strings.TrimSpace(req.SpecialNotes),
+			AdmissionBonus:   strings.TrimSpace(req.AdmissionBonus),
 		})
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"error": fmt.Sprintf("failed to add session: %v", err),
-			})
+			writeJSONError(w, http.StatusUnprocessableEntity, fmt.Sprintf("failed to add session: %v", err))
 			return
+		}
+
+		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
+			var vErr *validationError
+			if errors.As(err, &vErr) {
+				writeJSONError(w, http.StatusUnprocessableEntity, vErr.Error())
+				return
+			}
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("saving schedule: %v", err))
+			return
+		}
+
+		if collector != nil {
+			collector.IncrementPromoted()
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -240,21 +366,24 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 			"session_id": sessionID,
 			"group":      group,
 			"domain":     fmt.Sprintf("%s.iorin.net", group),
-			"message":    fmt.Sprintf("Session %s successfully committed to %s.iorin.net", sessionID, group),
+			"storage":    storageModeLabel(cfg),
+			"bucket":     cfg.DataBucket,
+			"message":    fmt.Sprintf("Session %s successfully committed to %s.iorin.net (%s)", sessionID, group, storageModeLabel(cfg)),
 		})
 	})
 
 	// 7. Intake Patch API (Update perks, photo rules, and special notes on an existing session)
 	type patchRequest struct {
-		Group          string `json:"group"`
-		SessionID      string `json:"session_id"`
-		Date           string `json:"date"`
-		AdmissionBonus string `json:"admission_bonus"`
-		PhotoSong      string `json:"photo_song"`
-		PhotoDevice    string `json:"photo_device"`
-		PhotoRule      string `json:"photo_rule"`
-		SpecialNotes   string `json:"special_notes"`
-		SourceURL      string `json:"source_url"`
+		Group             string `json:"group"`
+		SessionID         string `json:"session_id"`
+		Date              string `json:"date"`
+		AdmissionBonus    string `json:"admission_bonus"`
+		PhotoSong         string `json:"photo_song"`
+		PhotoDevice       string `json:"photo_device"`
+		PhotoRule         string `json:"photo_rule"`
+		SpecialNotes      string `json:"special_notes"`
+		SourceURL         string `json:"source_url"`
+		UpdateOfficialURL bool   `json:"update_official_url"`
 	}
 
 	mux.HandleFunc("/api/intake/patch", func(w http.ResponseWriter, r *http.Request) {
@@ -269,37 +398,19 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 			return
 		}
 
-		group := strings.TrimSpace(req.Group)
-		if group == "" || group == "all" || group == "rincent" {
-			group = "ribonclock"
-		}
+		group := normalizeGroupName(req.Group)
+		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+		defer cancel()
 
-		filePath := "data/generated/schedule.json"
-		var syncTargets []string
-		if group == "ribonclock" {
-			filePath = "data/generated/schedule.json"
-			syncTargets = []string{
-				"apps/web/public/schedule.json",
-				"apps/web/dist/schedule.json",
-				"data/groups/ribonclock/schedule.json",
-				"apps/web/public/data/groups/ribonclock/schedule.json",
-			}
-		} else {
-			filePath = fmt.Sprintf("data/groups/%s/schedule.json", group)
-			syncTargets = []string{
-				fmt.Sprintf("apps/web/public/data/groups/%s/schedule.json", group),
-				fmt.Sprintf("apps/web/dist/data/groups/%s/schedule.json", group),
-			}
+		rawBytes, _, err := readGroupSchedule(ctx, cfg, group)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading schedule: %v", err))
+			return
 		}
 
 		// Resolve target Session ID if empty
 		sessionID := strings.TrimSpace(req.SessionID)
 		if sessionID == "" {
-			rawBytes, err := os.ReadFile(filePath)
-			if err != nil {
-				http.Error(w, fmt.Sprintf("reading schedule file: %v", err), http.StatusInternalServerError)
-				return
-			}
 			var schedDoc struct {
 				CurrentNextID string `json:"current_next_id"`
 				Sessions      []struct {
@@ -326,39 +437,43 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 		}
 
 		if sessionID == "" {
-			http.Error(w, "target session not found in schedule", http.StatusNotFound)
+			writeJSONError(w, http.StatusNotFound, "target session not found in schedule")
 			return
 		}
 
-		photoRule := req.PhotoRule
-		if photoRule == "" && req.PhotoSong != "" {
-			photoRule = fmt.Sprintf("撮可: %s", req.PhotoSong)
+		photoRule := strings.TrimSpace(req.PhotoRule)
+		if photoRule == "" && strings.TrimSpace(req.PhotoSong) != "" {
+			photoRule = fmt.Sprintf("撮可: %s", strings.TrimSpace(req.PhotoSong))
 		}
 		var photoAvailable *bool
-		if photoRule != "" || req.PhotoSong != "" {
+		if photoRule != "" || strings.TrimSpace(req.PhotoSong) != "" {
 			t := true
 			photoAvailable = &t
 		}
 
-		err := schedule.UpdateSession(schedule.UpdateSessionOptions{
+		updatedBytes, err := schedule.ApplyUpdateSession(rawBytes, schedule.UpdateSessionOptions{
 			SessionID:         sessionID,
 			PhotoRule:         photoRule,
-			PhotoSong:         req.PhotoSong,
-			PhotoDevice:       req.PhotoDevice,
+			PhotoSong:         strings.TrimSpace(req.PhotoSong),
+			PhotoDevice:       strings.TrimSpace(req.PhotoDevice),
 			PhotoAvailable:    photoAvailable,
-			AdmissionBonus:    req.AdmissionBonus,
-			SpecialNotes:      req.SpecialNotes,
-			SourceTweetURL:    req.SourceURL,
-			UpdateOfficialURL: false,
-			FilePath:          filePath,
-			SyncTargets:       syncTargets,
+			AdmissionBonus:    strings.TrimSpace(req.AdmissionBonus),
+			SpecialNotes:      strings.TrimSpace(req.SpecialNotes),
+			SourceTweetURL:    strings.TrimSpace(req.SourceURL),
+			UpdateOfficialURL: req.UpdateOfficialURL,
 		})
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"error": fmt.Sprintf("failed to update session: %v", err),
-			})
+			writeJSONError(w, http.StatusUnprocessableEntity, fmt.Sprintf("failed to update session: %v", err))
+			return
+		}
+
+		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
+			var vErr *validationError
+			if errors.As(err, &vErr) {
+				writeJSONError(w, http.StatusUnprocessableEntity, vErr.Error())
+				return
+			}
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("saving updated schedule: %v", err))
 			return
 		}
 
@@ -369,6 +484,8 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 			"session_id": sessionID,
 			"group":      group,
 			"domain":     fmt.Sprintf("%s.iorin.net", group),
+			"storage":    storageModeLabel(cfg),
+			"bucket":     cfg.DataBucket,
 			"message":    fmt.Sprintf("Perks & photo regulations updated on session %s (%s.iorin.net)", sessionID, group),
 		})
 	})
@@ -469,4 +586,98 @@ func NewHandlerWithDependencies(collector *Collector, fetcher PostFetcher, resol
 	})
 
 	return mux
+}
+
+func normalizeGroupName(raw string) string {
+	group := strings.TrimSpace(strings.ToLower(raw))
+	if group == "" || group == "all" || group == "rincent" {
+		return "ribonclock"
+	}
+	return group
+}
+
+func scheduleTargetsForGroup(group string) (gcsPrimary string, gcsMirrors []string, localPrimary string, localSyncTargets []string) {
+	if group == "ribonclock" {
+		return "data/groups/ribonclock/schedule.json",
+			[]string{"schedule.json", "mock_schedule.json"},
+			"data/generated/schedule.json",
+			[]string{
+				"apps/web/public/schedule.json",
+				"apps/web/dist/schedule.json",
+				"data/groups/ribonclock/schedule.json",
+				"apps/web/public/data/groups/ribonclock/schedule.json",
+			}
+	}
+	path := fmt.Sprintf("data/groups/%s/schedule.json", group)
+	return path,
+		nil,
+		path,
+		[]string{
+			fmt.Sprintf("apps/web/public/data/groups/%s/schedule.json", group),
+			fmt.Sprintf("apps/web/dist/data/groups/%s/schedule.json", group),
+		}
+}
+
+func storageModeLabel(cfg HandlerConfig) string {
+	if cfg.Store != nil && cfg.DataBucket != "" {
+		return "gcs"
+	}
+	return "local"
+}
+
+func readGroupSchedule(ctx context.Context, cfg HandlerConfig, group string) ([]byte, string, error) {
+	gcsPrimary, _, localPrimary, _ := scheduleTargetsForGroup(group)
+	if cfg.Store != nil && cfg.DataBucket != "" {
+		data, err := cfg.Store.GetObject(ctx, cfg.DataBucket, gcsPrimary)
+		if err == nil {
+			return data, gcsPrimary, nil
+		}
+		if !errors.Is(err, gcs.ErrObjectNotFound) {
+			return nil, gcsPrimary, err
+		}
+	}
+	data, err := os.ReadFile(localPrimary)
+	if err != nil {
+		return nil, localPrimary, err
+	}
+	return data, localPrimary, nil
+}
+
+func writeGroupSchedule(ctx context.Context, cfg HandlerConfig, group string, data []byte) error {
+	report, err := validate.ValidateBytes(data)
+	if err != nil {
+		return fmt.Errorf("validating schedule json: %w", err)
+	}
+	if !report.IsValid {
+		return &validationError{Errors: report.Errors}
+	}
+
+	gcsPrimary, gcsMirrors, localPrimary, localSyncTargets := scheduleTargetsForGroup(group)
+	if cfg.Store != nil && cfg.DataBucket != "" {
+		targets := append([]string{gcsPrimary}, gcsMirrors...)
+		for _, obj := range targets {
+			if err := cfg.Store.PutObject(ctx, cfg.DataBucket, obj, "application/json; charset=utf-8", "no-cache, max-age=0", data); err != nil {
+				return fmt.Errorf("writing %s to gs://%s: %w", obj, cfg.DataBucket, err)
+			}
+		}
+		return nil
+	}
+
+	if err := os.WriteFile(localPrimary, data, 0644); err != nil {
+		return fmt.Errorf("writing local schedule %s: %w", localPrimary, err)
+	}
+	if len(localSyncTargets) > 0 {
+		if _, err := schedule.Sync(localPrimary, localSyncTargets...); err != nil {
+			return fmt.Errorf("syncing local targets: %w", err)
+		}
+	}
+	return nil
+}
+
+func writeJSONError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{
+		"error": msg,
+	})
 }
