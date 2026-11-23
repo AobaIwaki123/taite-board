@@ -155,16 +155,13 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		"prices":   []interface{}{},
 	}
 
-	// Build Source Refs
+	// Build Source Refs & official X Tweet URL (validate requires source_tweet_url to be an X status URL when non-empty)
 	var sourceRefs []map[string]interface{}
-	if opts.SourceTweetURL != "" {
-		matches := statusIDRegex.FindStringSubmatch(opts.SourceTweetURL)
-		if len(matches) > 1 {
-			sourceRefs = append(sourceRefs, map[string]interface{}{
-				"type":      "x_post",
-				"source_id": matches[1],
-				"url":       opts.SourceTweetURL,
-			})
+	officialTweetURL := ""
+	if ref, isX := buildSourceRefFromURL(opts.SourceTweetURL); ref != nil {
+		sourceRefs = append(sourceRefs, ref)
+		if isX {
+			officialTweetURL = strings.TrimSpace(opts.SourceTweetURL)
 		}
 	}
 
@@ -191,7 +188,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		"admission_bonus":  opts.AdmissionBonus,
 		"ticket":           ticket,
 		"image_url":        opts.ImageURL,
-		"source_tweet_url": opts.SourceTweetURL,
+		"source_tweet_url": officialTweetURL,
 		"images":           images,
 		"source_refs":      sourceRefs,
 	}
