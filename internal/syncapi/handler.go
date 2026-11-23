@@ -45,6 +45,7 @@ type Config struct {
 	ProjectID          string
 	APIKey             string
 	AdminHandler       http.Handler
+	AdminHTML          []byte
 	DashboardHTML      []byte
 	HTTPClient         *http.Client
 	IdentityBaseURL    string
@@ -108,8 +109,8 @@ func (h *Handler) Mux() http.Handler {
 	mux.HandleFunc("/api/sync/me", h.handleMe)
 	mux.HandleFunc("/api/sync/data", h.handleSyncData)
 
-	if len(h.cfg.DashboardHTML) > 0 {
-		serveDashboard := func(w http.ResponseWriter, r *http.Request) {
+	serveStaticPage := func(html []byte) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != http.MethodGet && r.Method != http.MethodHead {
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				return
@@ -117,10 +118,21 @@ func (h *Handler) Mux() http.Handler {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-cache")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(h.cfg.DashboardHTML)
+			_, _ = w.Write(html)
 		}
-		mux.HandleFunc("/admin", serveDashboard)
-		mux.HandleFunc("/admin/", serveDashboard)
+	}
+
+	adminPage := h.cfg.AdminHTML
+	if len(adminPage) == 0 {
+		adminPage = h.cfg.DashboardHTML
+	}
+	if len(adminPage) > 0 {
+		mux.HandleFunc("/admin", serveStaticPage(adminPage))
+		mux.HandleFunc("/admin/", serveStaticPage(adminPage))
+	}
+	if len(h.cfg.DashboardHTML) > 0 {
+		mux.HandleFunc("/admin/dashboard", serveStaticPage(h.cfg.DashboardHTML))
+		mux.HandleFunc("/admin/dashboard/", serveStaticPage(h.cfg.DashboardHTML))
 	}
 
 	if h.cfg.AdminHandler != nil {

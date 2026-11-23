@@ -37,24 +37,43 @@ type HourlyCount struct {
 	Count         int64  `json:"count"` // backward compatible alias
 }
 
+// ActivityEntry records a schedule promotion or update and its notification status.
+type ActivityEntry struct {
+	ID                 string `json:"id"`
+	Timestamp          string `json:"timestamp"`
+	Action             string `json:"action"` // "promote" | "patch"
+	Group              string `json:"group"`
+	SessionID          string `json:"session_id"`
+	Date               string `json:"date"`
+	Title              string `json:"title"`
+	Venue              string `json:"venue,omitempty"`
+	Summary            string `json:"summary"`
+	SourceURL          string `json:"source_url,omitempty"`
+	Domain             string `json:"domain"`
+	NotificationStatus string `json:"notification_status"` // "sent" | "skipped_unconfigured" | "failed" | "pending"
+	NotificationDetail string `json:"notification_detail,omitempty"`
+}
+
 // StatsSnapshot contains full aggregated metrics for API and Dashboard.
 type StatsSnapshot struct {
-	Version        string          `json:"version"`
-	UptimeSeconds  int64           `json:"uptime_seconds"`
-	TotalRequests  int64           `json:"total_requests"`
-	TodayRequests  int64           `json:"today_requests"`
-	TotalPageViews int64           `json:"total_page_views"`
-	TodayPageViews int64           `json:"today_page_views"`
-	LastHourCount  int64           `json:"last_hour_count"`
-	ErrorRate      float64         `json:"error_rate"`
-	ByRoute        map[string]int64 `json:"by_route"`
-	ByStatus       map[string]int64 `json:"by_status"`
-	Hourly         []HourlyCount   `json:"hourly"`
-	RecentRequests      []RequestRecord          `json:"recent_requests"`
-	RecentIntakes       []candidate.IntakeResult `json:"recent_intakes"`
-	Pipeline            telemetry.PipelineStats  `json:"pipeline"`
-	CloudStorageEnabled bool                     `json:"cloud_storage_enabled"`
-	DataBucket          string                   `json:"data_bucket,omitempty"`
+	Version              string                   `json:"version"`
+	UptimeSeconds        int64                    `json:"uptime_seconds"`
+	TotalRequests        int64                    `json:"total_requests"`
+	TodayRequests        int64                    `json:"today_requests"`
+	TotalPageViews       int64                    `json:"total_page_views"`
+	TodayPageViews       int64                    `json:"today_page_views"`
+	LastHourCount        int64                    `json:"last_hour_count"`
+	ErrorRate            float64                  `json:"error_rate"`
+	ByRoute              map[string]int64         `json:"by_route"`
+	ByStatus             map[string]int64         `json:"by_status"`
+	Hourly               []HourlyCount            `json:"hourly"`
+	RecentRequests       []RequestRecord          `json:"recent_requests"`
+	RecentIntakes        []candidate.IntakeResult `json:"recent_intakes"`
+	RecentActivities     []ActivityEntry          `json:"recent_activities"`
+	Pipeline             telemetry.PipelineStats  `json:"pipeline"`
+	CloudStorageEnabled  bool                     `json:"cloud_storage_enabled"`
+	DataBucket           string                   `json:"data_bucket,omitempty"`
+	DiscordNotifyEnabled bool                     `json:"discord_notify_enabled"`
 }
 
 // Collector collects, aggregates, and stores access statistics in memory.
@@ -74,6 +93,11 @@ type Collector struct {
 	recentIntakes []candidate.IntakeResult // ring buffer (max 20)
 	maxIntakes    int
 	intakesPath   string
+
+	recentActivities     []ActivityEntry // ring buffer (max 30)
+	maxActivities        int
+	activitiesPath       string
+	discordNotifyEnabled bool
 
 	dataDir             string
 	stateFilePath       string
@@ -100,8 +124,17 @@ func NewCollector(version string) *Collector {
 		maxRecent:          50,
 		recentIntakes:      make([]candidate.IntakeResult, 0, 20),
 		maxIntakes:         20,
+		recentActivities:   make([]ActivityEntry, 0, 30),
+		maxActivities:      30,
 		pipelineScanPeriod: 10 * time.Second,
 	}
+}
+
+// SetDiscordNotifyEnabled records whether Discord webhook notifications are configured.
+func (c *Collector) SetDiscordNotifyEnabled(enabled bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.discordNotifyEnabled = enabled
 }
 
 // SetDataDir sets the repository data directory for reading pipeline telemetry.
@@ -195,6 +228,19 @@ func (c *Collector) SetCloudStorage(store gcs.ObjectStore, dataBucket, stateBuck
 		}
 	}
 
+	if data, err := store.GetObject(ctx, stateBucket, "activities.json"); err == nil {
+		var loaded []ActivityEntry
+		if err := json.Unmarshal(data, &loaded); err == nil && len(loaded) > 0 {
+			if len(loaded) > c.maxActivities {
+				loaded = loaded[:c.maxActivities]
+			}
+			c.recentActivities = loaded
+			if c.activitiesPath != "" {
+				_ = os.WriteFile(c.activitiesPath, data, 0644)
+			}
+		}
+	}
+
 	if data, err := store.GetObject(ctx, stateBucket, "pipeline_state.json"); err == nil {
 		var saved telemetry.PipelineStats
 		if err := json.Unmarshal(data, &saved); err == nil {
@@ -240,6 +286,55 @@ func (c *Collector) persistPipelineStateLocked() {
 			_ = c.stateStore.PutObject(ctx, c.stateBucket, "pipeline_state.json", "application/json; charset=utf-8", "no-cache, max-age=0", data)
 		}
 	}
+}
+
+func (c *Collector) persistActivitiesLocked() {
+	data, err := json.MarshalIndent(c.recentActivities, "", "  ")
+	if err != nil {
+		return
+	}
+	if c.activitiesPath != "" {
+		_ = os.WriteFile(c.activitiesPath, data, 0644)
+	}
+	if c.stateStore != nil && c.stateBucket != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = c.stateStore.PutObject(ctx, c.stateBucket, "activities.json", "application/json; charset=utf-8", "no-cache, max-age=0", data)
+	}
+}
+
+// RecordActivity prepends a schedule activity entry and persists it to disk and GCS.
+func (c *Collector) RecordActivity(entry ActivityEntry) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.recentActivities = append([]ActivityEntry{entry}, c.recentActivities...)
+	if len(c.recentActivities) > c.maxActivities {
+		c.recentActivities = c.recentActivities[:c.maxActivities]
+	}
+	c.persistActivitiesLocked()
+}
+
+// UpdateActivityNotificationStatus updates notification status/detail on a recorded activity entry.
+func (c *Collector) UpdateActivityNotificationStatus(id, status, detail string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for i := range c.recentActivities {
+		if c.recentActivities[i].ID == id {
+			c.recentActivities[i].NotificationStatus = status
+			c.recentActivities[i].NotificationDetail = detail
+			c.persistActivitiesLocked()
+			return
+		}
+	}
+}
+
+// RecentActivities returns a copy of recent schedule activity entries.
+func (c *Collector) RecentActivities() []ActivityEntry {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	out := make([]ActivityEntry, len(c.recentActivities))
+	copy(out, c.recentActivities)
+	return out
 }
 
 // IncrementPromoted increments the promoted sessions counter and persists state.
@@ -454,23 +549,29 @@ func (c *Collector) Snapshot() StatsSnapshot {
 	intakesCopy := make([]candidate.IntakeResult, len(c.recentIntakes))
 	copy(intakesCopy, c.recentIntakes)
 
+	// Clone recent activities
+	activitiesCopy := make([]ActivityEntry, len(c.recentActivities))
+	copy(activitiesCopy, c.recentActivities)
+
 	return StatsSnapshot{
-		Version:        c.version,
-		UptimeSeconds:  int64(time.Since(c.startTime).Seconds()),
-		TotalRequests:  c.totalRequests,
-		TodayRequests:  todayCount,
-		TotalPageViews: c.byRoute["document"],
-		TodayPageViews: todayPV,
-		LastHourCount:  c.hourly[lastHourKey],
-		ErrorRate:      errorRate,
-		ByRoute:        routes,
-		ByStatus:       statuses,
-		Hourly:         hourlyList,
-		RecentRequests:      recentReversed,
-		RecentIntakes:       intakesCopy,
-		Pipeline:            c.pipelineStats,
-		CloudStorageEnabled: c.cloudStorageEnabled,
-		DataBucket:          c.dataBucket,
+		Version:              c.version,
+		UptimeSeconds:        int64(time.Since(c.startTime).Seconds()),
+		TotalRequests:        c.totalRequests,
+		TodayRequests:        todayCount,
+		TotalPageViews:       c.byRoute["document"],
+		TodayPageViews:       todayPV,
+		LastHourCount:        c.hourly[lastHourKey],
+		ErrorRate:            errorRate,
+		ByRoute:              routes,
+		ByStatus:             statuses,
+		Hourly:               hourlyList,
+		RecentRequests:       recentReversed,
+		RecentIntakes:        intakesCopy,
+		RecentActivities:     activitiesCopy,
+		Pipeline:             c.pipelineStats,
+		CloudStorageEnabled:  c.cloudStorageEnabled,
+		DataBucket:           c.dataBucket,
+		DiscordNotifyEnabled: c.discordNotifyEnabled,
 	}
 }
 
