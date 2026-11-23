@@ -17,6 +17,10 @@ func FormatDiscordNotification(entry ActivityEntry) string {
 	switch entry.Action {
 	case "patch":
 		actionLabel = "ライブ情報更新"
+	case "intake_start":
+		actionLabel = "[開始] リンク取得・解析開始"
+	case "promote_start":
+		actionLabel = "[開始] カレンダー登録・更新開始"
 	case "intake_error":
 		actionLabel = "[失敗] リンク取得・解析エラー"
 	case "promote_error":

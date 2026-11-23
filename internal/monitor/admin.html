@@ -430,6 +430,20 @@
       return cachedSessions[cachedSessions.length - 1].id;
     }
 
+    function notifyStart(action, title, summary, sourceUrl) {
+      apiFetch('/notify/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          group: currentGroup,
+          title: title || '',
+          summary: summary || '',
+          source_url: sourceUrl || ''
+        })
+      }).catch(() => {});
+    }
+
     async function handleBatchIntake(e) {
       e.preventDefault();
       const textarea = document.getElementById('intake-urls');
@@ -444,7 +458,7 @@
 
       const uniqueUrls = Array.from(new Set(lines));
       if (uniqueUrls.length === 0) {
-        errBox.innerText = 'X ポストの URL を1つ以上入力してください。';
+        errBox.innerText = 'X ポストまたは TimeTree の URL を1つ以上入力してください。';
         errBox.style.display = 'block';
         return;
       }
@@ -455,6 +469,7 @@
       }
 
       btn.disabled = true;
+      notifyStart('intake_start', '一括リンク取り込み', uniqueUrls.length + '件のURLを取得・解析開始', uniqueUrls[0]);
       const startIndex = intakeQueue.length;
       for (const u of uniqueUrls) {
         intakeQueue.push({
@@ -640,19 +655,24 @@
 
     async function commitAllReady() {
       const btn = document.getElementById('btn-batch-commit');
-      if (btn) btn.disabled = true;
       const targets = intakeQueue.filter(q => q.status === 'ready');
+      if (targets.length === 0) return;
+      if (btn) btn.disabled = true;
+      notifyStart('promote_start', '一括カレンダー反映', targets.length + '件の登録・更新処理を開始');
       for (const entry of targets) {
-        await commitQueueItem(entry.qid);
+        await commitQueueItem(entry.qid, true);
       }
       if (btn) btn.disabled = false;
     }
 
-    async function commitQueueItem(qid) {
+    async function commitQueueItem(qid, fromBatch = false) {
       const entry = intakeQueue.find(q => q.qid === qid);
       if (!entry || !entry.form) return;
 
       const f = entry.form;
+      if (!fromBatch) {
+        notifyStart('promote_start', f.isPatch ? '既存ライブ更新' : (f.title || f.date || '新規ライブ登録'), (f.isPatch ? '特典・撮可情報を反映開始' : 'カレンダーへ登録開始'), entry.item?.url || '');
+      }
       const errEl = document.getElementById('q-err-' + qid);
       const btn = document.getElementById('q-commit-btn-' + qid);
       if (errEl) errEl.style.display = 'none';
@@ -979,9 +999,12 @@
           } else {
             listEl.innerHTML = acts.map(a => {
               const isPatch = a.action === 'patch';
+              const isStart = String(a.action || '').endsWith('_start');
               const isErr = String(a.action || '').endsWith('_error');
               const actionBadge = isErr
                 ? `<span class="badge badge-err">${a.action === 'intake_error' ? '取得失敗' : a.action === 'patch_error' ? '更新失敗' : '登録失敗'}</span>`
+                : isStart
+                ? `<span class="badge badge-info">${a.action === 'promote_start' ? '登録開始' : '取得開始'}</span>`
                 : isPatch
                 ? '<span class="badge badge-warn">情報更新</span>'
                 : '<span class="badge badge-ok">新規追加</span>';
@@ -995,7 +1018,7 @@
                 : '-';
 
               return `
-                <div class="activity-item ${isPatch ? 'patch' : ''}" style="${isErr ? 'border-left-color:#f43f5e; background:rgba(244,63,94,0.06);' : ''}">
+                <div class="activity-item ${isPatch ? 'patch' : ''}" style="${isErr ? 'border-left-color:#f43f5e; background:rgba(244,63,94,0.06);' : isStart ? 'border-left-color:#38bdf8;' : ''}">
                   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                       ${actionBadge}

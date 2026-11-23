@@ -787,3 +787,42 @@ func TestServer_FailureNotifications_IntakeAndPromote(t *testing.T) {
 		t.Errorf("unexpected recorded failure activities: %+v", acts)
 	}
 }
+
+func TestServer_NotifyStart(t *testing.T) {
+	var mu sync.Mutex
+	var payloads []string
+	webhookSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		payloads = append(payloads, string(b))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer webhookSrv.Close()
+
+	collector := NewCollector("test-v1")
+	handler := NewHandlerWithConfig(collector, &mockFetcher{}, &mockResolver{}, HandlerConfig{
+		WebhookURL:       webhookSrv.URL,
+		NotifyHTTPClient: webhookSrv.Client(),
+		NotifySync:       true,
+	})
+
+	body, _ := json.Marshal(map[string]string{
+		"action":     "intake_start",
+		"group":      "ribonclock",
+		"title":      "一括リンク取り込み",
+		"summary":    "4件のURLを取得・解析開始",
+		"source_url": "https://x.com/Ribbon_Clock/status/123",
+	})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/notify/start", bytes.NewReader(body)))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(payloads) != 1 || !strings.Contains(payloads[0], "リンク取得・解析開始") || !strings.Contains(payloads[0], "4件のURLを取得・解析開始") {
+		t.Fatalf("unexpected start notification payload: %v", payloads)
+	}
+}
