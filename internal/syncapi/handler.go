@@ -31,21 +31,26 @@ const (
 	defaultGoogleCertsURL     = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
 	internalEmailDomain       = "users.taite.local"
 	maxSyncPayloadBytes       = 1024 * 1024 // 1 MiB safety bound per user sync file
+	RoleUser                  = "user"
+	RoleAdmin                 = "admin"
+	RolesObjectPath           = "auth/roles.json"
 )
 
 var userIDRegex = regexp.MustCompile(`^[a-z0-9._-]{3,32}$`)
 
 // Config holds dependencies and configuration for the user sync API server.
 type Config struct {
-	Store               gcs.ObjectStore
-	StateBucket         string
-	ProjectID           string
-	APIKey              string
-	HTTPClient          *http.Client
-	IdentityBaseURL     string
-	SecureTokenBaseURL  string
-	GoogleCertsURL      string
-	NowFunc             func() time.Time
+	Store              gcs.ObjectStore
+	StateBucket        string
+	ProjectID          string
+	APIKey             string
+	AdminHandler       http.Handler
+	DashboardHTML      []byte
+	HTTPClient         *http.Client
+	IdentityBaseURL    string
+	SecureTokenBaseURL string
+	GoogleCertsURL     string
+	NowFunc            func() time.Time
 }
 
 // SyncPayload represents the per-user expense and attendance data persisted in GCS.
@@ -90,7 +95,7 @@ func NewHandler(cfg Config) *Handler {
 	}
 }
 
-// Mux returns an http.Handler routing /api/sync/* endpoints.
+// Mux returns an http.Handler routing /api/sync/* and RBAC-protected /admin endpoints.
 func (h *Handler) Mux() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +105,32 @@ func (h *Handler) Mux() http.Handler {
 	mux.HandleFunc("/api/sync/register", h.handleAuthAction("accounts:signUp"))
 	mux.HandleFunc("/api/sync/login", h.handleAuthAction("accounts:signInWithPassword"))
 	mux.HandleFunc("/api/sync/refresh", h.handleRefresh)
+	mux.HandleFunc("/api/sync/me", h.handleMe)
 	mux.HandleFunc("/api/sync/data", h.handleSyncData)
+
+	if len(h.cfg.DashboardHTML) > 0 {
+		serveDashboard := func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(h.cfg.DashboardHTML)
+		}
+		mux.HandleFunc("/admin", serveDashboard)
+		mux.HandleFunc("/admin/", serveDashboard)
+	}
+
+	if h.cfg.AdminHandler != nil {
+		mux.Handle("/api/admin/", h.requireAdmin(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r2 := r.Clone(r.Context())
+			r2.URL.Path = "/api/" + strings.TrimPrefix(r.URL.Path, "/api/admin/")
+			h.cfg.AdminHandler.ServeHTTP(w, r2)
+		})))
+	}
+
 	return mux
 }
 
@@ -120,6 +150,7 @@ type authRequest struct {
 
 type authResponse struct {
 	UserID       string `json:"user_id"`
+	Role         string `json:"role"`
 	IDToken      string `json:"id_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    string `json:"expires_in"`
@@ -190,6 +221,7 @@ func (h *Handler) handleAuthAction(action string) http.HandlerFunc {
 		}
 
 		var idResp struct {
+			LocalID      string `json:"localId"`
 			IDToken      string `json:"idToken"`
 			RefreshToken string `json:"refreshToken"`
 			ExpiresIn    string `json:"expiresIn"`
@@ -199,8 +231,11 @@ func (h *Handler) handleAuthAction(action string) http.HandlerFunc {
 			return
 		}
 
+		role := h.ResolveRole(r.Context(), idResp.LocalID, userID)
+
 		writeJSON(w, http.StatusOK, authResponse{
 			UserID:       userID,
+			Role:         role,
 			IDToken:      idResp.IDToken,
 			RefreshToken: idResp.RefreshToken,
 			ExpiresIn:    idResp.ExpiresIn,
@@ -275,6 +310,76 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) authenticateRequest(r *http.Request) (uid, userID string, ok bool) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return "", "", false
+	}
+	rawToken := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	uid, userID, err := h.VerifyIDToken(r.Context(), rawToken)
+	if err != nil {
+		return "", "", false
+	}
+	return uid, userID, true
+}
+
+func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	uid, userID, ok := h.authenticateRequest(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "トークンが無効または期限切れです")
+		return
+	}
+	role := h.ResolveRole(r.Context(), uid, userID)
+	writeJSON(w, http.StatusOK, map[string]string{
+		"user_id": userID,
+		"uid":     uid,
+		"role":    role,
+	})
+}
+
+func (h *Handler) requireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		uid, userID, ok := h.authenticateRequest(r)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "認証トークンが無効または期限切れです")
+			return
+		}
+		if h.ResolveRole(r.Context(), uid, userID) != RoleAdmin {
+			writeError(w, http.StatusForbidden, "管理者権限 (admin ロール) が必要です")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// ResolveRole resolves the role ("user" or "admin") from gs://<state_bucket>/auth/roles.json.
+func (h *Handler) ResolveRole(ctx context.Context, uid, userID string) string {
+	if h.cfg.Store == nil || h.cfg.StateBucket == "" {
+		return RoleUser
+	}
+	data, err := h.cfg.Store.GetObject(ctx, h.cfg.StateBucket, RolesObjectPath)
+	if err != nil {
+		return RoleUser
+	}
+	var doc struct {
+		Roles map[string]string `json:"roles"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil || doc.Roles == nil {
+		return RoleUser
+	}
+	if userID != "" && strings.EqualFold(strings.TrimSpace(doc.Roles[strings.ToLower(userID)]), RoleAdmin) {
+		return RoleAdmin
+	}
+	if uid != "" && strings.EqualFold(strings.TrimSpace(doc.Roles[uid]), RoleAdmin) {
+		return RoleAdmin
+	}
+	return RoleUser
+}
+
 func (h *Handler) handleSyncData(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodPut {
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -285,15 +390,8 @@ func (h *Handler) handleSyncData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		writeError(w, http.StatusUnauthorized, "認証トークンが必要です")
-		return
-	}
-	rawToken := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-
-	uid, err := h.VerifyIDToken(r.Context(), rawToken)
-	if err != nil {
+	uid, _, ok := h.authenticateRequest(r)
+	if !ok {
 		writeError(w, http.StatusUnauthorized, "トークンが無効または期限切れです")
 		return
 	}
@@ -370,76 +468,82 @@ func userSyncObjectPath(uid string) string {
 	return "users/" + hex.EncodeToString(sum[:]) + "/sync.json"
 }
 
-// VerifyIDToken validates a Google Identity Platform JWT (RS256) and returns the subject UID.
-func (h *Handler) VerifyIDToken(ctx context.Context, idToken string) (string, error) {
+// VerifyIDToken validates a Google Identity Platform JWT (RS256) and returns the subject UID and derived userID.
+func (h *Handler) VerifyIDToken(ctx context.Context, idToken string) (string, string, error) {
 	parts := strings.Split(idToken, ".")
 	if len(parts) != 3 {
-		return "", fmt.Errorf("malformed jwt")
+		return "", "", fmt.Errorf("malformed jwt")
 	}
 
 	headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return "", fmt.Errorf("decoding jwt header: %w", err)
+		return "", "", fmt.Errorf("decoding jwt header: %w", err)
 	}
 	var header struct {
 		Alg string `json:"alg"`
 		Kid string `json:"kid"`
 	}
 	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		return "", fmt.Errorf("parsing jwt header: %w", err)
+		return "", "", fmt.Errorf("parsing jwt header: %w", err)
 	}
 	if header.Alg != "RS256" || header.Kid == "" {
-		return "", fmt.Errorf("unsupported jwt header alg=%s kid=%s", header.Alg, header.Kid)
+		return "", "", fmt.Errorf("unsupported jwt header alg=%s kid=%s", header.Alg, header.Kid)
 	}
 
 	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", fmt.Errorf("decoding jwt claims: %w", err)
+		return "", "", fmt.Errorf("decoding jwt claims: %w", err)
 	}
 	var claims struct {
-		Aud string `json:"aud"`
-		Iss string `json:"iss"`
-		Sub string `json:"sub"`
-		Exp int64  `json:"exp"`
-		Iat int64  `json:"iat"`
+		Aud   string `json:"aud"`
+		Iss   string `json:"iss"`
+		Sub   string `json:"sub"`
+		Email string `json:"email"`
+		Exp   int64  `json:"exp"`
+		Iat   int64  `json:"iat"`
 	}
 	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
-		return "", fmt.Errorf("parsing jwt claims: %w", err)
+		return "", "", fmt.Errorf("parsing jwt claims: %w", err)
 	}
 
 	nowUnix := h.cfg.NowFunc().Unix()
 	expectedIss := "https://securetoken.google.com/" + h.cfg.ProjectID
 	if claims.Aud != h.cfg.ProjectID {
-		return "", fmt.Errorf("unexpected aud: %s", claims.Aud)
+		return "", "", fmt.Errorf("unexpected aud: %s", claims.Aud)
 	}
 	if claims.Iss != expectedIss {
-		return "", fmt.Errorf("unexpected iss: %s", claims.Iss)
+		return "", "", fmt.Errorf("unexpected iss: %s", claims.Iss)
 	}
 	if claims.Sub == "" {
-		return "", fmt.Errorf("empty sub")
+		return "", "", fmt.Errorf("empty sub")
 	}
 	if claims.Exp <= nowUnix {
-		return "", fmt.Errorf("token expired")
+		return "", "", fmt.Errorf("token expired")
 	}
 	if claims.Iat > nowUnix+300 {
-		return "", fmt.Errorf("token issued in future")
+		return "", "", fmt.Errorf("token issued in future")
 	}
 
 	pubKey, err := h.getPublicKey(ctx, header.Kid)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("decoding jwt signature: %w", err)
+		return "", "", fmt.Errorf("decoding jwt signature: %w", err)
 	}
 	digest := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
 	if err := rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, digest[:], sigBytes); err != nil {
-		return "", fmt.Errorf("invalid jwt signature: %w", err)
+		return "", "", fmt.Errorf("invalid jwt signature: %w", err)
 	}
 
-	return claims.Sub, nil
+	userID := ""
+	if suffix := "@" + internalEmailDomain; strings.HasSuffix(strings.ToLower(claims.Email), suffix) {
+		userID = strings.TrimSuffix(strings.ToLower(claims.Email), suffix)
+	}
+
+	return claims.Sub, userID, nil
 }
 
 func (h *Handler) getPublicKey(ctx context.Context, kid string) (*rsa.PublicKey, error) {

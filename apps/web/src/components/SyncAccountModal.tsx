@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Icon } from './Icon';
-import { Cloud, LogIn, LogOut, RefreshCw, User, X } from '../utils/icons';
+import { Cloud, LogIn, LogOut, RefreshCw, SlidersHorizontal, User, X } from '../utils/icons';
 import {
   SyncSession,
   authenticateSyncAccount,
@@ -112,9 +112,16 @@ export function SyncAccountModal({
                   <Icon icon={User} class="w-4 h-4 text-emerald-400" />
                   <span>{session.userId}</span>
                 </div>
-                <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">
-                  同期有効
-                </span>
+                <div class="flex items-center gap-1.5">
+                  {session.role === 'admin' && (
+                    <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30">
+                      admin
+                    </span>
+                  )}
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-bold">
+                    同期有効
+                  </span>
+                </div>
               </div>
               <div class="text-xs text-stone-400">
                 最終同期: {session.lastSyncedAt ? new Date(session.lastSyncedAt).toLocaleString('ja-JP') : '未同期'}
@@ -152,6 +159,16 @@ export function SyncAccountModal({
                 <span>ログアウト</span>
               </button>
             </div>
+
+            {session.role === 'admin' && (
+              <a
+                href="/admin"
+                class="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/35 text-rose-200 font-bold text-xs"
+              >
+                <Icon icon={SlidersHorizontal} class="w-4 h-4" />
+                <span>管理ダッシュボードを開く (/admin)</span>
+              </a>
+            )}
 
             <p class="text-xs text-stone-400 leading-relaxed">
               別のスマホ・PC で同じユーザーIDとパスワードでログインすると、家計簿と参戦チェックが自動的にマージされます。ログアウトしても端末内の記録は消えません。

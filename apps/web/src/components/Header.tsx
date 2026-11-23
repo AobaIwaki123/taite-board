@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { getFreshnessInfo } from '../utils/date';
 import { Icon } from './Icon';
-import { Cloud } from '../utils/icons';
+import { Cloud, SlidersHorizontal } from '../utils/icons';
+import type { SyncRole } from '../utils/sync';
 
 interface HeaderProps {
   onLogoClick: () => void;
@@ -10,6 +11,7 @@ interface HeaderProps {
   title?: string;
   logoText?: string;
   syncUserId?: string | null;
+  syncRole?: SyncRole | null;
   isSyncing?: boolean;
   onOpenSyncModal?: () => void;
 }
@@ -21,6 +23,7 @@ export function Header({
   title = 'リボンクロック',
   logoText = '🎀',
   syncUserId,
+  syncRole,
   isSyncing = false,
   onOpenSyncModal,
 }: HeaderProps) {
@@ -61,6 +64,17 @@ export function Header({
             <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             <span>{freshnessLabel}</span>
           </div>
+        )}
+        {syncRole === 'admin' && (
+          <a
+            href="/admin"
+            class="flex items-center gap-1 h-8 px-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 active:scale-95 text-rose-300 border border-rose-500/35 text-xs font-bold transition-all duration-150"
+            title="管理ダッシュボードを開く"
+            aria-label="管理ダッシュボードを開く"
+          >
+            <Icon icon={SlidersHorizontal} class="w-3.5 h-3.5" />
+            <span>管理</span>
+          </a>
         )}
         {onOpenSyncModal && (
           <button
