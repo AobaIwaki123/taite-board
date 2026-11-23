@@ -4,8 +4,14 @@ import { loadScheduleData } from './state';
 import { resolveCurrentGroup, GroupConfig, isPortalMode } from './config/group';
 import { updatePageMetadata } from './utils/meta';
 import { resolveNextSession } from './utils/date';
-import { getAttendedSessionIds, toggleAttendedSessionId } from './utils/attendance';
+import { getAttendedSessionIds, toggleAttendedSessionId, setAttendedSessionIds as persistAttendedIds } from './utils/attendance';
 import { getSessionDelayOffset, setSessionDelayOffset } from './utils/delay';
+import {
+  SyncSession,
+  getSyncSession,
+  syncWithCloud,
+  pushLocalToCloud,
+} from './utils/sync';
 import { Header } from './components/Header';
 import { Navigation, TabName } from './components/Navigation';
 import { CockpitView } from './components/CockpitView';
@@ -14,6 +20,7 @@ import { CalendarView } from './components/CalendarView';
 import { LightboxModal } from './components/LightboxModal';
 import { PortalView } from './components/PortalView';
 import { LiveCrossTrackView } from './components/LiveCrossTrackView';
+import { SyncAccountModal } from './components/SyncAccountModal';
 
 function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
   if (typeof window === 'undefined') return { isLive: false };
@@ -90,6 +97,12 @@ function ScheduleApp() {
   const [attendedSessionIds, setAttendedSessionIds] = useState<string[]>([]);
   const [delayOffsets, setDelayOffsets] = useState<{ [id: string]: number }>({});
   const [now, setNow] = useState(new Date());
+  const [syncSession, setSyncSession] = useState<SyncSession | null>(() => getSyncSession());
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncRevision, setSyncRevision] = useState(0);
+  const syncTimerRef = useRef<number | null>(null);
   const isProgrammaticRef = useRef(false);
   const programmaticTimerRef = useRef<number | null>(null);
 
@@ -121,11 +134,48 @@ function ScheduleApp() {
         console.warn('Initial load fallback', err);
         setIsFallback(true);
       });
+
+    if (getSyncSession()) {
+      setIsSyncing(true);
+      syncWithCloud()
+        .then(({ session: updated, attended }) => {
+          setSyncSession(updated);
+          setAttendedSessionIds(persistAttendedIds(attended));
+          setSyncRevision((r) => r + 1);
+          setSyncError(null);
+        })
+        .catch((err) => {
+          setSyncError(err instanceof Error ? err.message : '同期に失敗しました');
+          setSyncSession(getSyncSession());
+        })
+        .finally(() => setIsSyncing(false));
+    }
   }, []);
+
+  const scheduleCloudPush = () => {
+    if (!getSyncSession()) return;
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+    syncTimerRef.current = window.setTimeout(() => {
+      setIsSyncing(true);
+      pushLocalToCloud()
+        .then((updated) => {
+          if (updated) setSyncSession(updated);
+          setSyncError(null);
+        })
+        .catch((err) => {
+          setSyncError(err instanceof Error ? err.message : 'クラウド同期に失敗しました');
+          setSyncSession(getSyncSession());
+        })
+        .finally(() => setIsSyncing(false));
+    }, 800);
+  };
 
   const handleToggleAttended = (sessionId: string) => {
     const updated = toggleAttendedSessionId(sessionId);
     setAttendedSessionIds(updated);
+    scheduleCloudPush();
   };
 
   const handleChangeDelay = (sessionId: string, minutes: number) => {
@@ -220,6 +270,9 @@ function ScheduleApp() {
           generatedAt={data.generated_at}
           title={group.name}
           logoText={group.logoText}
+          syncUserId={syncSession?.userId || null}
+          isSyncing={isSyncing}
+          onOpenSyncModal={() => setIsSyncModalOpen(true)}
         />
 
         {/* 3画面スライドカルーセル */}
@@ -247,6 +300,13 @@ function ScheduleApp() {
                 onResetToNextLive={handleResetToNextLive}
                 onBackToList={() => scrollToTab(previousTab)}
                 onOpenLightbox={() => setIsLightboxOpen(true)}
+                syncRevision={syncRevision}
+                syncUserId={syncSession?.userId || null}
+                onExpenseChanged={() => {
+                  setSyncRevision((r) => r + 1);
+                  scheduleCloudPush();
+                }}
+                onOpenSyncModal={() => setIsSyncModalOpen(true)}
               />
             )}
           </section>
@@ -288,6 +348,31 @@ function ScheduleApp() {
         currentIndex={selectedImageIndex}
         onSelectIndex={setSelectedImageIndex}
         onClose={() => setIsLightboxOpen(false)}
+      />
+
+      {/* 家計簿・参戦チェック同期モーダル */}
+      <SyncAccountModal
+        isOpen={isSyncModalOpen}
+        session={syncSession}
+        syncError={syncError}
+        isSyncing={isSyncing}
+        onClose={() => setIsSyncModalOpen(false)}
+        onAuthSuccess={(session, attended) => {
+          setSyncSession(session);
+          setAttendedSessionIds(persistAttendedIds(attended));
+          setSyncRevision((r) => r + 1);
+          setSyncError(null);
+        }}
+        onSyncCompleted={(session, attended) => {
+          setSyncSession(session);
+          setAttendedSessionIds(persistAttendedIds(attended));
+          setSyncRevision((r) => r + 1);
+          setSyncError(null);
+        }}
+        onLoggedOut={() => {
+          setSyncSession(null);
+          setSyncError(null);
+        }}
       />
     </div>
   );

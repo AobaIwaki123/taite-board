@@ -67,9 +67,24 @@ spec:
               value: "taite-board-state"
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: "/var/secrets/gcs/key.json"
+            - name: GCP_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ribonclock-auth
+                  key: GCP_PROJECT_ID
+                  optional: true
+            - name: IDENTITY_PLATFORM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ribonclock-auth
+                  key: IDENTITY_PLATFORM_API_KEY
+                  optional: true
           ports:
             - name: dashboard
               containerPort: 8082
+              protocol: TCP
+            - name: sync
+              containerPort: 8083
               protocol: TCP
             - name: metrics
               containerPort: 9090

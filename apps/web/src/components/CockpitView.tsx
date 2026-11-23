@@ -35,6 +35,10 @@ interface CockpitViewProps {
   onResetToNextLive: () => void;
   onBackToList: () => void;
   onOpenLightbox: () => void;
+  syncRevision?: number;
+  syncUserId?: string | null;
+  onExpenseChanged?: () => void;
+  onOpenSyncModal?: () => void;
 }
 
 export function CockpitView({
@@ -52,6 +56,10 @@ export function CockpitView({
   onResetToNextLive,
   onBackToList,
   onOpenLightbox,
+  syncRevision = 0,
+  syncUserId = null,
+  onExpenseChanged,
+  onOpenSyncModal,
 }: CockpitViewProps) {
   // 画像一覧（フライヤー・タイテ表）
   const images =
@@ -543,7 +551,14 @@ export function CockpitView({
       </div>
 
       {/* 現場メモ・出費（簡易家計簿） */}
-      <ExpenseMemoCard session={session} isAttended={isAttended} />
+      <ExpenseMemoCard
+        session={session}
+        isAttended={isAttended}
+        syncRevision={syncRevision}
+        syncUserId={syncUserId}
+        onExpenseChanged={onExpenseChanged}
+        onOpenSyncModal={onOpenSyncModal}
+      />
 
       {/* 生誕祭クラファン・プロモーション枠 */}
       <PromotionBanner promotions={promotions} />
