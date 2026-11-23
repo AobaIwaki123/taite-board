@@ -171,7 +171,16 @@ export function SyncAccountModal({
             )}
 
             <p class="text-xs text-stone-400 leading-relaxed">
-              別のスマホ・PC で同じユーザーIDとパスワードでログインすると、家計簿と参戦チェックが自動的にマージされます。ログアウトしても端末内の記録は消えません。
+              別のスマホ・PC で同じユーザーIDとパスワードでログインすると、家計簿と参戦チェックが自動的にマージされます。ログアウトしても端末内の記録は消えません（
+              <a
+                href="/privacy-policy.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sky-400 hover:text-sky-300 underline underline-offset-2"
+              >
+                プライバシーポリシー
+              </a>
+              ）。
             </p>
           </div>
         ) : (
@@ -246,6 +255,24 @@ export function SyncAccountModal({
               </div>
             )}
 
+            <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-400/25 space-y-1.5 text-xs text-stone-300 leading-relaxed">
+              <p>
+                同期データは運営側で利用・公開しませんが、システム仕様上、管理者からはクラウド保存内容（ユーザーID・家計簿・メモ・参戦チェック）がすべて閲覧可能な状態です。本名や個人情報などは入力しないでください。
+              </p>
+              <p>
+                未ログイン時は端末内のみに保存されます。詳細は{' '}
+                <a
+                  href="/privacy-policy.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-sky-400 hover:text-sky-300 underline underline-offset-2 font-bold"
+                >
+                  プライバシーポリシー
+                </a>{' '}
+                をご確認ください。
+              </p>
+            </div>
+
             <button
               type="submit"
               disabled={submitting}
@@ -256,14 +283,10 @@ export function SyncAccountModal({
                 {submitting
                   ? '処理中...'
                   : mode === 'register'
-                  ? 'アカウント作成して同期する'
+                  ? '上記に同意してアカウント作成'
                   : 'ログインして同期する'}
               </span>
             </button>
-
-            <p class="text-xs text-stone-400 leading-relaxed">
-              ログインすると、この端末の家計簿と参戦チェックがクラウドに保存され、他の端末でも同じデータを共有できます。未ログイン時は端末内のみに保存されます。
-            </p>
           </form>
         )}
       </div>
