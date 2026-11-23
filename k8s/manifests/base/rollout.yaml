@@ -61,6 +61,12 @@ spec:
           env:
             - name: AI_PARSER_URL
               value: "https://taite-parser-3b7eomko6a-an.a.run.app"
+            - name: GCS_DATA_BUCKET
+              value: "taite-board-data"
+            - name: GCS_STATE_BUCKET
+              value: "taite-board-state"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/var/secrets/gcs/key.json"
           ports:
             - name: dashboard
               containerPort: 8082
@@ -92,6 +98,12 @@ spec:
           volumeMounts:
             - name: log-volume
               mountPath: /var/log/ribonclock
+            - name: gcs-key
+              mountPath: /var/secrets/gcs
+              readOnly: true
       volumes:
         - name: log-volume
           emptyDir: {}
+        - name: gcs-key
+          secret:
+            secretName: ribonclock-gcs

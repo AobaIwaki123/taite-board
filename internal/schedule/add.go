@@ -32,47 +32,85 @@ type AddSessionOptions struct {
 // AddSession appends a new session with an auto-derived ID (YYYYMMDD-N),
 // sorts all sessions chronologically, and syncs copies.
 func AddSession(opts AddSessionOptions) (string, error) {
-	if opts.Date == "" || opts.Title == "" || opts.VenueName == "" {
-		return "", fmt.Errorf("date, title, and venue name are required")
-	}
-	if opts.LiveStartTime == "" {
-		opts.LiveStartTime = "--:--"
-	}
 	if opts.FilePath == "" {
 		opts.FilePath = "data/generated/schedule.json"
 	}
-
-	parsedDate, err := time.Parse("2006-01-02", opts.Date)
-	if err != nil {
-		return "", fmt.Errorf("invalid date format '%s' (expected YYYY-MM-DD): %w", opts.Date, err)
-	}
-
-	days := []string{"日", "月", "火", "水", "木", "金", "土"}
-	dayOfWeek := days[parsedDate.Weekday()]
 
 	raw, err := os.ReadFile(opts.FilePath)
 	if err != nil {
 		return "", fmt.Errorf("reading schedule file: %w", err)
 	}
 
-	var doc rootDoc
-	if err := json.Unmarshal(raw, &doc); err != nil {
-		return "", fmt.Errorf("unmarshaling schedule json: %w", err)
+	sortedRaw, newID, err := ApplyAddSession(raw, opts)
+	if err != nil {
+		return "", err
 	}
 
-	// Calculate next session index for this date
+	if err := os.WriteFile(opts.FilePath, sortedRaw, 0644); err != nil {
+		return "", fmt.Errorf("writing schedule file: %w", err)
+	}
+
+	if len(opts.SyncTargets) > 0 {
+		if _, err := Sync(opts.FilePath, opts.SyncTargets...); err != nil {
+			return "", fmt.Errorf("syncing after add: %w", err)
+		}
+	}
+
+	return newID, nil
+}
+
+// ApplyAddSession appends a new session to schedule JSON bytes, sorts chronologically,
+// updates generated_at, and returns the updated JSON bytes and derived session ID.
+func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error) {
+	if opts.Date == "" || opts.Title == "" || opts.VenueName == "" {
+		return nil, "", fmt.Errorf("date, title, and venue name are required")
+	}
+	if opts.LiveStartTime == "" {
+		opts.LiveStartTime = "--:--"
+	}
+
+	parsedDate, err := time.Parse("2006-01-02", opts.Date)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid date format '%s' (expected YYYY-MM-DD): %w", opts.Date, err)
+	}
+
+	days := []string{"日", "月", "火", "水", "木", "金", "土"}
+	dayOfWeek := days[parsedDate.Weekday()]
+
+	var doc rootDoc
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return nil, "", fmt.Errorf("unmarshaling schedule json: %w", err)
+	}
+	if doc.SchemaVersion < 1 {
+		doc.SchemaVersion = 1
+	}
+	if doc.Timezone == "" {
+		doc.Timezone = "Asia/Tokyo"
+	}
+
+	// Calculate next unique session index for this date
 	datePrefix := parsedDate.Format("20060102")
+	existingIDs := make(map[string]bool)
 	count := 0
 	for _, sRaw := range doc.Sessions {
 		var s struct {
+			ID   string `json:"id"`
 			Date string `json:"date"`
 		}
 		_ = json.Unmarshal(sRaw, &s)
+		if s.ID != "" {
+			existingIDs[s.ID] = true
+		}
 		if s.Date == opts.Date {
 			count++
 		}
 	}
-	newID := fmt.Sprintf("%s-%d", datePrefix, count+1)
+	idx := count + 1
+	newID := fmt.Sprintf("%s-%d", datePrefix, idx)
+	for existingIDs[newID] {
+		idx++
+		newID = fmt.Sprintf("%s-%d", datePrefix, idx)
+	}
 
 	// Build Venue object
 	venueID := fmt.Sprintf("venue:%s", strings.ToLower(strings.ReplaceAll(opts.VenueName, " ", "-")))
@@ -90,29 +128,31 @@ func AddSession(opts AddSessionOptions) (string, error) {
 		"stage":      nil,
 	}
 
-	// Build Benefit object
-	var benefit map[string]interface{}
-	if opts.BenefitStartTime != "" || opts.BenefitType != "" {
-		benType := opts.BenefitType
-		if benType == "" {
-			benType = "並行"
-		}
-		benefit = map[string]interface{}{
-			"type":       benType,
-			"start_time": opts.BenefitStartTime,
-			"end_time":   opts.BenefitEndTime,
-			"booth":      opts.Booth,
-		}
+	// Build Benefit object (required by schema/schedule.schema.json)
+	benType := opts.BenefitType
+	if benType == "" {
+		benType = "並行"
+	}
+	benStart := opts.BenefitStartTime
+	if benStart == "" {
+		benStart = "--:--"
+	}
+	benefit := map[string]interface{}{
+		"type":       benType,
+		"start_time": benStart,
+		"end_time":   opts.BenefitEndTime,
+		"booth":      opts.Booth,
 	}
 
-	// Build Ticket object
-	var ticket map[string]interface{}
-	if opts.TicketPlatform != "" || opts.TicketURL != "" {
-		ticket = map[string]interface{}{
-			"platform": opts.TicketPlatform,
-			"url":      opts.TicketURL,
-			"prices":   []interface{}{},
-		}
+	// Build Ticket object (required by schema/schedule.schema.json)
+	var ticketURL interface{}
+	if opts.TicketURL != "" {
+		ticketURL = opts.TicketURL
+	}
+	ticket := map[string]interface{}{
+		"platform": opts.TicketPlatform,
+		"url":      ticketURL,
+		"prices":   []interface{}{},
 	}
 
 	// Build Source Refs
@@ -126,6 +166,15 @@ func AddSession(opts AddSessionOptions) (string, error) {
 				"url":       opts.SourceTweetURL,
 			})
 		}
+	}
+
+	images := []interface{}{}
+	if opts.ImageURL != "" {
+		images = append(images, map[string]interface{}{
+			"type":  "flyer",
+			"label": "告知画像",
+			"url":   opts.ImageURL,
+		})
 	}
 
 	newSession := map[string]interface{}{
@@ -143,30 +192,26 @@ func AddSession(opts AddSessionOptions) (string, error) {
 		"ticket":           ticket,
 		"image_url":        opts.ImageURL,
 		"source_tweet_url": opts.SourceTweetURL,
-		"images":           []interface{}{},
+		"images":           images,
 		"source_refs":      sourceRefs,
 	}
 
 	sessBytes, err := json.Marshal(newSession)
 	if err != nil {
-		return "", fmt.Errorf("marshaling new session: %w", err)
+		return nil, "", fmt.Errorf("marshaling new session: %w", err)
 	}
 
 	doc.Sessions = append(doc.Sessions, json.RawMessage(sessBytes))
 
-	// Write back temporarily
 	updatedRaw, err := json.Marshal(doc)
 	if err != nil {
-		return "", fmt.Errorf("marshaling updated doc: %w", err)
-	}
-	if err := os.WriteFile(opts.FilePath, updatedRaw, 0644); err != nil {
-		return "", fmt.Errorf("writing schedule file: %w", err)
+		return nil, "", fmt.Errorf("marshaling updated doc: %w", err)
 	}
 
-	// Run SortSchedule to guarantee chronological sort and sync
-	if _, err := SortSchedule(opts.FilePath, opts.SyncTargets...); err != nil {
-		return "", fmt.Errorf("sorting after add: %w", err)
+	sortedRaw, _, err := ApplySortSchedule(updatedRaw)
+	if err != nil {
+		return nil, "", fmt.Errorf("sorting after add: %w", err)
 	}
 
-	return newID, nil
+	return sortedRaw, newID, nil
 }

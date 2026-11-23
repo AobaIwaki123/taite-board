@@ -142,6 +142,7 @@
             <small id="sub-header" style="display:block; color:var(--pico-muted-color); font-family:monospace;">
               Live Observability Dashboard
             </small>
+            <small id="cloud-storage-badge" style="display:inline-block; margin-top:4px; font-size:0.72rem; color:#94a3b8; font-family:monospace;"></small>
           </li>
         </ul>
         <ul>
@@ -417,6 +418,13 @@
       </header>
 
       <form id="intake-form" onsubmit="handleIntake(event)" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom: 0.6rem;">
+          <label for="intake-group-select" style="font-size: 0.78rem; color: var(--pico-muted-color); margin-bottom: 0;">登録先グループ:</label>
+          <select id="intake-group-select" onchange="onIntakeGroupChange(this.value)" style="width: auto; min-width: 210px; font-size: 0.82rem; padding: 0.3rem 0.65rem; margin-bottom: 0;">
+            <option value="ribonclock">リボンクロック (ribonclock.iorin.net)</option>
+            <option value="dollykiss">Dolly Kiss (dollykiss.iorin.net)</option>
+          </select>
+        </div>
         <fieldset role="group">
           <input type="url" id="intake-url" placeholder="https://x.com/Ribbon_Clock/status/..." required autocomplete="off" style="font-size: 0.85rem;" />
           <button type="submit" id="intake-btn" style="white-space: nowrap; font-size: 0.85rem;">Fetch Post</button>
@@ -588,9 +596,19 @@
           document.getElementById('stat-error-sub').innerText = 'Healthy (< 5%)';
         }
 
-        // Sub-header uptime
+        // Sub-header uptime & cloud storage status
         document.getElementById('sub-header').innerText =
           (data.version || 'v1.0.0') + ' · Uptime: ' + formatUptime(data.uptime_seconds);
+        const csBadge = document.getElementById('cloud-storage-badge');
+        if (csBadge) {
+          if (data.cloud_storage_enabled && data.data_bucket) {
+            csBadge.innerText = 'Cloud Storage: gs://' + data.data_bucket + ' (Live Sync)';
+            csBadge.style.color = '#10b981';
+          } else {
+            csBadge.innerText = 'Storage: Local Filesystem Mode';
+            csBadge.style.color = '#94a3b8';
+          }
+        }
 
         // Update Hourly Chart
         if (hourlyChartInstance && data.hourly) {
@@ -806,15 +824,94 @@
       }
     }
 
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function activeIntakeGroup() {
+      const sel = document.getElementById('intake-group-select');
+      if (sel && sel.value) return sel.value;
+      if (currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent') return 'ribonclock';
+      return currentSelectedGroup || 'ribonclock';
+    }
+
+    function onIntakeGroupChange(groupId) {
+      if (groupId && groupId !== currentSelectedGroup) {
+        switchGroup(groupId);
+      }
+      if (window.__currentIntake) {
+        loadTargetSessionsForPatch(groupId);
+        document.querySelectorAll('.commit-dest-label').forEach(el => {
+          el.innerText = groupId + '.iorin.net';
+        });
+      }
+    }
+
+    async function loadTargetSessionsForPatch(groupId, preferredDate) {
+      const sel = document.getElementById('patch-session-select');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">読み込み中...</option>';
+      try {
+        const res = await fetch('/api/sessions?group=' + encodeURIComponent(groupId));
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data.sessions)) {
+          throw new Error(data.error || 'failed to load sessions');
+        }
+        if (data.sessions.length === 0) {
+          sel.innerHTML = '<option value="">セッションがありません</option>';
+          return;
+        }
+        let selectedId = '';
+        if (preferredDate) {
+          const matched = data.sessions.find(s => s.date === preferredDate);
+          if (matched) selectedId = matched.id;
+        }
+        if (!selectedId && data.current_next_id) {
+          selectedId = data.current_next_id;
+        }
+        if (!selectedId) {
+          selectedId = data.sessions[data.sessions.length - 1].id;
+        }
+        sel.innerHTML = data.sessions.slice().reverse().map(s => {
+          const label = `${s.date} ${s.live_start || '--:--'} | ${s.title} (${s.venue})`;
+          const isSel = s.id === selectedId ? 'selected' : '';
+          return `<option value="${escapeHtml(s.id)}" ${isSel}>${escapeHtml(label)}</option>`;
+        }).join('');
+      } catch (err) {
+        sel.innerHTML = `<option value="">自動判定 (直近ライブ)</option>`;
+      }
+    }
+
+    function switchIntakeMode(isPatchMode) {
+      if (!window.__currentIntake) return;
+      if (!window.__currentIntake.candidate) window.__currentIntake.candidate = {};
+      window.__currentIntake.candidate.is_patch = isPatchMode;
+      const resultEl = document.getElementById('intake-result');
+      if (resultEl) {
+        renderIntakeResult(window.__currentIntake, resultEl);
+      }
+    }
+
     function renderIntakeResult(item, container) {
       const c = item.candidate || {};
+      const targetGroup = activeIntakeGroup();
+      const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const defaultTitle = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || '';
+      const cleanTitle = defaultTitle.replace(/[『』｢｣]/g, '').trim();
+      const defaultBonus = c.admission_bonus || lines.find(l => l.includes('特典') || l.includes('入場')) || '';
+
       const imagesHtml = (item.images && item.images.length > 0) ? `
         <div style="margin-top: 0.75rem;">
           <small style="color: var(--pico-muted-color);">Attached Media (${item.images.length} images):</small>
           <div style="display: flex; gap: 8px; margin-top: 4px; overflow-x: auto; padding-bottom: 6px;">
             ${item.images.map(img => `
-              <a href="${img}" target="_blank" rel="noopener noreferrer">
-                <img src="${img}" style="height: 110px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover;" />
+              <a href="${escapeHtml(img)}" target="_blank" rel="noopener noreferrer">
+                <img src="${escapeHtml(img)}" style="height: 110px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover;" />
               </a>
             `).join('')}
           </div>
@@ -830,7 +927,7 @@
             <strong style="font-size: 0.82rem; color: #f59e0b;">Timetable Image Detected</strong>
             <div style="font-size: 0.75rem; color: var(--pico-muted-color);">Send image to Cloud Run AI Parser (Gemini 2.5 Flash Vision) to extract exact live & benefit times.</div>
           </div>
-          <button type="button" id="btn-run-ai" onclick="runCloudRunAI('${item.source_id}', '${escapedImages}', '${escapedText}')" style="font-size: 0.8rem; padding: 0.35rem 0.85rem; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 700;">
+          <button type="button" id="btn-run-ai" onclick="runCloudRunAI('${escapeHtml(item.source_id)}', '${escapedImages}', '${escapedText}')" style="font-size: 0.8rem; padding: 0.35rem 0.85rem; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 700;">
             Run Cloud Run AI Parser
           </button>
         </div>
@@ -839,62 +936,127 @@
         </div>
       ` : '';
 
+      const fieldStyle = 'font-size: 0.82rem; padding: 0.35rem 0.55rem; margin-bottom: 0; height: auto;';
+      const labelStyle = 'font-size: 0.72rem; color: var(--pico-muted-color); margin-bottom: 2px; display: block;';
+
       container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
           <div>
-            <strong>${item.author || 'Author'}</strong>
-            <span style="font-size: 0.75rem; color: var(--pico-muted-color); font-family: monospace;"> (ID: ${item.source_id})</span>
+            <strong>${escapeHtml(item.author || 'Author')}</strong>
+            <span style="font-size: 0.75rem; color: var(--pico-muted-color); font-family: monospace;"> (ID: ${escapeHtml(item.source_id)})</span>
           </div>
-          <span id="cand-status-badge" class="badge ${c.is_patch ? 'badge-304' : (item.needs_ai ? 'badge-404' : 'badge-200')}">
-            ${c.is_patch ? '📸 特典・撮影情報アップデート (Patch)' : (item.needs_ai ? 'Needs Vision AI (Timetable in Image)' : 'Deterministic Match Complete')}
-          </span>
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <span id="cand-status-badge" class="badge ${c.is_patch ? 'badge-304' : (item.needs_ai ? 'badge-404' : 'badge-200')}">
+              ${c.is_patch ? '特典・撮影情報アップデート (Patch)' : (item.needs_ai ? 'Needs Vision AI (Timetable in Image)' : 'Deterministic Match Complete')}
+            </span>
+            <button type="button" class="outline" onclick="switchIntakeMode(${!c.is_patch})" style="font-size:0.7rem; padding:0.15rem 0.5rem; margin-bottom:0;">
+              ${c.is_patch ? '新規ライブ登録へ切替' : '既存ライブ更新(Patch)へ切替'}
+            </button>
+          </div>
         </div>
 
         <div style="margin-top: 0.6rem; font-size: 0.8rem; background: rgba(0,0,0,0.3); padding: 0.6rem; border-radius: 6px; white-space: pre-line; border-left: 2px solid ${c.is_patch ? '#f59e0b' : '#38bdf8'};">
-          ${item.text}
+          ${escapeHtml(item.text)}
         </div>
 
         ${imagesHtml}
         ${aiActionHtml}
 
-        <div style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+        <div style="margin-top: 0.75rem; background: rgba(255,255,255,0.03); padding: 0.85rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; flex-wrap:wrap; gap:6px;">
             <strong style="font-size: 0.85rem; color: ${c.is_patch ? '#f59e0b' : '#f43f5e'};">
-              ${c.is_patch ? '検出された特典・撮影情報 (Patch Update):' : '抽出されたスケジュール情報:'}
+              ${c.is_patch ? '既存ライブの特典・撮可情報を更新 (編集可能):' : '登録するスケジュール内容 (編集可能):'}
             </strong>
-            <span style="font-size: 0.75rem; color: var(--pico-muted-color);">対象: <strong id="cand-target-group" style="color: #38bdf8;">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</strong></span>
+            <span style="font-size: 0.75rem; color: var(--pico-muted-color);">反映先: <strong class="commit-dest-label" style="color: #38bdf8;">${escapeHtml(targetGroup)}.iorin.net</strong></span>
           </div>
 
           ${c.is_patch ? `
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 0.78rem; margin-bottom: 8px;">
-              <div><span style="color:var(--pico-muted-color);">対象日:</span> <strong id="cand-date">${c.date || '本日または直近ライブ'}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">入場特典:</span> <strong id="cand-perk" style="color:#10b981;">${c.admission_bonus || 'なし'}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">撮影可能曲:</span> <strong id="cand-photo-song" style="color:#f59e0b;">${c.photo_song || (c.photo_allowed ? '全曲' : '指定なし')}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">撮影種別:</span> <strong id="cand-photo-device">${c.photo_device === 'video_ok' ? '動画・静止画OK' : (c.photo_allowed ? '静止画OK' : '通常')}</strong></div>
-            </div>
-            <!-- Patch Commit Action -->
-            <div id="intake-commit-container" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-              <div style="font-size: 0.75rem; color: #94a3b8;">
-                この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> の該当ライブの特典・撮可曲を上書き更新します。
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 10px;">
+              <div style="grid-column: 1 / -1;">
+                <label style="${labelStyle}">対象ライブ公演</label>
+                <select id="patch-session-select" style="${fieldStyle}"></select>
               </div>
-              <button type="button" id="btn-commit-patch" onclick="commitPatchToSchedule()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; margin-bottom: 0; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 700;">
-                特典・撮可情報をカレンダーへ反映する
+              <div>
+                <label style="${labelStyle}">入場特典</label>
+                <input type="text" id="input-patch-bonus" value="${escapeHtml(c.admission_bonus || '')}" placeholder="例: 写メ券" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">撮影可能曲</label>
+                <input type="text" id="input-patch-photo-song" value="${escapeHtml(c.photo_song || '')}" placeholder="例: 75秒の沈黙" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">撮影種別</label>
+                <select id="input-patch-photo-device" style="${fieldStyle}">
+                  <option value="" ${!c.photo_device ? 'selected' : ''}>指定なし</option>
+                  <option value="still_only" ${c.photo_device === 'still_only' ? 'selected' : ''}>静止画のみOK</option>
+                  <option value="video_ok" ${c.photo_device === 'video_ok' ? 'selected' : ''}>動画・静止画OK</option>
+                </select>
+              </div>
+              <div>
+                <label style="${labelStyle}">特記事項</label>
+                <input type="text" id="input-patch-notes" value="" placeholder="任意メモ" style="${fieldStyle}" />
+              </div>
+            </div>
+            <label style="font-size:0.75rem; display:flex; align-items:center; gap:6px; margin-bottom:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="input-patch-update-url" style="margin-bottom:0;" />
+              公式告知リンクもこの投稿 URL に更新する
+            </label>
+            <div id="intake-commit-container" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="font-size: 0.75rem; color: #94a3b8;">
+                <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${escapeHtml(targetGroup)}.iorin.net</span> の対象公演へクラウド反映します。
+              </div>
+              <button type="button" id="btn-commit-patch" onclick="commitPatchToSchedule()" style="font-size: 0.82rem; padding: 0.45rem 1rem; margin-bottom: 0; background: #f59e0b; border-color: #f59e0b; color: #000; font-weight: 700;">
+                特典・撮可情報を反映する
               </button>
             </div>
           ` : `
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 0.78rem;">
-              <div><span style="color:var(--pico-muted-color);">日付:</span> <strong id="cand-date">${c.date || '未定'}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">会場:</span> <strong id="cand-venue">${c.venue_raw || '未定'}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">出番時刻:</span> <strong id="cand-live-time">${c.live_start_raw || '--:--'} - ${c.live_end_raw || '--:--'}</strong></div>
-              <div><span style="color:var(--pico-muted-color);">特典会時刻:</span> <strong id="cand-benefit-time">${c.benefit_start_raw || '--:--'} - ${c.benefit_end_raw || '--:--'}</strong></div>
-            </div>
-            ${c.admission_bonus ? `<div style="font-size:0.75rem; margin-top:4px;"><span style="color:var(--pico-muted-color);">入場特典:</span> <strong style="color:#10b981;">${c.admission_bonus}</strong></div>` : ''}
-            <!-- Commit to Schedule Action -->
-            <div id="intake-commit-container" style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-              <div style="font-size: 0.75rem; color: #94a3b8;">
-                この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent' ? 'ribonclock' : currentSelectedGroup}.iorin.net</span> のカレンダーへ即時登録します。
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px;">
+              <div style="grid-column: 1 / -1;">
+                <label style="${labelStyle}">イベントタイトル</label>
+                <input type="text" id="input-cand-title" value="${escapeHtml(cleanTitle)}" placeholder="イベント名" style="${fieldStyle}" />
               </div>
-              <button type="button" id="btn-commit-schedule" onclick="commitIntakeToSchedule()" style="font-size: 0.8rem; padding: 0.35rem 0.9rem; margin-bottom: 0; background: #10b981; border-color: #10b981; color: #fff; font-weight: 700;">
+              <div>
+                <label style="${labelStyle}">日付 (YYYY-MM-DD)</label>
+                <input type="date" id="input-cand-date" value="${escapeHtml(c.date || '')}" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">会場</label>
+                <input type="text" id="input-cand-venue" value="${escapeHtml(c.venue_raw || '')}" placeholder="例: 渋谷RING" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">出番開始</label>
+                <input type="text" id="input-cand-live-start" value="${escapeHtml(c.live_start_raw || '')}" placeholder="HH:MM または --:--" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">出番終了</label>
+                <input type="text" id="input-cand-live-end" value="${escapeHtml(c.live_end_raw || '')}" placeholder="HH:MM" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">特典会開始</label>
+                <input type="text" id="input-cand-benefit-start" value="${escapeHtml(c.benefit_start_raw || '')}" placeholder="HH:MM または --:--" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">特典会終了</label>
+                <input type="text" id="input-cand-benefit-end" value="${escapeHtml(c.benefit_end_raw || '')}" placeholder="HH:MM" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">特典会ブース</label>
+                <input type="text" id="input-cand-booth" value="${escapeHtml(c.benefit_booth_raw || '')}" placeholder="例: 並行A" style="${fieldStyle}" />
+              </div>
+              <div>
+                <label style="${labelStyle}">入場特典</label>
+                <input type="text" id="input-cand-bonus" value="${escapeHtml(defaultBonus)}" placeholder="例: 2S写メ券" style="${fieldStyle}" />
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <label style="${labelStyle}">特記事項</label>
+                <input type="text" id="input-cand-notes" value="" placeholder="任意メモ" style="${fieldStyle}" />
+              </div>
+            </div>
+            <div id="intake-commit-container" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="font-size: 0.75rem; color: #94a3b8;">
+                この内容で <span style="font-weight:700; color:#38bdf8;" class="commit-dest-label">${escapeHtml(targetGroup)}.iorin.net</span> へ即時クラウド登録します。
+              </div>
+              <button type="button" id="btn-commit-schedule" onclick="commitIntakeToSchedule()" style="font-size: 0.82rem; padding: 0.45rem 1rem; margin-bottom: 0; background: #10b981; border-color: #10b981; color: #fff; font-weight: 700;">
                 本番カレンダーへ反映する
               </button>
             </div>
@@ -902,13 +1064,16 @@
           <div id="intake-commit-result" style="display: none; margin-top: 0.65rem; padding: 0.6rem; border-radius: 6px; font-size: 0.8rem;"></div>
 
           <div style="margin-top: 6px; font-size: 0.7rem; color: var(--pico-muted-color); font-family: monospace; word-break: break-all;">
-            Fingerprint: ${item.raw_fingerprint}
+            Fingerprint: ${escapeHtml(item.raw_fingerprint)}
           </div>
         </div>
       `;
 
       // Store current intake for commit
       window.__currentIntake = item;
+      if (c.is_patch) {
+        loadTargetSessionsForPatch(targetGroup, c.date || '');
+      }
     }
 
     async function commitIntakeToSchedule() {
@@ -919,28 +1084,25 @@
       const resultDiv = document.getElementById('intake-commit-result');
       if (btn) btn.disabled = true;
 
-      const targetGroup = (currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent') ? 'ribonclock' : currentSelectedGroup;
-      const c = item.candidate || {};
-
-      // Parse first line of text as default event title
-      const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const titleCandidate = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || 'ライブ出演';
+      const targetGroup = activeIntakeGroup();
+      const val = (id) => (document.getElementById(id)?.value || '').trim();
 
       const payload = {
         group: targetGroup,
         source_id: item.source_id,
         source_url: item.url,
         author: item.author,
-        title: titleCandidate.replace(/[『』｢｣]/g, '').trim(),
-        date: document.getElementById('cand-date')?.innerText !== '未定' ? document.getElementById('cand-date').innerText : c.date,
-        venue: document.getElementById('cand-venue')?.innerText !== '未定' ? document.getElementById('cand-venue').innerText : c.venue_raw,
-        live_start: (document.getElementById('cand-live-time')?.innerText || '').split('-')[0]?.trim() || c.live_start_raw,
-        live_end: (document.getElementById('cand-live-time')?.innerText || '').split('-')[1]?.trim() || c.live_end_raw,
-        benefit_start: (document.getElementById('cand-benefit-time')?.innerText || '').split('-')[0]?.trim() || c.benefit_start_raw,
-        benefit_end: (document.getElementById('cand-benefit-time')?.innerText || '').split('-')[1]?.trim() || c.benefit_end_raw,
-        booth: c.benefit_booth_raw || '',
+        title: val('input-cand-title'),
+        date: val('input-cand-date'),
+        venue: val('input-cand-venue'),
+        live_start: val('input-cand-live-start'),
+        live_end: val('input-cand-live-end'),
+        benefit_start: val('input-cand-benefit-start'),
+        benefit_end: val('input-cand-benefit-end'),
+        booth: val('input-cand-booth'),
         image_url: item.images && item.images.length > 0 ? item.images[0] : '',
-        admission_bonus: lines.find(l => l.includes('特典') || l.includes('🎁')) || ''
+        admission_bonus: val('input-cand-bonus'),
+        special_notes: val('input-cand-notes')
       };
 
       try {
@@ -960,8 +1122,8 @@
           resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
           resultDiv.style.color = '#a7f3d0';
           resultDiv.innerHTML = `
-            <div><strong>カレンダーへ登録完了しました！</strong> (Session ID: <code>${data.session_id}</code>)</div>
-            <div style="margin-top: 4px;">公開ページ: <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> に即時反映されています。</div>
+            <div><strong>カレンダーへ登録完了しました！</strong> (Session ID: <code>${escapeHtml(data.session_id)}</code> / ${escapeHtml(data.storage || 'local')})</div>
+            <div style="margin-top: 4px;">公開ページ: <a href="https://${escapeHtml(data.domain)}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${escapeHtml(data.domain)}</a> に即時反映されています。</div>
           `;
         }
         await refreshTelemetry();
@@ -986,21 +1148,22 @@
       const resultDiv = document.getElementById('intake-commit-result');
       if (btn) btn.disabled = true;
 
-      const targetGroup = (currentSelectedGroup === 'all' || currentSelectedGroup === 'rincent') ? 'ribonclock' : currentSelectedGroup;
+      const targetGroup = activeIntakeGroup();
       const c = item.candidate || {};
-
-      const perkElem = document.getElementById('cand-perk');
-      const photoSongElem = document.getElementById('cand-photo-song');
-      const dateElem = document.getElementById('cand-date');
+      const val = (id) => (document.getElementById(id)?.value || '').trim();
+      const photoSong = val('input-patch-photo-song');
 
       const payload = {
         group: targetGroup,
+        session_id: val('patch-session-select'),
         source_url: item.url,
-        date: dateElem && dateElem.innerText !== '本日または直近ライブ' ? dateElem.innerText : (c.date || ''),
-        admission_bonus: perkElem && perkElem.innerText !== 'なし' ? perkElem.innerText : (c.admission_bonus || ''),
-        photo_song: photoSongElem && photoSongElem.innerText !== '指定なし' ? photoSongElem.innerText : (c.photo_song || ''),
-        photo_device: c.photo_device || '',
-        photo_rule: c.photo_song ? `撮可: ${c.photo_song}` : ''
+        date: c.date || '',
+        admission_bonus: val('input-patch-bonus'),
+        photo_song: photoSong,
+        photo_device: val('input-patch-photo-device'),
+        photo_rule: photoSong ? `撮可: ${photoSong}` : '',
+        special_notes: val('input-patch-notes'),
+        update_official_url: Boolean(document.getElementById('input-patch-update-url')?.checked)
       };
 
       try {
@@ -1020,8 +1183,8 @@
           resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
           resultDiv.style.color = '#a7f3d0';
           resultDiv.innerHTML = `
-            <div><strong>特典・撮可情報をカレンダーへ反映しました！</strong> (Session ID: <code>${data.session_id}</code>)</div>
-            <div style="margin-top: 4px;">公開ページ: <a href="https://${data.domain}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${data.domain}</a> に即時反映されています。</div>
+            <div><strong>特典・撮可情報をカレンダーへ反映しました！</strong> (Session ID: <code>${escapeHtml(data.session_id)}</code> / ${escapeHtml(data.storage || 'local')})</div>
+            <div style="margin-top: 4px;">公開ページ: <a href="https://${escapeHtml(data.domain)}" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; font-weight: 700; text-decoration: underline;">https://${escapeHtml(data.domain)}</a> に即時反映されています。</div>
           `;
         }
         await refreshTelemetry();
@@ -1059,12 +1222,17 @@
         }
 
         if (data.candidate) {
-          if (data.candidate.live_start_raw) {
-            document.getElementById('cand-live-time').innerText = data.candidate.live_start_raw + ' - ' + (data.candidate.live_end_raw || '--:--');
-          }
-          if (data.candidate.benefit_start_raw) {
-            document.getElementById('cand-benefit-time').innerText = data.candidate.benefit_start_raw + ' - ' + (data.candidate.benefit_end_raw || '--:--');
-          }
+          const setVal = (id, v) => {
+            const el = document.getElementById(id);
+            if (el && v) el.value = v;
+          };
+          setVal('input-cand-date', data.candidate.date);
+          setVal('input-cand-venue', data.candidate.venue_raw);
+          setVal('input-cand-live-start', data.candidate.live_start_raw);
+          setVal('input-cand-live-end', data.candidate.live_end_raw);
+          setVal('input-cand-benefit-start', data.candidate.benefit_start_raw);
+          setVal('input-cand-benefit-end', data.candidate.benefit_end_raw);
+          setVal('input-cand-booth', data.candidate.benefit_booth_raw);
         }
         const badge = document.getElementById('cand-status-badge');
         if (badge) {
@@ -1181,6 +1349,10 @@
       }
 
       const activeGroupKey = currentSelectedGroup === 'all' ? 'ribonclock' : currentSelectedGroup;
+      const intakeSelect = document.getElementById('intake-group-select');
+      if (intakeSelect && intakeSelect.value !== activeGroupKey) {
+        intakeSelect.value = activeGroupKey;
+      }
       const candTargetGroup = document.getElementById('cand-target-group');
       if (candTargetGroup) {
         candTargetGroup.innerText = activeGroupKey + '.iorin.net';

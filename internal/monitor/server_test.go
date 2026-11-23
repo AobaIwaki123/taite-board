@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
+	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 )
@@ -270,7 +273,8 @@ func TestServer_Intake_Patch(t *testing.T) {
 				"title": "Girls Face in RING",
 				"venue": {"name": "渋谷RING"},
 				"live": {"start_time": "20:20"},
-				"benefit": {"start_time": "21:10"}
+				"benefit": {"start_time": "21:10"},
+				"ticket": {"platform": "", "prices": []}
 			}
 		]
 	}`
@@ -334,5 +338,171 @@ func TestServer_Intake_Patch(t *testing.T) {
 	}
 	if sess.Photo.Device != "video_ok" {
 		t.Errorf("expected photo device 'video_ok', got %q", sess.Photo.Device)
+	}
+}
+
+type memoryObjectStore struct {
+	mu      sync.Mutex
+	objects map[string][]byte
+}
+
+func newMemoryObjectStore() *memoryObjectStore {
+	return &memoryObjectStore{objects: make(map[string][]byte)}
+}
+
+func (m *memoryObjectStore) key(bucket, object string) string {
+	return bucket + "/" + object
+}
+
+func (m *memoryObjectStore) GetObject(_ context.Context, bucket, object string) ([]byte, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	b, ok := m.objects[m.key(bucket, object)]
+	if !ok {
+		return nil, gcs.ErrObjectNotFound
+	}
+	cp := make([]byte, len(b))
+	copy(cp, b)
+	return cp, nil
+}
+
+func (m *memoryObjectStore) PutObject(_ context.Context, bucket, object, _, _ string, data []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := make([]byte, len(data))
+	copy(cp, data)
+	m.objects[m.key(bucket, object)] = cp
+	return nil
+}
+
+func (m *memoryObjectStore) ListObjects(_ context.Context, bucket, prefix string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []string
+	fullPrefix := bucket + "/" + prefix
+	for k := range m.objects {
+		if strings.HasPrefix(k, fullPrefix) {
+			out = append(out, strings.TrimPrefix(k, bucket+"/"))
+		}
+	}
+	return out, nil
+}
+
+func TestServer_GCS_PromotePatchAndSessions(t *testing.T) {
+	store := newMemoryObjectStore()
+	initial := `{
+		"schema_version": 1,
+		"generated_at": "2026-11-20T00:00:00Z",
+		"timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"},
+		"sessions": []
+	}`
+	_ = store.PutObject(context.Background(), "taite-board-data", "data/groups/ribonclock/schedule.json", "", "", []byte(initial))
+
+	collector := NewCollector("test-v1")
+	collector.SetCloudStorage(store, "taite-board-data", "taite-board-state")
+	handler := NewHandlerWithConfig(collector, &mockFetcher{}, &mockResolver{}, HandlerConfig{
+		Store:       store,
+		DataBucket:  "taite-board-data",
+		StateBucket: "taite-board-state",
+	})
+
+	// 1. Promote new session -> writes to GCS primary + mirrors
+	promoteBody, _ := json.Marshal(map[string]any{
+		"group":         "ribonclock",
+		"source_id":     "990011",
+		"source_url":    "https://x.com/Ribbon_Clock/status/990011",
+		"title":         "クラウドテスト公演",
+		"date":          "2026-11-25",
+		"venue":         "渋谷RING",
+		"live_start":    "19:00",
+		"live_end":      "19:20",
+		"benefit_start": "19:30",
+		"benefit_end":   "20:30",
+		"booth":         "並行A",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(promoteBody))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("promote failed (%d): %s", rec.Code, rec.Body.String())
+	}
+
+	var promoteRes map[string]any
+	_ = json.Unmarshal(rec.Body.Bytes(), &promoteRes)
+	if promoteRes["storage"] != "gcs" {
+		t.Errorf("expected storage=gcs, got %v", promoteRes["storage"])
+	}
+	sessionID, _ := promoteRes["session_id"].(string)
+	if sessionID != "20261125-1" {
+		t.Errorf("expected session_id=20261125-1, got %s", sessionID)
+	}
+
+	// Verify mirrors were updated in GCS
+	for _, obj := range []string{"data/groups/ribonclock/schedule.json", "schedule.json", "mock_schedule.json"} {
+		b, err := store.GetObject(context.Background(), "taite-board-data", obj)
+		if err != nil {
+			t.Fatalf("expected mirror %s in GCS: %v", obj, err)
+		}
+		if !strings.Contains(string(b), "クラウドテスト公演") {
+			t.Errorf("mirror %s missing promoted session", obj)
+		}
+	}
+
+	// Verify pipeline_state.json was persisted to state bucket
+	stateBytes, err := store.GetObject(context.Background(), "taite-board-state", "pipeline_state.json")
+	if err != nil {
+		t.Fatalf("expected pipeline_state.json in state bucket: %v", err)
+	}
+	if !strings.Contains(string(stateBytes), `"promoted_sessions": 1`) {
+		t.Errorf("expected promoted_sessions=1 in state bucket, got %s", string(stateBytes))
+	}
+
+	// 2. List sessions via /api/sessions
+	req = httptest.NewRequest(http.MethodGet, "/api/sessions?group=ribonclock", nil)
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("sessions list failed (%d): %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "20261125-1") {
+		t.Errorf("expected session 20261125-1 in /api/sessions output: %s", rec.Body.String())
+	}
+
+	// 3. Patch session in GCS
+	patchBody, _ := json.Marshal(map[string]any{
+		"group":               "ribonclock",
+		"session_id":          "20261125-1",
+		"admission_bonus":     "サイン入りチェキ券",
+		"photo_song":          "75秒の沈黙",
+		"source_url":          "https://x.com/Ribbon_Clock/status/990022",
+		"update_official_url": true,
+	})
+	req = httptest.NewRequest(http.MethodPost, "/api/intake/patch", bytes.NewReader(patchBody))
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("patch failed (%d): %s", rec.Code, rec.Body.String())
+	}
+
+	updatedBytes, _ := store.GetObject(context.Background(), "taite-board-data", "schedule.json")
+	if !strings.Contains(string(updatedBytes), "サイン入りチェキ券") || !strings.Contains(string(updatedBytes), "75秒の沈黙") {
+		t.Errorf("expected patched bonus and photo song in GCS schedule.json, got %s", string(updatedBytes))
+	}
+
+	// 4. Invalid schedule (end_time <= start_time) should return 422 and not overwrite GCS
+	badPromoteBody, _ := json.Marshal(map[string]any{
+		"group":      "ribonclock",
+		"title":      "不正時刻テスト",
+		"date":       "2026-11-26",
+		"venue":      "渋谷RING",
+		"live_start": "20:00",
+		"live_end":   "19:30",
+	})
+	req = httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(badPromoteBody))
+	rec = httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422 for invalid live times, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
