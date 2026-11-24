@@ -28,6 +28,7 @@ type EntitiesData struct {
 			CanonicalID string   `json:"canonical_id"`
 			Name        string   `json:"name"`
 			Area        string   `json:"area"`
+			MapQuery    string   `json:"map_query"`
 			Aliases     []string `json:"aliases"`
 		} `json:"venues"`
 	} `json:"entities"`
@@ -60,10 +61,10 @@ var (
 	fullYearDateRegex = regexp.MustCompile(`(20\d\d)[年/.-](\d{1,2})[月/.-](\d{1,2})`)
 	monthDayDateRegex = regexp.MustCompile(`(\d{1,2})[月/](\d{1,2})日?`)
 
-	liveTimeRegex      = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
-	benefitTimeRegex   = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(?:終演後\s*[（(]?)?(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})[）)]?(?:\s*[（(]([^）)\n\r]+)[）)])?`)
+	liveTimeRegex      = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜ー―]\s*(\d{1,2}:\d{2})`)
+	benefitTimeRegex   = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(?:終演後\s*[（(]?)?(\d{1,2}:\d{2})\s*[-~〜ー―]\s*(\d{1,2}:\d{2})[）)]?(?:\s*[（(]([^）)\n\r]+)[）)])?`)
 	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\n\r]+)`)
-	genericTimeRegex   = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+	genericTimeRegex   = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜ー―]\s*(\d{1,2}:\d{2})`)
 
 	admissionBonusRegex = regexp.MustCompile(`(?i)(?:入場特典|お目当て特典|指名入場特典|動員特典|来場特典|🎁|🎀入場特典決定🎀)\s*[:：]?\s*([^\n\r]+)`)
 	titleQuoteRegex     = regexp.MustCompile(`[『「｢]([^』」｣\n\r]+)[』」｣]`)
@@ -81,7 +82,7 @@ func NormalizeText(s string) string {
 			sb.WriteRune(r - '０' + '0')
 		case r == '：':
 			sb.WriteRune(':')
-		case r == '〜' || r == '～' || r == 'ー' || r == '―':
+		case r == '〜' || r == '～' || r == '―':
 			sb.WriteRune('-')
 		case r == '　':
 			sb.WriteRune(' ')
@@ -352,22 +353,64 @@ func padTime(t string) string {
 
 // ResolveVenueName resolves a raw venue string against canonical entities.
 func (r *Resolver) ResolveVenueName(venueName string) (canonicalID, displayName string) {
-	if venueName == "" {
-		return "", ""
+	cid, display, _, _ := r.ResolveVenueDetail(venueName, "")
+	return cid, display
+}
+
+// ResolveVenueDetail resolves a raw venue string and optional existing canonical ID against curated entities.
+func (r *Resolver) ResolveVenueDetail(venueName, existingCanonicalID string) (canonicalID, displayName, mapQuery string, matched bool) {
+	rawName := strings.TrimSpace(venueName)
+	rawCID := strings.TrimSpace(existingCanonicalID)
+	if rawName == "" && rawCID == "" {
+		return "", "", "", false
 	}
-	norm := NormalizeText(venueName)
+
+	norm := NormalizeText(rawName)
+
+	// 1. Exact canonical_id, display name, or exact alias match
 	for _, v := range r.entities.Entities.Venues {
-		if NormalizeText(v.Name) == norm {
-			return v.CanonicalID, v.Name
+		if rawCID != "" && strings.EqualFold(v.CanonicalID, rawCID) {
+			return v.CanonicalID, v.Name, firstNonEmptyString(v.MapQuery, v.Name), true
+		}
+		if norm != "" && strings.EqualFold(NormalizeText(v.Name), norm) {
+			return v.CanonicalID, v.Name, firstNonEmptyString(v.MapQuery, v.Name), true
 		}
 		for _, alias := range v.Aliases {
-			if strings.EqualFold(NormalizeText(alias), norm) || strings.Contains(norm, NormalizeText(alias)) {
-				return v.CanonicalID, v.Name
+			if norm != "" && strings.EqualFold(NormalizeText(alias), norm) {
+				return v.CanonicalID, v.Name, firstNonEmptyString(v.MapQuery, v.Name), true
 			}
 		}
 	}
-	slug := strings.ToLower(strings.ReplaceAll(venueName, " ", "-"))
-	return fmt.Sprintf("venue:%s", slug), venueName
+
+	// 2. Substring match on multi-character aliases
+	if norm != "" {
+		for _, v := range r.entities.Entities.Venues {
+			for _, alias := range v.Aliases {
+				aNorm := NormalizeText(alias)
+				if len([]rune(aNorm)) < 4 {
+					continue
+				}
+				if strings.Contains(strings.ToLower(norm), strings.ToLower(aNorm)) {
+					return v.CanonicalID, v.Name, firstNonEmptyString(v.MapQuery, v.Name), true
+				}
+			}
+		}
+	}
+
+	if rawCID != "" {
+		return rawCID, rawName, rawName, false
+	}
+	slug := strings.ToLower(strings.ReplaceAll(rawName, " ", "-"))
+	return fmt.Sprintf("venue:%s", slug), rawName, rawName, false
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // CleanWhitespace trims extra spacing and preserves newlines.

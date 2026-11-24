@@ -826,3 +826,94 @@ func TestServer_NotifyStart(t *testing.T) {
 		t.Fatalf("unexpected start notification payload: %v", payloads)
 	}
 }
+
+func TestServer_ReconcileEndpoint_CloudRunAndFallback(t *testing.T) {
+	var mu sync.Mutex
+	var discordPayloads []string
+	webhookSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		discordPayloads = append(discordPayloads, string(b))
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer webhookSrv.Close()
+
+	var triggeredGroup string
+	var triggeredDryRun bool
+	collector := NewCollector("test-v1")
+	handler := NewHandlerWithConfig(collector, &mockFetcher{}, &mockResolver{}, HandlerConfig{
+		WebhookURL:       webhookSrv.URL,
+		NotifyHTTPClient: webhookSrv.Client(),
+		NotifySync:       true,
+		CloudRunJob:      "projects/taite-board/locations/asia-northeast1/jobs/taite-reconcile",
+		TriggerReconcileJob: func(_ context.Context, group string, dryRun bool) (string, error) {
+			triggeredGroup = group
+			triggeredDryRun = dryRun
+			return "projects/taite-board/locations/asia-northeast1/jobs/taite-reconcile/executions/exec-123", nil
+		},
+	})
+
+	reqBody, _ := json.Marshal(map[string]any{"group": "all", "dry_run": true})
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/reconcile", bytes.NewReader(reqBody)))
+	if rec.Code != http.StatusAccepted {
+		t.Fatalf("expected 202 Accepted, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if triggeredGroup != "all" || !triggeredDryRun {
+		t.Errorf("unexpected trigger args: group=%s dryRun=%v", triggeredGroup, triggeredDryRun)
+	}
+
+	var resp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp["mode"] != "cloud_run_job" || !strings.Contains(resp["execution"].(string), "exec-123") {
+		t.Errorf("unexpected response payload: %+v", resp)
+	}
+
+	mu.Lock()
+	if len(discordPayloads) != 2 {
+		t.Errorf("expected 2 discord notifications (start + triggered), got %d", len(discordPayloads))
+	}
+	mu.Unlock()
+
+	// Fallback inline mode when CloudRunJob is unset
+	mem := newMemoryObjectStore()
+	_ = mem.PutObject(context.Background(), "taite-board-data", "data/groups/ribonclock/schedule.json", "application/json", "", []byte(`{
+  "schema_version": 1,
+  "generated_at": "2026-11-23T00:00:00+09:00",
+  "timezone": "Asia/Tokyo",
+  "target_group": { "name": "リボンクロック", "canonical_id": "group:ribbon-clock" },
+  "sessions": [
+    {
+      "id": "20261123-1",
+      "title": "🎀ギガ盛りMAX🎀",
+      "date": "2026-11-23",
+      "day_of_week": "月祝",
+      "venue": { "canonical_id": "", "name": "ZEAL THEATER TOKYO" },
+      "live": { "start_time": "--:--", "end_time": "", "stage": null },
+      "benefit": { "type": "並行", "start_time": "--:--", "end_time": "", "booth": "ロビ-B" },
+      "ticket": { "platform": "", "url": "https://livepocket.jp/e/x8-ap", "prices": [] },
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/111"
+    }
+  ]
+}`))
+	inlineHandler := NewHandlerWithConfig(NewCollector("test-v1"), &mockFetcher{}, &mockResolver{}, HandlerConfig{
+		Store:      mem,
+		DataBucket: "taite-board-data",
+	})
+	rec2 := httptest.NewRecorder()
+	inlineHandler.ServeHTTP(rec2, httptest.NewRequest(http.MethodPost, "/api/reconcile", bytes.NewReader([]byte(`{"group":"ribonclock","dry_run":false}`))))
+	if rec2.Code != http.StatusOK {
+		t.Fatalf("expected 200 on inline reconcile, got %d: %s", rec2.Code, rec2.Body.String())
+	}
+	updatedBytes, err := mem.GetObject(context.Background(), "taite-board-data", "schedule.json")
+	if err != nil {
+		t.Fatalf("expected schedule.json mirrored in GCS store: %v", err)
+	}
+	updatedStr := string(updatedBytes)
+	if !strings.Contains(updatedStr, "ZEAL THEATER 新橋") || !strings.Contains(updatedStr, "ロビーB") {
+		t.Errorf("expected reconciled schedule mirrored to schedule.json, got %s", updatedStr)
+	}
+}

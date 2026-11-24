@@ -17,6 +17,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/parser"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
+	"github.com/AobaIwaki123/taite-board/internal/reconcile"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
@@ -28,14 +29,17 @@ var DashboardHTML []byte
 //go:embed admin.html
 var AdminHTML []byte
 
-// HandlerConfig configures optional cloud storage and notifications for the monitor server.
+// HandlerConfig configures optional cloud storage, notifications, and Cloud Run Jobs for the monitor server.
 type HandlerConfig struct {
-	Store            gcs.ObjectStore
-	DataBucket       string
-	StateBucket      string
-	WebhookURL       string
-	NotifyHTTPClient *http.Client
-	NotifySync       bool
+	Store               gcs.ObjectStore
+	DataBucket          string
+	StateBucket         string
+	WebhookURL          string
+	NotifyHTTPClient    *http.Client
+	NotifySync          bool
+	CloudRunJob         string
+	CloudRunAPIBase     string
+	TriggerReconcileJob func(ctx context.Context, group string, dryRun bool) (string, error)
 }
 
 type validationError struct {
@@ -74,10 +78,12 @@ func NewHandler(collector *Collector) http.Handler {
 		collector.SetDiscordNotifyEnabled(webhookURL != "")
 	}
 	return NewHandlerWithConfig(collector, nil, nil, HandlerConfig{
-		Store:       store,
-		DataBucket:  dataBucket,
-		StateBucket: stateBucket,
-		WebhookURL:  webhookURL,
+		Store:           store,
+		DataBucket:      dataBucket,
+		StateBucket:     stateBucket,
+		WebhookURL:      webhookURL,
+		CloudRunJob:     strings.TrimSpace(os.Getenv("CLOUD_RUN_RECONCILE_JOB")),
+		CloudRunAPIBase: strings.TrimSpace(os.Getenv("CLOUD_RUN_API_BASE")),
 	})
 }
 
@@ -779,7 +785,198 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		})
 	})
 
+	// 8. On-demand Entity Resolution / Reconcile Cloud Run Job trigger
+	mux.HandleFunc("/api/reconcile", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Group  string `json:"group"`
+			DryRun bool   `json:"dry_run"`
+		}
+		if r.Body != nil {
+			_ = json.NewDecoder(r.Body).Decode(&req)
+		}
+		group := strings.TrimSpace(strings.ToLower(req.Group))
+		if group == "" {
+			group = "all"
+		} else if group != "all" {
+			group = normalizeGroupName(group)
+		}
+
+		modeLabel := "本番反映"
+		if req.DryRun {
+			modeLabel = "Dry Run"
+		}
+
+		recordAndNotifyActivity(collector, cfg, ActivityEntry{
+			ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+			Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+			Action:    "reconcile_start",
+			Group:     group,
+			Title:     "名寄せ・重複整理ジョブ",
+			Summary:   fmt.Sprintf("ジョブ起動 (%s)", modeLabel),
+			Domain:    fmt.Sprintf("%s.iorin.net", normalizeGroupName(group)),
+		})
+
+		ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+		defer cancel()
+
+		// Path A: Cloud Run Job trigger (custom hook or real GCP Cloud Run Jobs v2 API)
+		if cfg.TriggerReconcileJob != nil || strings.TrimSpace(cfg.CloudRunJob) != "" {
+			var execName string
+			var err error
+			if cfg.TriggerReconcileJob != nil {
+				execName, err = cfg.TriggerReconcileJob(ctx, group, req.DryRun)
+			} else {
+				execName, err = defaultTriggerCloudRunJob(ctx, cfg, group, req.DryRun)
+			}
+			if err != nil {
+				errMsg := err.Error()
+				recordAndNotifyFailure(collector, cfg, "reconcile_error", group, "", "名寄せ・重複整理ジョブ", "", "", errMsg)
+				writeJSONError(w, http.StatusBadGateway, errMsg)
+				return
+			}
+
+			act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
+				ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+				Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+				Action:    "reconcile",
+				Group:     group,
+				Title:     "名寄せ・重複整理ジョブ",
+				Summary:   fmt.Sprintf("Cloud Run Job 実行開始: %s (%s)", execName, modeLabel),
+				Domain:    fmt.Sprintf("%s.iorin.net", normalizeGroupName(group)),
+			})
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusAccepted)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status":    "triggered",
+				"mode":      "cloud_run_job",
+				"group":     group,
+				"dry_run":   req.DryRun,
+				"execution": execName,
+				"activity":  act,
+				"message":   fmt.Sprintf("Cloud Run Job を起動しました (%s)", execName),
+			})
+			return
+		}
+
+		// Path B: In-process GCS fallback when CLOUD_RUN_RECONCILE_JOB is unset
+		if cfg.Store != nil && cfg.DataBucket != "" {
+			summary, err := reconcile.Run(ctx, reconcile.RunOptions{
+				Store:         cfg.Store,
+				Bucket:        cfg.DataBucket,
+				Group:         group,
+				DryRun:        req.DryRun,
+				TriggerSource: "monitor-inline",
+			})
+			if err != nil {
+				errMsg := err.Error()
+				recordAndNotifyFailure(collector, cfg, "reconcile_error", group, "", "名寄せ・重複整理ジョブ", "", "", errMsg)
+				writeJSONError(w, http.StatusInternalServerError, errMsg)
+				return
+			}
+			act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
+				ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),
+				Timestamp: time.Now().In(time.FixedZone("Asia/Tokyo", 9*60*60)).Format(time.RFC3339),
+				Action:    "reconcile",
+				Group:     group,
+				Title:     "名寄せ・重複整理 (インライン実行)",
+				Summary:   fmt.Sprintf("changed=%t / %d グループ (%s)", summary.AnyChanged, len(summary.Results), modeLabel),
+				Domain:    fmt.Sprintf("%s.iorin.net", normalizeGroupName(group)),
+			})
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status":   "completed",
+				"mode":     "inline",
+				"summary":  summary,
+				"activity": act,
+				"message":  "名寄せ・重複整理を実行しました。",
+			})
+			return
+		}
+
+		errMsg := "CLOUD_RUN_RECONCILE_JOB または GCS ストアが設定されていません"
+		recordAndNotifyFailure(collector, cfg, "reconcile_error", group, "", "名寄せ・重複整理ジョブ", "", "", errMsg)
+		writeJSONError(w, http.StatusServiceUnavailable, errMsg)
+	})
+
 	return mux
+}
+
+func defaultTriggerCloudRunJob(ctx context.Context, cfg HandlerConfig, group string, dryRun bool) (string, error) {
+	jobName := strings.TrimSpace(cfg.CloudRunJob)
+	client, ok := cfg.Store.(*gcs.Client)
+	if !ok || client == nil {
+		var err error
+		client, err = gcs.NewClientFromEnvOrMetadata(ctx)
+		if err != nil {
+			return "", fmt.Errorf("initializing GCP credentials: %w", err)
+		}
+	}
+	token, err := client.TokenForScope(ctx, "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return "", fmt.Errorf("acquiring GCP token for Cloud Run Job: %w", err)
+	}
+
+	apiBase := strings.TrimRight(strings.TrimSpace(cfg.CloudRunAPIBase), "/")
+	if apiBase == "" {
+		apiBase = "https://run.googleapis.com"
+	}
+	endpoint := fmt.Sprintf("%s/v2/%s:run", apiBase, strings.TrimPrefix(jobName, "/"))
+
+	payload := map[string]any{
+		"overrides": map[string]any{
+			"containerOverrides": []map[string]any{
+				{
+					"env": []map[string]string{
+						{"name": "TARGET_GROUP", "value": group},
+						{"name": "DRY_RUN", "value": fmt.Sprintf("%t", dryRun)},
+						{"name": "TRIGGER_SOURCE", "value": "admin-ui"},
+					},
+				},
+			},
+		},
+	}
+	bodyBytes, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return "", fmt.Errorf("building Cloud Run Job request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	httpClient := cfg.NotifyHTTPClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 20 * time.Second}
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("invoking Cloud Run Job: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("Cloud Run Job API returned HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBytes)))
+	}
+
+	var op struct {
+		Name     string `json:"name"`
+		Metadata struct {
+			Name string `json:"name"`
+		} `json:"metadata"`
+	}
+	_ = json.Unmarshal(respBytes, &op)
+	if op.Metadata.Name != "" {
+		return op.Metadata.Name, nil
+	}
+	if op.Name != "" {
+		return op.Name, nil
+	}
+	return jobName, nil
 }
 
 func recordAndNotifyFailure(collector *Collector, cfg HandlerConfig, action, group, date, title, venue, sourceURL, errMsg string) ActivityEntry {

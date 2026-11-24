@@ -61,6 +61,8 @@ spec:
           env:
             - name: AI_PARSER_URL
               value: "https://taite-parser-3b7eomko6a-an.a.run.app"
+            - name: CLOUD_RUN_RECONCILE_JOB
+              value: "projects/taite-board/locations/asia-northeast1/jobs/taite-reconcile"
             - name: GCS_DATA_BUCKET
               value: "taite-board-data"
             - name: GCS_STATE_BUCKET

@@ -27,6 +27,12 @@ func FormatDiscordNotification(entry ActivityEntry) string {
 		actionLabel = "[失敗] 新規ライブ登録エラー"
 	case "patch_error":
 		actionLabel = "[失敗] ライブ情報更新エラー"
+	case "reconcile_start":
+		actionLabel = "[開始] 名寄せ・重複整理ジョブ開始"
+	case "reconcile":
+		actionLabel = "名寄せ・重複整理ジョブ"
+	case "reconcile_error":
+		actionLabel = "[失敗] 名寄せ・重複整理エラー"
 	}
 
 	groupLabel := entry.Group
@@ -35,6 +41,8 @@ func FormatDiscordNotification(entry ActivityEntry) string {
 		groupLabel = "リボンクロック"
 	case "dollykiss":
 		groupLabel = "Dolly Kiss"
+	case "all":
+		groupLabel = "全グループ"
 	}
 
 	var lines []string
