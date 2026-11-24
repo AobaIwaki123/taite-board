@@ -190,6 +190,27 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
             (s) => attendedSessionIds.includes(s.id) && !isSessionPast(s)
           );
           const isSelected = selectedDate === dateStr;
+          const liveState = isAttended ? (hasFutureAttended ? 'planned' : 'attended') : 'default';
+          const cellTheme = {
+            planned: {
+              selected:
+                'bg-sky-500 text-stone-950 font-black shadow-md shadow-sky-500/25 scale-105 ring-2 ring-sky-200/90 cursor-pointer',
+              idle: 'bg-sky-950/50 border border-sky-500/60 text-white font-bold hover:bg-sky-900/60 focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer',
+              dot: 'bg-sky-400',
+            },
+            attended: {
+              selected:
+                'bg-emerald-500 text-stone-950 font-black shadow-md shadow-emerald-500/25 scale-105 ring-2 ring-emerald-200/90 cursor-pointer',
+              idle: 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer',
+              dot: 'bg-emerald-400',
+            },
+            default: {
+              selected:
+                'bg-rose-500 text-stone-950 font-black shadow-md shadow-rose-500/25 scale-105 ring-2 ring-rose-200/90 cursor-pointer',
+              idle: 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 focus-visible:ring-2 focus-visible:ring-rose-400 cursor-pointer',
+              dot: 'bg-rose-400 animate-pulse',
+            },
+          }[liveState];
 
           return (
             <button
@@ -201,15 +222,11 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                 }
               }}
               aria-disabled={!hasLive}
-              class={`py-1.5 rounded-xl flex flex-col items-center justify-center transition-all select-none min-h-[44px] ${
-                isSelected
-                  ? 'bg-rose-500 text-stone-950 font-black shadow-md scale-105 cursor-pointer'
-                  : hasLive
-                  ? isAttended
-                    ? hasFutureAttended
-                      ? 'bg-sky-950/50 border border-sky-500/60 text-white font-bold hover:bg-sky-900/60 cursor-pointer'
-                      : 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 cursor-pointer'
-                    : 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 cursor-pointer'
+              class={`py-1.5 rounded-xl flex flex-col items-center justify-center transition-all select-none min-h-[44px] focus:outline-none ${
+                hasLive
+                  ? isSelected
+                    ? cellTheme.selected
+                    : cellTheme.idle
                   : 'bg-stone-900/30 text-stone-600 cursor-default'
               }`}
             >
@@ -218,13 +235,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                 <div class="flex items-center justify-center mt-0.5">
                   <span
                     class={`w-1.5 h-1.5 rounded-full ${
-                      isSelected
-                        ? 'bg-stone-950'
-                        : isAttended
-                        ? hasFutureAttended
-                          ? 'bg-sky-400'
-                          : 'bg-emerald-400'
-                        : 'bg-rose-400 animate-pulse'
+                      isSelected ? 'bg-stone-950' : cellTheme.dot
                     }`}
                   />
                 </div>
@@ -247,17 +258,25 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                 <div
                   key={s.id}
                   onClick={() => onSelectSession(s.id)}
-                  class={`soft-card rounded-xl p-3 space-y-1.5 border-l-4 cursor-pointer hover:border-rose-400/40 transition-all active:scale-[0.99] ${
+                  class={`soft-card rounded-xl p-3 space-y-1.5 border-l-4 cursor-pointer transition-all active:scale-[0.99] ${
                     attended
                       ? isPast
-                        ? 'border-l-emerald-500'
-                        : 'border-l-sky-500'
-                      : 'border-l-rose-500'
+                        ? 'border-l-emerald-500 hover:border-emerald-400/50'
+                        : 'border-l-sky-500 hover:border-sky-400/50'
+                      : 'border-l-rose-500 hover:border-rose-400/40'
                   }`}
                 >
                   {/* ヘッダー行: 日付・部数 と ステータスバッジ（参戦状況） */}
                   <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-display font-bold text-rose-300">
+                    <span
+                      class={`text-xs font-display font-bold ${
+                        attended
+                          ? isPast
+                            ? 'text-emerald-300'
+                            : 'text-sky-300'
+                          : 'text-rose-300'
+                      }`}
+                    >
                       {s.date} {s.session_name ? `[${s.session_name}]` : ''}
                     </span>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
