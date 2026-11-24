@@ -1,6 +1,7 @@
 package resolve
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -108,5 +109,60 @@ func TestResolve_PerkAndPhotoPatch(t *testing.T) {
 	}
 	if needsAI {
 		t.Errorf("expected needsAI=false for deterministic perk/photo patch without timetable images, got true")
+	}
+}
+
+func TestResolve_VenueAliasesAndBoothAndTicketURL(t *testing.T) {
+	r, err := NewResolver("")
+	if err != nil {
+		t.Fatalf("failed to init default resolver: %v", err)
+	}
+
+	tweet := `🎀『POLAROID - FREE -』🎀
+
+🗓️日付：12月2日（水）
+🎪会場：原宿RUIDO
+🎤出演：18:25〜18:45
+📸特典会：18:50〜19:50（並行A）
+
+🪄お目当て特典：下記3つの中から選択
+① 10秒動画券（複数使用可）
+② 写真＋30秒トーク（複数使用不可）
+③ 券5枚⇒集合写真/券10枚⇒私物サイン
+
+❤︎下記リンクにてチケット販売中！❤︎
+http://ticketdive.com/event/261202_PF`
+
+	cand, _, needsAI := r.Resolve(tweet, []string{"https://pbs.twimg.com/media/a.jpg"})
+	if needsAI {
+		t.Errorf("expected needsAI=false when live start & end are present")
+	}
+	if cand.Title != "POLAROID - FREE -" {
+		t.Errorf("expected clean title 'POLAROID - FREE -', got %q", cand.Title)
+	}
+	if cand.Date != "2026-12-02" {
+		t.Errorf("expected 2026-12-02, got %q", cand.Date)
+	}
+	if cand.BenefitStartRaw != "18:50" || cand.BenefitEndRaw != "19:50" {
+		t.Errorf("expected benefit 18:50-19:50, got %s-%s", cand.BenefitStartRaw, cand.BenefitEndRaw)
+	}
+	if cand.BenefitBoothRaw != "並行A" {
+		t.Errorf("expected benefit booth '並行A', got %q", cand.BenefitBoothRaw)
+	}
+	if cand.TicketURL != "http://ticketdive.com/event/261202_PF" {
+		t.Errorf("expected ticket URL extracted, got %q", cand.TicketURL)
+	}
+	if !strings.Contains(cand.AdmissionBonus, "① 10秒動画券") || strings.Contains(cand.AdmissionBonus, "特典会") {
+		t.Errorf("unexpected admission bonus: %q", cand.AdmissionBonus)
+	}
+
+	cid, name := r.ResolveVenueName("ZEAL THEATER TOKYO")
+	if cid != "venue:zeal-theater-shimbashi" || name != "ZEAL THEATER 新橋" {
+		t.Errorf("expected ZEAL THEATER TOKYO to resolve to ZEAL THEATER 新橋, got (%q, %q)", cid, name)
+	}
+
+	lCid, lName := r.ResolveVenueName("LUMINE 0")
+	if lCid != "venue:lumine-0" || lName != "LUMINE 0" {
+		t.Errorf("expected LUMINE 0 canonical resolution, got (%q, %q)", lCid, lName)
 	}
 }

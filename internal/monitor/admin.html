@@ -860,12 +860,20 @@
       return cachedSessions[cachedSessions.length - 1].id;
     }
 
+    function cleanTitleText(raw) {
+      return String(raw || '')
+        .replace(/^[🎀✨🎂🤍🕰️\s]+|[🎀✨🎂🤍🕰️\s]+$/g, '')
+        .replace(/[『』｢｣]/g, '')
+        .trim();
+    }
+
     function deriveDefaultForm(item) {
       const c = item.candidate || {};
       const lines = (item.text || '').split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const rawTitle = lines.find(l => l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) || lines[0] || '';
-      const cleanTitle = rawTitle.replace(/[『』｢｣]/g, '').trim();
-      const defaultBonus = c.admission_bonus || lines.find(l => l.includes('特典') || l.includes('入場')) || '';
+      const rawTitle = c.title || lines.find(l => (l.includes('『') || l.includes('｢') || l.includes('Vol') || l.includes('SP')) && !l.includes('撮影') && !l.includes('撮可')) || lines.find(l => !l.startsWith('/') && !l.includes('明日のライブ')) || '';
+      const cleanTitle = cleanTitleText(rawTitle);
+      const fallbackBonusLine = lines.find(l => !l.includes('特典会') && !l.includes('撮影') && (l.includes('入場特典') || l.includes('お目当て特典') || l.includes('新規特典'))) || '';
+      const defaultBonus = c.admission_bonus || fallbackBonusLine;
 
       return {
         isPatch: Boolean(c.is_patch),
@@ -878,7 +886,7 @@
         benefitEnd: c.benefit_end_raw || '',
         booth: c.benefit_booth_raw || '',
         bonus: defaultBonus,
-        ticketUrl: extractTicketUrl(item.text),
+        ticketUrl: c.ticket_url || extractTicketUrl(item.text),
         notes: '',
         patchSessionId: pickPreferredSessionId(c.date || ''),
         patchBonus: c.admission_bonus || '',
@@ -1111,6 +1119,7 @@
         }
         if (data.candidate && entry.form) {
           const c = data.candidate;
+          if (c.title && !entry.form.title) entry.form.title = cleanTitleText(c.title);
           if (c.date) entry.form.date = c.date;
           if (c.venue_raw) entry.form.venue = c.venue_raw;
           if (c.live_start_raw) entry.form.liveStart = c.live_start_raw;
@@ -1118,6 +1127,8 @@
           if (c.benefit_start_raw) entry.form.benefitStart = c.benefit_start_raw;
           if (c.benefit_end_raw) entry.form.benefitEnd = c.benefit_end_raw;
           if (c.benefit_booth_raw) entry.form.booth = c.benefit_booth_raw;
+          if (c.admission_bonus && !entry.form.bonus) entry.form.bonus = c.admission_bonus;
+          if (c.ticket_url && !entry.form.ticketUrl) entry.form.ticketUrl = c.ticket_url;
         }
         entry.item.needs_ai = false;
         entry.item.status = 'completed';

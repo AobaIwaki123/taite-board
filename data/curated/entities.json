@@ -83,7 +83,14 @@
         "name": "ZEAL THEATER 新橋",
         "area": "新橋",
         "map_query": "ZEAL THEATER 新橋",
-        "aliases": ["ZEAL THEATER 新橋", "ジールシアター新橋", "ZEAL THEATER"]
+        "aliases": ["ZEAL THEATER 新橋", "ZEAL THEATER TOKYO", "ZEAL THEATER TOKYO(新橋)", "ジールシアター新橋", "ジールシアター東京", "ZEAL THEATER"]
+      },
+      {
+        "canonical_id": "venue:lumine-0",
+        "name": "LUMINE 0",
+        "area": "新宿",
+        "map_query": "LUMINE 0 新宿",
+        "aliases": ["LUMINE 0", "LUMINE0", "ルミネゼロ", "ルミネ0", "NEWoMan新宿 5F LUMINE 0"]
       }
     ],
     "ticket_platforms": [

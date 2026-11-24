@@ -43,6 +43,7 @@ type oembedResponse struct {
 // Client implements PostFetcher for X (formerly Twitter) posts.
 type Client struct {
 	HTTPClient *http.Client
+	FxBaseURL  string
 }
 
 // NewClient returns a new X source adapter client.
@@ -51,6 +52,7 @@ func NewClient(timeout time.Duration) *Client {
 		HTTPClient: &http.Client{
 			Timeout: timeout,
 		},
+		FxBaseURL: "https://api.fxtwitter.com",
 	}
 }
 
@@ -64,13 +66,18 @@ func ExtractStatusID(postURL string) string {
 }
 
 // FetchPost retrieves post text, metadata, and media images from an X post URL.
+// It prefers FxTwitter to preserve full note_tweet text and expanded URLs, falling back to oEmbed + Syndication.
 func (c *Client) FetchPost(ctx context.Context, postURL string) (*raw.Post, error) {
 	statusID := ExtractStatusID(postURL)
 	if statusID == "" {
 		return nil, fmt.Errorf("invalid x post url: no status id found in %s", postURL)
 	}
 
-	// 1. Fetch via official oEmbed API
+	if post, err := c.fetchFxTwitterPost(ctx, postURL, statusID); err == nil && post != nil && post.Text != "" {
+		return post, nil
+	}
+
+	// Fallback: Fetch via official oEmbed API
 	oembedURL := fmt.Sprintf("https://publish.twitter.com/oembed?url=%s&omit_script=true", url.QueryEscape(postURL))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, oembedURL, nil)
 	if err != nil {
@@ -210,8 +217,98 @@ func (c *Client) fetchSyndicationImages(ctx context.Context, statusID string) []
 	return images
 }
 
+func (c *Client) fxBase() string {
+	if strings.TrimSpace(c.FxBaseURL) != "" {
+		return strings.TrimRight(c.FxBaseURL, "/")
+	}
+	return "https://api.fxtwitter.com"
+}
+
+func (c *Client) fetchFxTwitterPost(ctx context.Context, postURL, statusID string) (*raw.Post, error) {
+	fxURL := fmt.Sprintf("%s/status/%s", c.fxBase(), statusID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fxURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "TaiteBoardBot/1.0")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fxtwitter returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	if err != nil {
+		return nil, err
+	}
+
+	var fxResult struct {
+		Code  int `json:"code"`
+		Tweet struct {
+			Text   string `json:"text"`
+			Author struct {
+				Name string `json:"name"`
+				URL  string `json:"url"`
+			} `json:"author"`
+			Media struct {
+				Photos []struct {
+					URL string `json:"url"`
+				} `json:"photos"`
+				All []struct {
+					Type string `json:"type"`
+					URL  string `json:"url"`
+				} `json:"all"`
+			} `json:"media"`
+		} `json:"tweet"`
+	}
+	if err := json.Unmarshal(body, &fxResult); err != nil {
+		return nil, err
+	}
+
+	text := strings.TrimSpace(fxResult.Tweet.Text)
+	if text == "" {
+		return nil, fmt.Errorf("fxtwitter returned empty text")
+	}
+
+	var images []string
+	seen := make(map[string]bool)
+	for _, p := range fxResult.Tweet.Media.Photos {
+		if norm := normalizeMediaURL(p.URL); norm != "" && !seen[norm] {
+			seen[norm] = true
+			images = append(images, norm)
+		}
+	}
+	if len(images) == 0 {
+		for _, m := range fxResult.Tweet.Media.All {
+			if m.Type == "photo" {
+				if norm := normalizeMediaURL(m.URL); norm != "" && !seen[norm] {
+					seen[norm] = true
+					images = append(images, norm)
+				}
+			}
+		}
+	}
+
+	return &raw.Post{
+		SchemaVersion: 1,
+		Source:        "x",
+		SourceID:      statusID,
+		URL:           postURL,
+		Author:        fxResult.Tweet.Author.Name,
+		AuthorURL:     fxResult.Tweet.Author.URL,
+		Text:          text,
+		Images:        images,
+		FetchedAt:     time.Now().Format(time.RFC3339),
+	}, nil
+}
+
 func (c *Client) fetchFxTwitterImages(ctx context.Context, statusID string) []string {
-	fxURL := fmt.Sprintf("https://api.fxtwitter.com/status/%s", statusID)
+	fxURL := fmt.Sprintf("%s/status/%s", c.fxBase(), statusID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fxURL, nil)
 	if err != nil {
 		return nil

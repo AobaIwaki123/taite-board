@@ -124,3 +124,67 @@ func TestUpdateSession(t *testing.T) {
 		t.Errorf("targetCopy mismatch with srcFile")
 	}
 }
+
+func TestAddSession_UpsertDedupe(t *testing.T) {
+	initial := []byte(`{
+		"schema_version": 1,
+		"generated_at": "2026-11-22T00:00:00Z",
+		"timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"},
+		"sessions": [
+			{
+				"id": "20261123-1",
+				"title": "ギガ盛りMAX 前夜祭＠新橋",
+				"date": "2026-11-23",
+				"day_of_week": "月祝",
+				"venue": {"canonical_id": "venue:zeal-theater-shimbashi", "name": "ZEAL THEATER 新橋", "map_query": "ZEAL THEATER 新橋"},
+				"live": {"start_time": "--:--", "end_time": "--:--", "stage": null},
+				"benefit": {"type": "未定", "start_time": "--:--", "end_time": "--:--", "booth": "告知待ち"},
+				"admission_bonus": "指名入場特典：お目当て3択",
+				"ticket": {"platform": "LivePocket", "url": "https://livepocket.jp/e/x8-ap", "prices": [{"tier": "前方", "price": "¥4,000"}]}
+			}
+		]
+	}`)
+
+	mergedBytes, sessionID, err := ApplyAddSession(initial, AddSessionOptions{
+		Date:             "2026-11-23",
+		Title:            "ギガ盛りMAX 前夜祭@新橋",
+		VenueName:        "ZEAL THEATER 新橋",
+		VenueCanonicalID: "venue:zeal-theater-shimbashi",
+		LiveStartTime:    "13:15",
+		LiveEndTime:      "13:35",
+		BenefitStartTime: "13:40",
+		BenefitEndTime:   "14:40",
+		Booth:            "並行A",
+		SourceTweetURL:   "https://x.com/Ribbon_Clock/status/2124488067855863874",
+	})
+	if err != nil {
+		t.Fatalf("ApplyAddSession upsert failed: %v", err)
+	}
+	if sessionID != "20261123-1" {
+		t.Fatalf("expected existing session id 20261123-1, got %s", sessionID)
+	}
+
+	var doc struct {
+		Sessions []map[string]any `json:"sessions"`
+	}
+	if err := json.Unmarshal(mergedBytes, &doc); err != nil {
+		t.Fatalf("unmarshal merged doc: %v", err)
+	}
+	if len(doc.Sessions) != 1 {
+		t.Fatalf("expected 1 deduped session, got %d", len(doc.Sessions))
+	}
+	s := doc.Sessions[0]
+	live := s["live"].(map[string]any)
+	benefit := s["benefit"].(map[string]any)
+	ticket := s["ticket"].(map[string]any)
+	if live["start_time"] != "13:15" || live["end_time"] != "13:35" {
+		t.Errorf("expected live time updated, got %v", live)
+	}
+	if benefit["booth"] != "並行A" || benefit["start_time"] != "13:40" {
+		t.Errorf("expected benefit booth & time updated, got %v", benefit)
+	}
+	if ticket["url"] != "https://livepocket.jp/e/x8-ap" {
+		t.Errorf("expected existing ticket URL preserved, got %v", ticket)
+	}
+}
