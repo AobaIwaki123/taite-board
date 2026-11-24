@@ -176,4 +176,34 @@ https://tiget.net/events/537396`
 	if ttCand.BenefitBoothRaw != "ロビーB" {
 		t.Errorf("expected katakana booth 'ロビーB' without hyphen mangling, got %q", ttCand.BenefitBoothRaw)
 	}
+
+	photoNewlineTweet := `／／
+明日のライブ
+＼＼
+
+🎀『POLAROID - FREE -』🎀
+
+🗓️日付：11/25（水）
+🎪会場：原宿RUIDO
+🎤出演：18:45〜19:05
+📸特典会：19:10〜20:10（並行B）
+
+明日の撮影可能曲は、
+1曲目『えすえぬ・えーす』です！
+
+❤︎チケットは下記リンクにて発売中！❤︎
+https://ticketdive.com/event/261125_PF`
+	pCand, _, pNeedsAI := r.Resolve(photoNewlineTweet, []string{"https://pbs.twimg.com/media/a.jpg"})
+	if pNeedsAI {
+		t.Errorf("expected needsAI=false for live + photo tweet")
+	}
+	if pCand.PhotoSong != "えすえぬ・えーす" {
+		t.Errorf("expected multiline photo song 'えすえぬ・えーす', got %q", pCand.PhotoSong)
+	}
+	if pCand.PhotoAllowed == nil || !*pCand.PhotoAllowed || pCand.PhotoDevice != "photo_ok" {
+		t.Errorf("expected photo_ok allowed, got allowed=%v device=%q", pCand.PhotoAllowed, pCand.PhotoDevice)
+	}
+	if pCand.BenefitBoothRaw != "並行B" || pCand.TicketURL != "https://ticketdive.com/event/261125_PF" {
+		t.Errorf("unexpected booth/ticket: %+v", pCand)
+	}
 }

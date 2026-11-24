@@ -187,4 +187,24 @@ func TestAddSession_UpsertDedupe(t *testing.T) {
 	if ticket["url"] != "https://livepocket.jp/e/x8-ap" {
 		t.Errorf("expected existing ticket URL preserved, got %v", ticket)
 	}
+
+	// Verify photo regulation works on both new session and upsert
+	photoMerged, _, err := ApplyAddSession(mergedBytes, AddSessionOptions{
+		Date:        "2026-11-23",
+		Title:       "ギガ盛りMAX 前夜祭@新橋",
+		VenueName:   "ZEAL THEATER 新橋",
+		PhotoSong:   "えすえぬ・えーす",
+		PhotoDevice: "photo_ok",
+	})
+	if err != nil {
+		t.Fatalf("ApplyAddSession photo upsert failed: %v", err)
+	}
+	var photoDoc struct {
+		Sessions []map[string]any `json:"sessions"`
+	}
+	_ = json.Unmarshal(photoMerged, &photoDoc)
+	photoMap, ok := photoDoc.Sessions[0]["photo"].(map[string]any)
+	if !ok || photoMap["available"] != true || photoMap["rule"] != "撮可: えすえぬ・えーす" {
+		t.Errorf("expected photo map populated on upsert, got %+v", photoDoc.Sessions[0]["photo"])
+	}
 }

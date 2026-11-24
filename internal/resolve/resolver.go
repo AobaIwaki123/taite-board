@@ -69,7 +69,7 @@ var (
 	admissionBonusRegex = regexp.MustCompile(`(?i)(?:入場特典|お目当て特典|指名入場特典|動員特典|来場特典|🎁|🎀入場特典決定🎀)\s*[:：]?\s*([^\n\r]+)`)
 	titleQuoteRegex     = regexp.MustCompile(`[『「｢]([^』」｣\n\r]+)[』」｣]`)
 	ticketURLRegex      = regexp.MustCompile(`https?://(?:[\w-]+\.)?(?:livepocket\.jp|tiget\.net|t-dv\.com|ticketdive\.com|eplus\.jp|ticketvillage\.jp|pia\.jp|l-tike\.com)/[^\s)\]>」』"']+`)
-	photoSongRegex      = regexp.MustCompile(`(?i)(?:(?:撮影可能曲|撮可曲|撮影曲|撮可)\s*[:：]?\s*[【『「｢]([^】』」｣\n\r]+)[】』」｣])|(?:[【『「｢]([^】』」｣\n\r]+)[】』」｣]\s*(?:のみ)?\s*(?:動画|静止画|写真)?\s*(?:の)?\s*(?:撮影可能|撮影OK|撮可))`)
+	photoSongRegex      = regexp.MustCompile(`(?i)(?:(?:撮影可能曲|撮可曲|撮影曲|撮可)[^\n【『「｢]{0,20}(?:\n[^\n【『「｢]{0,20})?[【『「｢]([^】』」｣\n\r]+)[】』」｣])|(?:[【『「｢]([^】』」｣\n\r]+)[】』」｣]\s*(?:のみ)?\s*(?:動画|静止画|写真)?\s*(?:の)?\s*(?:撮影可能|撮影OK|撮可))`)
 	photoGeneralRegex   = regexp.MustCompile(`(?i)(?:全曲)?(?:動画|静止画|写真)(?:の)?(?:撮影可能|撮影OK|撮可)`)
 )
 

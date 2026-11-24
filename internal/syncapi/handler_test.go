@@ -289,18 +289,75 @@ func TestAuthRegisterLoginAndSyncData(t *testing.T) {
 		t.Errorf("expected 200 for admin user, got (%d): %s", admOkRec.Code, admOkRec.Body.String())
 	}
 
-	// 10. /admin returns AdminHTML and /admin/dashboard returns DashboardHTML
+	// 10. /admin & /admin/dashboard enforce cookie/token admin RBAC (401 unauth, 403 user, 200 admin cookie)
 	admPage := httptest.NewRequest(http.MethodGet, "/admin", nil)
 	admPageRec := httptest.NewRecorder()
 	mux.ServeHTTP(admPageRec, admPage)
-	if admPageRec.Code != http.StatusOK || !strings.Contains(admPageRec.Body.String(), "<html>admin-register</html>") {
-		t.Errorf("expected /admin HTML, got (%d): %s", admPageRec.Code, admPageRec.Body.String())
+	if admPageRec.Code != http.StatusUnauthorized || strings.Contains(admPageRec.Body.String(), "<html>admin-register</html>") {
+		t.Errorf("expected 401 login gate for unauth /admin, got (%d): %s", admPageRec.Code, admPageRec.Body.String())
 	}
 
 	dashPage := httptest.NewRequest(http.MethodGet, "/admin/dashboard", nil)
 	dashPageRec := httptest.NewRecorder()
 	mux.ServeHTTP(dashPageRec, dashPage)
-	if dashPageRec.Code != http.StatusOK || !strings.Contains(dashPageRec.Body.String(), "<html>admin-dashboard</html>") {
-		t.Errorf("expected /admin/dashboard HTML, got (%d): %s", dashPageRec.Code, dashPageRec.Body.String())
+	if dashPageRec.Code != http.StatusUnauthorized || strings.Contains(dashPageRec.Body.String(), "<html>admin-dashboard</html>") {
+		t.Errorf("expected 401 login gate for unauth /admin/dashboard, got (%d): %s", dashPageRec.Code, dashPageRec.Body.String())
+	}
+
+	// Regular user token rejected with 403 on /admin
+	userPage := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	userPage.Header.Set("Authorization", "Bearer "+validJWT)
+	userPageRec := httptest.NewRecorder()
+	mux.ServeHTTP(userPageRec, userPage)
+	if userPageRec.Code != http.StatusForbidden {
+		t.Errorf("expected 403 for non-admin /admin, got %d", userPageRec.Code)
+	}
+
+	// Admin Bearer token mints 30-day HttpOnly session cookie via /api/sync/me
+	meAdminCookies := meAdminRec.Result().Cookies()
+	var sessionCookie *http.Cookie
+	for _, c := range meAdminCookies {
+		if c.Name == SessionCookieName {
+			sessionCookie = c
+			break
+		}
+	}
+	if sessionCookie == nil || !sessionCookie.HttpOnly || sessionCookie.MaxAge < 29*24*3600 {
+		t.Fatalf("expected 30-day HttpOnly %s cookie on /api/sync/me, got %+v", SessionCookieName, meAdminCookies)
+	}
+
+	// Cookie grants /admin, /admin/dashboard, and /api/admin/stats even past 1h Firebase JWT lifetime (after 24h!)
+	now = now.Add(24 * time.Hour)
+
+	admCookieReq := httptest.NewRequest(http.MethodGet, "/admin", nil)
+	admCookieReq.AddCookie(sessionCookie)
+	admCookieRec := httptest.NewRecorder()
+	mux.ServeHTTP(admCookieRec, admCookieReq)
+	if admCookieRec.Code != http.StatusOK || !strings.Contains(admCookieRec.Body.String(), "<html>admin-register</html>") {
+		t.Errorf("expected /admin HTML via session cookie, got (%d): %s", admCookieRec.Code, admCookieRec.Body.String())
+	}
+
+	dashCookieReq := httptest.NewRequest(http.MethodGet, "/admin/dashboard", nil)
+	dashCookieReq.AddCookie(sessionCookie)
+	dashCookieRec := httptest.NewRecorder()
+	mux.ServeHTTP(dashCookieRec, dashCookieReq)
+	if dashCookieRec.Code != http.StatusOK || !strings.Contains(dashCookieRec.Body.String(), "<html>admin-dashboard</html>") {
+		t.Errorf("expected /admin/dashboard HTML via session cookie, got (%d): %s", dashCookieRec.Code, dashCookieRec.Body.String())
+	}
+
+	apiCookieReq := httptest.NewRequest(http.MethodGet, "/api/admin/stats", nil)
+	apiCookieReq.AddCookie(sessionCookie)
+	apiCookieRec := httptest.NewRecorder()
+	mux.ServeHTTP(apiCookieRec, apiCookieReq)
+	if apiCookieRec.Code != http.StatusOK || !strings.Contains(apiCookieRec.Body.String(), `"admin_ok":true`) {
+		t.Errorf("expected 200 on /api/admin/stats via cookie, got (%d): %s", apiCookieRec.Code, apiCookieRec.Body.String())
+	}
+
+	// /api/sync/logout clears session cookie
+	logoutReq := httptest.NewRequest(http.MethodPost, "/api/sync/logout", nil)
+	logoutRec := httptest.NewRecorder()
+	mux.ServeHTTP(logoutRec, logoutReq)
+	if logoutRec.Code != http.StatusOK {
+		t.Errorf("expected 200 on logout, got %d", logoutRec.Code)
 	}
 }

@@ -554,7 +554,7 @@
       banner.style.display = 'block';
     }
 
-    async function getAdminAuthToken() {
+    async function getAdminAuthToken(forceRefresh = false) {
       const raw = localStorage.getItem('taite_sync_session');
       if (!raw) return null;
       let session;
@@ -565,10 +565,11 @@
       }
       if (!session || !session.idToken) return null;
 
-      if (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt) {
+      if (forceRefresh || (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt)) {
         try {
           const refRes = await fetch('/api/sync/refresh', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: session.refreshToken })
           });
@@ -581,7 +582,7 @@
             localStorage.setItem('taite_sync_session', JSON.stringify(session));
           }
         } catch {
-          // ignore refresh errors and let API return 401
+          // ignore refresh errors and let Cookie / API decide
         }
       }
       return session.idToken;
@@ -589,20 +590,23 @@
 
     async function apiFetch(subpath, options = {}) {
       const url = (isAdminRoute ? '/api/admin' : '/api') + subpath;
-      const headers = Object.assign({}, options.headers || {});
-      if (isAdminRoute) {
-        const token = await getAdminAuthToken();
-        if (!token) {
-          showAdminAuthBanner('管理者ログインが必要です', '公開サイト側で admin ロールのアカウントにログインした状態で開いてください。');
-          throw new Error('管理者ログインが必要です');
+      const buildHeaders = (tok) => {
+        const h = Object.assign({}, options.headers || {});
+        if (isAdminRoute && tok) {
+          h['Authorization'] = 'Bearer ' + tok;
         }
-        headers['Authorization'] = 'Bearer ' + token;
+        return h;
+      };
+      let token = isAdminRoute ? await getAdminAuthToken(false) : null;
+      let res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers: buildHeaders(token) }));
+      if (isAdminRoute && res.status === 401 && token) {
+        token = await getAdminAuthToken(true);
+        res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers: buildHeaders(token) }));
       }
-      const res = await fetch(url, Object.assign({}, options, { headers }));
       if (isAdminRoute && (res.status === 401 || res.status === 403)) {
         const msg = res.status === 403
           ? '現在ログイン中のアカウントには admin 権限がありません（roles.json で昇格が必要です）。'
-          : 'ログインセッションが切れています。トップページから再ログインしてください。';
+          : 'ログインセッションが切れています。ページを再読み込みして再ログインしてください。';
         showAdminAuthBanner('アクセス拒否 (' + res.status + ')', msg);
       }
       return res;
