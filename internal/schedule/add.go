@@ -28,6 +28,7 @@ type AddSessionOptions struct {
 	AdmissionBonus   string
 	PhotoRule        string
 	PhotoSong        string
+	PhotoSongNumber  int
 	PhotoDevice      string
 	PhotoAvailable   *bool
 	FilePath         string
@@ -69,6 +70,9 @@ func AddSession(opts AddSessionOptions) (string, error) {
 func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error) {
 	if opts.Date == "" || opts.Title == "" || opts.VenueName == "" {
 		return nil, "", fmt.Errorf("date, title, and venue name are required")
+	}
+	if opts.PhotoSongNumber < 0 {
+		return nil, "", fmt.Errorf("photo_song_number must be an integer >= 1")
 	}
 	if opts.LiveStartTime == "" {
 		opts.LiveStartTime = "--:--"
@@ -230,7 +234,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 	}
 
 	var photoObj interface{}
-	if opts.PhotoSong != "" || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
+	if opts.PhotoSong != "" || opts.PhotoSongNumber > 0 || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
 		photoObj = buildPhotoMapFromAdd(opts)
 	}
 
@@ -396,10 +400,21 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		}
 	}
 
-	// Photo regulation: set if missing on existing session
-	if opts.PhotoSong != "" || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
+	// Photo regulation: set or enrich existing session photo
+	if opts.PhotoSong != "" || opts.PhotoSongNumber > 0 || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
 		if sMap["photo"] == nil {
 			sMap["photo"] = buildPhotoMapFromAdd(opts)
+		} else if existingPhoto, ok := sMap["photo"].(map[string]interface{}); ok {
+			if opts.PhotoSongNumber > 0 {
+				if _, hasNum := existingPhoto["song_number"]; !hasNum {
+					existingPhoto["song_number"] = opts.PhotoSongNumber
+				}
+			}
+			if opts.PhotoSong != "" {
+				if _, hasSongs := existingPhoto["allowed_songs"]; !hasSongs {
+					existingPhoto["allowed_songs"] = []string{strings.TrimSpace(opts.PhotoSong)}
+				}
+			}
 		}
 	}
 
@@ -451,26 +466,44 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 	}
 }
 
-func buildPhotoMapFromAdd(opts AddSessionOptions) map[string]interface{} {
+func buildPhotoObject(availablePtr *bool, rule, rawText, song, device string, songNumber int) map[string]interface{} {
 	available := true
-	if opts.PhotoAvailable != nil {
-		available = *opts.PhotoAvailable
+	if availablePtr != nil {
+		available = *availablePtr
 	}
-	rule := strings.TrimSpace(opts.PhotoRule)
-	song := strings.TrimSpace(opts.PhotoSong)
-	if rule == "" && song != "" {
-		rule = fmt.Sprintf("撮可: %s", song)
+	ruleTrim := strings.TrimSpace(rule)
+	songTrim := strings.TrimSpace(song)
+	rawTrim := strings.TrimSpace(rawText)
+	if ruleTrim == "" {
+		switch {
+		case songNumber > 0 && songTrim != "":
+			ruleTrim = fmt.Sprintf("%d曲目『%s』撮影可能", songNumber, songTrim)
+		case songNumber > 0:
+			ruleTrim = fmt.Sprintf("%d曲目撮影可能", songNumber)
+		case songTrim != "":
+			ruleTrim = fmt.Sprintf("撮可: %s", songTrim)
+		}
+	}
+	if rawTrim == "" {
+		rawTrim = ruleTrim
 	}
 	photoMap := map[string]interface{}{
 		"available": available,
-		"rule":      rule,
-		"raw_text":  rule,
+		"rule":      ruleTrim,
+		"raw_text":  rawTrim,
 	}
-	if song != "" {
-		photoMap["allowed_songs"] = []string{song}
+	if songNumber > 0 {
+		photoMap["song_number"] = songNumber
 	}
-	if dev := strings.TrimSpace(opts.PhotoDevice); dev != "" {
+	if songTrim != "" {
+		photoMap["allowed_songs"] = []string{songTrim}
+	}
+	if dev := strings.TrimSpace(device); dev != "" {
 		photoMap["device"] = dev
 	}
 	return photoMap
+}
+
+func buildPhotoMapFromAdd(opts AddSessionOptions) map[string]interface{} {
+	return buildPhotoObject(opts.PhotoAvailable, opts.PhotoRule, "", opts.PhotoSong, opts.PhotoDevice, opts.PhotoSongNumber)
 }

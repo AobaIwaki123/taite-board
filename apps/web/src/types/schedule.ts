@@ -57,12 +57,15 @@ export interface BenefitEvent {
   note?: string;
 }
 
+export type PhotoDevice = 'photo_ok' | 'still_only' | 'video_ok';
+
 export interface PhotoRule {
   available?: boolean;
   rule?: string;
   raw_text?: string;
+  song_number?: number | null;
   allowed_songs?: string[];
-  device?: string;
+  device?: PhotoDevice;
 }
 
 export interface TicketPrice {

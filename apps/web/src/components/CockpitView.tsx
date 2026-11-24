@@ -453,47 +453,78 @@ export function CockpitView({
 
       {/* レギュレーション・特記事項 */}
       <div class="space-y-2">
-        {/* 撮影可否ルール */}
-        {(session.photo?.rule || (session.photo?.allowed_songs && session.photo.allowed_songs.length > 0)) && (
-          <div class={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
-            session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
-              ? 'bg-amber-950/40 border-amber-500/40 shadow-sm shadow-amber-950/30'
-              : 'bg-stone-900/80 border-white/10'
-          }`}>
-            <Icon
-              icon={Aperture}
-              class={`w-4 h-4 shrink-0 mt-0.5 ${
-                session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
-                  ? 'text-amber-400'
-                  : 'text-emerald-400'
+        {/* 撮影可否・撮可曲ルール */}
+        {(session.photo?.rule ||
+          session.photo?.song_number ||
+          (session.photo?.allowed_songs && session.photo.allowed_songs.length > 0)) && (() => {
+          const photo = session.photo!;
+          const songs = photo.allowed_songs ?? [];
+          const hasSongs = songs.length > 0;
+          const songNum = typeof photo.song_number === 'number' && photo.song_number >= 1 ? photo.song_number : null;
+          const hasStructuredSong = hasSongs || songNum !== null;
+          const norm = (s: string) =>
+            s
+              .replace(/(?:撮影可能曲|撮影可能|撮影OK|撮影|撮可曲|撮可|曲目)/g, '')
+              .replace(/[\s🎀📸：:『』【】（）()・!！]/g, '');
+          const songJoined = norm(songs.join(''));
+          const ruleNorm = norm(photo.rule || '');
+          const isRedundantRule =
+            !photo.rule ||
+            (hasStructuredSong &&
+              (ruleNorm === songJoined ||
+                (songNum !== null &&
+                  (ruleNorm === `${songNum}${songJoined}` || ruleNorm === `${songJoined}${songNum}`))));
+
+          return (
+            <div
+              class={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+                hasStructuredSong
+                  ? 'bg-amber-950/40 border-amber-500/40 shadow-sm shadow-amber-950/30'
+                  : 'bg-stone-900/80 border-white/10'
               }`}
-            />
-            <div class="space-y-1">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class={`font-bold ${
-                  session.photo?.allowed_songs && session.photo.allowed_songs.length > 0
-                    ? 'text-amber-300'
-                    : 'text-emerald-300'
-                }`}>
-                  撮影レギュレーション：
-                </span>
-                {session.photo?.allowed_songs && session.photo.allowed_songs.length > 0 && (
-                  <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/30">
-                    撮可曲: {session.photo.allowed_songs.join(', ')}
+            >
+              <Icon
+                icon={Aperture}
+                class={`w-4 h-4 shrink-0 mt-0.5 ${
+                  hasStructuredSong ? 'text-amber-400' : 'text-emerald-400'
+                }`}
+              />
+              <div class="space-y-1 min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class={`font-bold ${hasStructuredSong ? 'text-amber-300' : 'text-emerald-300'}`}>
+                    {hasStructuredSong ? '撮可曲：' : '撮影ルール：'}
                   </span>
-                )}
-                {session.photo?.device === 'video_ok' && (
-                  <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-                    動画・静止画OK
-                  </span>
+                  {songNum !== null && (
+                    <span class="px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-200 font-extrabold border border-amber-400/40">
+                      {songNum}曲目
+                    </span>
+                  )}
+                  {hasSongs && (
+                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/30">
+                      {songs.join(', ')}
+                    </span>
+                  )}
+                  {photo.device === 'video_ok' && (
+                    <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+                      動画・静止画OK
+                    </span>
+                  )}
+                  {photo.device === 'still_only' && (
+                    <span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">
+                      静止画のみOK
+                    </span>
+                  )}
+                  {!hasStructuredSong && photo.rule && (
+                    <span class="text-stone-300">{photo.rule}</span>
+                  )}
+                </div>
+                {hasStructuredSong && !isRedundantRule && (
+                  <div class="text-stone-300">{photo.rule}</div>
                 )}
               </div>
-              {session.photo?.rule && (
-                <div class="text-stone-300">{session.photo.rule}</div>
-              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 入場特典 */}
         {session.admission_bonus && (

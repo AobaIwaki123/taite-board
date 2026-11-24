@@ -912,11 +912,13 @@
         bonus: defaultBonus,
         ticketUrl: c.ticket_url || extractTicketUrl(item.text),
         photoSong: c.photo_song || '',
+        photoSongNumber: c.photo_song_number ? String(c.photo_song_number) : '',
         photoDevice: c.photo_device || '',
         notes: '',
         patchSessionId: pickPreferredSessionId(c.date || ''),
         patchBonus: c.admission_bonus || '',
         patchPhotoSong: c.photo_song || '',
+        patchPhotoSongNumber: c.photo_song_number ? String(c.photo_song_number) : '',
         patchPhotoDevice: c.photo_device || '',
         patchNotes: '',
         patchUpdateUrl: false
@@ -1156,8 +1158,10 @@
           if (c.admission_bonus && !entry.form.bonus) entry.form.bonus = c.admission_bonus;
           if (c.ticket_url && !entry.form.ticketUrl) entry.form.ticketUrl = c.ticket_url;
           if (c.photo_song && !entry.form.photoSong) entry.form.photoSong = c.photo_song;
+          if (c.photo_song_number && !entry.form.photoSongNumber) entry.form.photoSongNumber = String(c.photo_song_number);
           if (c.photo_device && !entry.form.photoDevice) entry.form.photoDevice = c.photo_device;
           if (c.photo_song && !entry.form.patchPhotoSong) entry.form.patchPhotoSong = c.photo_song;
+          if (c.photo_song_number && !entry.form.patchPhotoSongNumber) entry.form.patchPhotoSongNumber = String(c.photo_song_number);
           if (c.photo_device && !entry.form.patchPhotoDevice) entry.form.patchPhotoDevice = c.photo_device;
         }
         entry.item.needs_ai = false;
@@ -1209,6 +1213,7 @@
         let res, data;
         if (f.isPatch) {
           const photoSong = (f.patchPhotoSong || '').trim();
+          const patchSongNum = parseInt(String(f.patchPhotoSongNumber || '').trim(), 10) || 0;
           res = await apiFetch('/intake/patch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1219,13 +1224,14 @@
               date: f.date || '',
               admission_bonus: (f.patchBonus || '').trim(),
               photo_song: photoSong,
+              photo_song_number: patchSongNum,
               photo_device: f.patchPhotoDevice || '',
-              photo_rule: photoSong ? '撮可: ' + photoSong : '',
               special_notes: (f.patchNotes || '').trim(),
               update_official_url: Boolean(f.patchUpdateUrl)
             })
           });
         } else {
+          const promoteSongNum = parseInt(String(f.photoSongNumber || '').trim(), 10) || 0;
           res = await apiFetch('/intake/promote', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1246,8 +1252,8 @@
               image_url: (entry.item.images && entry.item.images.length > 0) ? entry.item.images[0] : '',
               admission_bonus: (f.bonus || '').trim(),
               photo_song: (f.photoSong || '').trim(),
+              photo_song_number: promoteSongNum,
               photo_device: (f.photoDevice || '').trim(),
-              photo_rule: (f.photoSong || '').trim() ? '撮可: ' + (f.photoSong || '').trim() : '',
               special_notes: (f.notes || '').trim()
             })
           });
@@ -1386,15 +1392,20 @@
               <label>撮影可能曲</label>
               <input type="text" value="${escapeHtml(f.patchPhotoSong)}" oninput="updateFormField(${entry.qid}, 'patchPhotoSong', this.value)" placeholder="例: 微々々⭐︎炭酸サイダー" />
             </div>
+            <div class="field col-1">
+              <label>何曲目</label>
+              <input type="number" min="1" step="1" value="${escapeHtml(f.patchPhotoSongNumber)}" oninput="updateFormField(${entry.qid}, 'patchPhotoSongNumber', this.value)" placeholder="1" />
+            </div>
             <div class="field col-2">
               <label>撮影種別</label>
               <select onchange="updateFormField(${entry.qid}, 'patchPhotoDevice', this.value)">
                 <option value="" ${!f.patchPhotoDevice ? 'selected' : ''}>指定なし</option>
+                <option value="photo_ok" ${f.patchPhotoDevice === 'photo_ok' ? 'selected' : ''}>撮影OK</option>
                 <option value="still_only" ${f.patchPhotoDevice === 'still_only' ? 'selected' : ''}>静止画のみOK</option>
                 <option value="video_ok" ${f.patchPhotoDevice === 'video_ok' ? 'selected' : ''}>動画・静止画OK</option>
               </select>
             </div>
-            <div class="field col-4" style="grid-column: span 4;">
+            <div class="field col-3">
               <label>特記事項</label>
               <input type="text" value="${escapeHtml(f.patchNotes)}" oninput="updateFormField(${entry.qid}, 'patchNotes', this.value)" placeholder="任意メモ" />
             </div>
@@ -1445,9 +1456,13 @@
               <label>チケット URL</label>
               <input type="url" value="${escapeHtml(f.ticketUrl)}" oninput="updateFormField(${entry.qid}, 'ticketUrl', this.value)" placeholder="https://t.livepocket.jp/..." />
             </div>
-            <div class="field col-3">
+            <div class="field col-2">
               <label>撮影可能曲</label>
               <input type="text" value="${escapeHtml(f.photoSong)}" oninput="updateFormField(${entry.qid}, 'photoSong', this.value)" placeholder="例: えすえぬ・えーす" />
+            </div>
+            <div class="field col-1">
+              <label>何曲目</label>
+              <input type="number" min="1" step="1" value="${escapeHtml(f.photoSongNumber)}" oninput="updateFormField(${entry.qid}, 'photoSongNumber', this.value)" placeholder="1" />
             </div>
             <div class="field col-2">
               <label>撮影種別</label>

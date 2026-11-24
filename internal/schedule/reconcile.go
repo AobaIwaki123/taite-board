@@ -204,7 +204,15 @@ func reconcileSingleSession(sMap map[string]interface{}, resolver *resolve.Resol
 		}
 	}
 
-	// 5. Normalize ticket platform & ensure prices array exists
+	// 5. Normalize photo regulation (backfill typed song_number & allowed_songs from rule/raw_text)
+	if pMap, ok := sMap["photo"].(map[string]interface{}); ok && pMap != nil {
+		if reconcilePhotoRegulation(pMap, id, report) {
+			sMap["photo"] = pMap
+			changed = true
+		}
+	}
+
+	// 6. Normalize ticket platform & ensure prices array exists
 	if tMap, ok := sMap["ticket"].(map[string]interface{}); ok {
 		tURL := strings.TrimSpace(stringField(tMap, "url"))
 		if tURL != stringField(tMap, "url") {
@@ -255,6 +263,36 @@ func reconcileSingleSession(sMap map[string]interface{}, resolver *resolve.Resol
 		changed = true
 	}
 
+	return changed
+}
+
+func reconcilePhotoRegulation(pMap map[string]interface{}, id string, report *ReconcileReport) bool {
+	changed := false
+	combined := strings.TrimSpace(stringField(pMap, "raw_text") + "\n" + stringField(pMap, "rule"))
+	song, songNum, _, _ := resolve.ExtractPhotoSongDetails(combined)
+
+	// Normalize / backfill song_number (strictly positive integer or omitted)
+	if rawNum, exists := pMap["song_number"]; exists {
+		if rawNum == nil {
+			delete(pMap, "song_number")
+			changed = true
+		} else if f, ok := rawNum.(float64); !ok || f != float64(int(f)) || int(f) < 1 {
+			delete(pMap, "song_number")
+			changed = true
+		}
+	}
+	if _, hasValid := pMap["song_number"]; !hasValid && songNum > 0 {
+		pMap["song_number"] = songNum
+		report.Changes = append(report.Changes, fmt.Sprintf("%s: photo.song_number = %d", id, songNum))
+		changed = true
+	}
+
+	// Backfill allowed_songs if song extracted cleanly from rule/raw_text
+	if existingSongs, _ := pMap["allowed_songs"].([]interface{}); len(existingSongs) == 0 && song != "" {
+		pMap["allowed_songs"] = []string{song}
+		report.Changes = append(report.Changes, fmt.Sprintf("%s: photo.allowed_songs = [%q]", id, song))
+		changed = true
+	}
 	return changed
 }
 

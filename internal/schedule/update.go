@@ -46,6 +46,7 @@ type UpdateSessionOptions struct {
 	PhotoRawText      string
 	PhotoAvailable    *bool
 	PhotoSong         string
+	PhotoSongNumber   int
 	PhotoDevice       string
 	AdmissionBonus    string
 	SourceTweetURL    string
@@ -125,30 +126,11 @@ func ApplyUpdateSession(raw []byte, opts UpdateSessionOptions) ([]byte, error) {
 			found = true
 
 			// 1. Update Photo Rule if specified
-			if opts.PhotoRule != "" || opts.PhotoSong != "" || opts.PhotoAvailable != nil {
-				available := true
-				if opts.PhotoAvailable != nil {
-					available = *opts.PhotoAvailable
+			if opts.PhotoRule != "" || opts.PhotoSong != "" || opts.PhotoSongNumber > 0 || opts.PhotoAvailable != nil {
+				if opts.PhotoSongNumber < 0 {
+					return nil, fmt.Errorf("photo_song_number must be an integer >= 1")
 				}
-				rawText := opts.PhotoRawText
-				if rawText == "" {
-					rawText = opts.PhotoRule
-				}
-				if rawText == "" && opts.PhotoSong != "" {
-					rawText = fmt.Sprintf("撮可: %s", opts.PhotoSong)
-				}
-				photoMap := map[string]interface{}{
-					"available": available,
-					"rule":      opts.PhotoRule,
-					"raw_text":  rawText,
-				}
-				if opts.PhotoSong != "" {
-					photoMap["allowed_songs"] = []string{opts.PhotoSong}
-				}
-				if opts.PhotoDevice != "" {
-					photoMap["device"] = opts.PhotoDevice
-				}
-				sMap["photo"] = photoMap
+				sMap["photo"] = buildPhotoObject(opts.PhotoAvailable, opts.PhotoRule, opts.PhotoRawText, opts.PhotoSong, opts.PhotoDevice, opts.PhotoSongNumber)
 			}
 
 			// 2. Update Admission Bonus if specified

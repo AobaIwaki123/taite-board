@@ -392,6 +392,9 @@ func (c *Collector) UpdateIntakeAIResult(sourceID string, cand candidate.EventCa
 			if cand.PhotoSong != "" {
 				c.recentIntakes[i].Candidate.PhotoSong = cand.PhotoSong
 			}
+			if cand.PhotoSongNumber > 0 {
+				c.recentIntakes[i].Candidate.PhotoSongNumber = cand.PhotoSongNumber
+			}
 			if cand.PhotoDevice != "" {
 				c.recentIntakes[i].Candidate.PhotoDevice = cand.PhotoDevice
 			}

@@ -57,6 +57,7 @@ func TestApplyReconcileSchedule_MergesDuplicatesAndNormalizesEntities(t *testing
       "venue": { "canonical_id": "", "name": "神田明神ホール" },
       "live": { "start_time": "18:40", "end_time": "19:00", "stage": null },
       "benefit": { "type": "並行", "start_time": "19:10", "end_time": "20:10", "booth": "C" },
+      "photo": { "available": true, "rule": "1曲目『えすえぬ・えーす』撮影可能", "raw_text": "1曲目『えすえぬ・えーす』撮影可能" },
       "ticket": { "platform": "", "url": "https://tiget.net/events/444", "prices": [] },
       "source_tweet_url": "https://x.com/Ribbon_Clock/status/333"
     }
@@ -93,6 +94,10 @@ func TestApplyReconcileSchedule_MergesDuplicatesAndNormalizesEntities(t *testing
 			Benefit struct {
 				Booth string `json:"booth"`
 			} `json:"benefit"`
+			Photo *struct {
+				SongNumber   int      `json:"song_number"`
+				AllowedSongs []string `json:"allowed_songs"`
+			} `json:"photo"`
 			Ticket struct {
 				Platform string `json:"platform"`
 			} `json:"ticket"`
@@ -115,6 +120,9 @@ func TestApplyReconcileSchedule_MergesDuplicatesAndNormalizesEntities(t *testing
 	}
 	if doc.Sessions[1].Ticket.Platform != "TIGET" {
 		t.Errorf("expected TIGET platform detected, got %q", doc.Sessions[1].Ticket.Platform)
+	}
+	if doc.Sessions[1].Photo == nil || doc.Sessions[1].Photo.SongNumber != 1 || len(doc.Sessions[1].Photo.AllowedSongs) == 0 || doc.Sessions[1].Photo.AllowedSongs[0] != "えすえぬ・えーす" {
+		t.Errorf("expected backfilled photo.song_number=1 & allowed_songs, got %+v", doc.Sessions[1].Photo)
 	}
 
 	merged := doc.Sessions[2]

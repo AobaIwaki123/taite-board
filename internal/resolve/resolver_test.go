@@ -200,6 +200,9 @@ https://ticketdive.com/event/261125_PF`
 	if pCand.PhotoSong != "えすえぬ・えーす" {
 		t.Errorf("expected multiline photo song 'えすえぬ・えーす', got %q", pCand.PhotoSong)
 	}
+	if pCand.PhotoSongNumber != 1 {
+		t.Errorf("expected photo song number 1, got %d", pCand.PhotoSongNumber)
+	}
 	if pCand.PhotoAllowed == nil || !*pCand.PhotoAllowed || pCand.PhotoDevice != "photo_ok" {
 		t.Errorf("expected photo_ok allowed, got allowed=%v device=%q", pCand.PhotoAllowed, pCand.PhotoDevice)
 	}

@@ -127,6 +127,7 @@ type extractedOutput struct {
 	AdmissionBonus  string `json:"admission_bonus"`
 	TicketURL       string `json:"ticket_url"`
 	PhotoSong       string `json:"photo_song"`
+	PhotoSongNumber int    `json:"photo_song_number"`
 	PhotoDevice     string `json:"photo_device"`
 	Evidence        []struct {
 		Field      string  `json:"field"`
@@ -198,6 +199,7 @@ Extract the following JSON strictly:
   "admission_bonus": "Nomination admission bonus (do NOT put benefit session times here)",
   "ticket_url": "Ticket sales URL if present",
   "photo_song": "Allowed song title if photo/video is allowed",
+  "photo_song_number": 0,
   "photo_device": "still_only or video_ok or empty string",
   "evidence": [
     {"field": "live_start_raw", "source": "image", "quote": "18:30", "confidence": 0.95}
@@ -318,6 +320,7 @@ If a field is not found, leave as empty string. Do not hallucinate.`,
 			AdmissionBonus:  out.AdmissionBonus,
 			TicketURL:       out.TicketURL,
 			PhotoSong:       out.PhotoSong,
+			PhotoSongNumber: out.PhotoSongNumber,
 			PhotoDevice:     out.PhotoDevice,
 		},
 		Evidence: evidences,

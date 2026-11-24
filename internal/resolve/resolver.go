@@ -70,6 +70,7 @@ var (
 	titleQuoteRegex     = regexp.MustCompile(`[『「｢]([^』」｣\n\r]+)[』」｣]`)
 	ticketURLRegex      = regexp.MustCompile(`https?://(?:[\w-]+\.)?(?:livepocket\.jp|tiget\.net|t-dv\.com|ticketdive\.com|eplus\.jp|ticketvillage\.jp|pia\.jp|l-tike\.com)/[^\s)\]>」』"']+`)
 	photoSongRegex      = regexp.MustCompile(`(?i)(?:(?:撮影可能曲|撮可曲|撮影曲|撮可)[^\n【『「｢]{0,20}(?:\n[^\n【『「｢]{0,20})?[【『「｢]([^】』」｣\n\r]+)[】』」｣])|(?:[【『「｢]([^】』」｣\n\r]+)[】』」｣]\s*(?:のみ)?\s*(?:動画|静止画|写真)?\s*(?:の)?\s*(?:撮影可能|撮影OK|撮可))`)
+	photoSongNumberRx   = regexp.MustCompile(`(?:^|[^\d])(?:第\s*)?(\d{1,2})\s*曲目?`)
 	photoGeneralRegex   = regexp.MustCompile(`(?i)(?:全曲)?(?:動画|静止画|写真)(?:の)?(?:撮影可能|撮影OK|撮可)`)
 )
 
@@ -271,22 +272,11 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 	}
 
 	// Photo song extraction (e.g. 『シャイニーデイズ』のみ動画撮影可能 / 撮影可能曲：【未来へのファンファーレ】動画撮影OK)
-	if m := photoSongRegex.FindStringSubmatch(text); len(m) > 1 {
-		song := m[1]
-		if song == "" && len(m) > 2 {
-			song = m[2]
-		}
-		cand.PhotoSong = strings.TrimSpace(song)
+	if song, songNum, matchLine, ok := ExtractPhotoSongDetails(text); ok {
+		cand.PhotoSong = song
+		cand.PhotoSongNumber = songNum
 		allowed := true
 		cand.PhotoAllowed = &allowed
-
-		matchLine := m[0]
-		for _, line := range strings.Split(text, "\n") {
-			if strings.Contains(line, m[0]) || (cand.PhotoSong != "" && strings.Contains(line, cand.PhotoSong)) {
-				matchLine = line
-				break
-			}
-		}
 
 		if strings.Contains(matchLine, "動画") {
 			cand.PhotoDevice = "video_ok"
@@ -411,6 +401,48 @@ func firstNonEmptyString(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// ExtractPhotoSongDetails extracts a track-specific photo-allowed song name, 1-based song number (if specified),
+// and matched snippet/line from arbitrary Japanese event announcement text.
+func ExtractPhotoSongDetails(text string) (song string, songNumber int, matchLine string, ok bool) {
+	if strings.TrimSpace(text) == "" {
+		return "", 0, "", false
+	}
+	if m := photoSongRegex.FindStringSubmatch(text); len(m) > 1 {
+		s := m[1]
+		if s == "" && len(m) > 2 {
+			s = m[2]
+		}
+		song = strings.TrimSpace(s)
+		matchLine = m[0]
+		normLine := NormalizeText(matchLine)
+		if nm := photoSongNumberRx.FindStringSubmatch(normLine); len(nm) > 1 {
+			if n, err := strconv.Atoi(nm[1]); err == nil && n >= 1 {
+				songNumber = n
+			}
+		}
+		for _, line := range strings.Split(text, "\n") {
+			if strings.Contains(line, m[0]) || (song != "" && strings.Contains(line, song)) {
+				matchLine = line
+				if songNumber == 0 {
+					if nm := photoSongNumberRx.FindStringSubmatch(NormalizeText(line)); len(nm) > 1 {
+						if n, err := strconv.Atoi(nm[1]); err == nil && n >= 1 {
+							songNumber = n
+						}
+					}
+				}
+				break
+			}
+		}
+		return song, songNumber, strings.TrimSpace(matchLine), song != ""
+	}
+	if m := photoSongNumberRx.FindStringSubmatch(NormalizeText(text)); len(m) > 1 && strings.Contains(text, "曲目") {
+		if n, err := strconv.Atoi(m[1]); err == nil && n >= 1 {
+			return "", n, strings.TrimSpace(text), false
+		}
+	}
+	return "", 0, "", false
 }
 
 // CleanWhitespace trims extra spacing and preserves newlines.
