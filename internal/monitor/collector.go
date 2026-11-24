@@ -365,6 +365,9 @@ func (c *Collector) UpdateIntakeAIResult(sourceID string, cand candidate.EventCa
 	found := false
 	for i := range c.recentIntakes {
 		if c.recentIntakes[i].SourceID == sourceID {
+			if cand.Title != "" {
+				c.recentIntakes[i].Candidate.Title = cand.Title
+			}
 			if cand.LiveStartRaw != "" {
 				c.recentIntakes[i].Candidate.LiveStartRaw = cand.LiveStartRaw
 			}
@@ -376,6 +379,21 @@ func (c *Collector) UpdateIntakeAIResult(sourceID string, cand candidate.EventCa
 			}
 			if cand.BenefitEndRaw != "" {
 				c.recentIntakes[i].Candidate.BenefitEndRaw = cand.BenefitEndRaw
+			}
+			if cand.BenefitBoothRaw != "" {
+				c.recentIntakes[i].Candidate.BenefitBoothRaw = cand.BenefitBoothRaw
+			}
+			if cand.AdmissionBonus != "" {
+				c.recentIntakes[i].Candidate.AdmissionBonus = cand.AdmissionBonus
+			}
+			if cand.TicketURL != "" {
+				c.recentIntakes[i].Candidate.TicketURL = cand.TicketURL
+			}
+			if cand.PhotoSong != "" {
+				c.recentIntakes[i].Candidate.PhotoSong = cand.PhotoSong
+			}
+			if cand.PhotoDevice != "" {
+				c.recentIntakes[i].Candidate.PhotoDevice = cand.PhotoDevice
 			}
 			if cand.Date != "" {
 				c.recentIntakes[i].Candidate.Date = cand.Date

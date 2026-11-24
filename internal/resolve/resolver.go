@@ -60,12 +60,14 @@ var (
 	fullYearDateRegex = regexp.MustCompile(`(20\d\d)[年/.-](\d{1,2})[月/.-](\d{1,2})`)
 	monthDayDateRegex = regexp.MustCompile(`(\d{1,2})[月/](\d{1,2})日?`)
 
-	liveTimeRegex    = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
-	benefitTimeRegex = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+	liveTimeRegex      = regexp.MustCompile(`(?i)(?:LIVE|出演|出番|本番|ライブ)\s*[:：]?\s*(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+	benefitTimeRegex   = regexp.MustCompile(`(?i)(?:特典会|物販|終演後物販|並行物販)\s*[:：]?\s*(?:終演後\s*[（(]?)?(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})[）)]?(?:\s*[（(]([^）)\n\r]+)[）)])?`)
 	venueFallbackRegex = regexp.MustCompile(`(?i)(?:会場|場所)\s*[:：]?\s*([^\n\r]+)`)
-	genericTimeRegex = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
+	genericTimeRegex   = regexp.MustCompile(`(\d{1,2}:\d{2})\s*[-~〜]\s*(\d{1,2}:\d{2})`)
 
 	admissionBonusRegex = regexp.MustCompile(`(?i)(?:入場特典|お目当て特典|指名入場特典|動員特典|来場特典|🎁|🎀入場特典決定🎀)\s*[:：]?\s*([^\n\r]+)`)
+	titleQuoteRegex     = regexp.MustCompile(`[『「｢]([^』」｣\n\r]+)[』」｣]`)
+	ticketURLRegex      = regexp.MustCompile(`https?://(?:[\w-]+\.)?(?:livepocket\.jp|tiget\.net|t-dv\.com|ticketdive\.com|eplus\.jp|ticketvillage\.jp|pia\.jp|l-tike\.com)/[^\s)\]>」』"']+`)
 	photoSongRegex      = regexp.MustCompile(`(?i)(?:(?:撮影可能曲|撮可曲|撮影曲|撮可)\s*[:：]?\s*[【『「｢]([^】』」｣\n\r]+)[】』」｣])|(?:[【『「｢]([^】』」｣\n\r]+)[】』」｣]\s*(?:のみ)?\s*(?:動画|静止画|写真)?\s*(?:の)?\s*(?:撮影可能|撮影OK|撮可))`)
 	photoGeneralRegex   = regexp.MustCompile(`(?i)(?:全曲)?(?:動画|静止画|写真)(?:の)?(?:撮影可能|撮影OK|撮可)`)
 )
@@ -193,8 +195,8 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 		})
 	}
 
-	// 5. Resolve Benefit Time
-	if m := benefitTimeRegex.FindStringSubmatch(norm); len(m) == 3 {
+	// 5. Resolve Benefit Time & Booth
+	if m := benefitTimeRegex.FindStringSubmatch(norm); len(m) >= 3 {
 		cand.BenefitStartRaw = padTime(m[1])
 		cand.BenefitEndRaw = padTime(m[2])
 		evidences = append(evidences, candidate.Evidence{
@@ -203,7 +205,32 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 			Quote:      m[0],
 			Confidence: 0.95,
 		})
+		if len(m) >= 4 && strings.TrimSpace(m[3]) != "" {
+			cand.BenefitBoothRaw = strings.TrimSpace(m[3])
+			evidences = append(evidences, candidate.Evidence{
+				Field:      "benefit_booth_raw",
+				Source:     "text",
+				Quote:      cand.BenefitBoothRaw,
+				Confidence: 0.9,
+			})
+		} else if strings.Contains(m[0], "終演後") {
+			cand.BenefitBoothRaw = "終演後"
+		}
 	}
+
+	// Extract Ticket URL if present in text
+	if m := ticketURLRegex.FindString(text); m != "" {
+		cand.TicketURL = m
+		evidences = append(evidences, candidate.Evidence{
+			Field:      "ticket_url",
+			Source:     "text",
+			Quote:      m,
+			Confidence: 0.95,
+		})
+	}
+
+	// Extract Clean Title (prefer quoted event title, ignoring photo song lines)
+	cand.Title = extractCleanTitle(text)
 
 	// If no liveTime found yet, check genericTimeRegex if not benefit
 	if cand.LiveStartRaw == "" {
@@ -228,6 +255,10 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 		bonus = strings.TrimPrefix(bonus, "🎁")
 		bonus = strings.TrimSpace(bonus)
 		if bonus != "" {
+			// Append numbered choice lines (①/②/③) immediately following the header line if present
+			if choiceSummary := extractBonusChoiceLines(text, m[0]); choiceSummary != "" && !strings.Contains(bonus, "①") {
+				bonus = bonus + "（" + choiceSummary + "）"
+			}
 			cand.AdmissionBonus = bonus
 			evidences = append(evidences, candidate.Evidence{
 				Field:      "admission_bonus",
@@ -348,4 +379,57 @@ func CleanWhitespace(s string) string {
 		cleaned = append(cleaned, trimmed)
 	}
 	return strings.TrimSpace(strings.Join(cleaned, "\n"))
+}
+
+func extractCleanTitle(text string) string {
+	for _, line := range strings.Split(text, "\n") {
+		t := strings.TrimSpace(line)
+		if t == "" || strings.Contains(t, "撮影") || strings.Contains(t, "撮可") {
+			continue
+		}
+		if m := titleQuoteRegex.FindStringSubmatch(t); len(m) == 2 {
+			return strings.TrimSpace(m[1])
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
+		t := strings.TrimSpace(line)
+		if t == "" || strings.HasPrefix(t, "/") || strings.HasPrefix(t, "\\") ||
+			strings.Contains(t, "明日のライブ") || strings.Contains(t, "次回LIVE") {
+			continue
+		}
+		cleaned := strings.TrimFunc(t, func(r rune) bool {
+			return unicode.IsSpace(r) || r == '🎀' || r == '✨' || r == '🎂' || r == '🤍' || r == '🕰' || r == '\ufe0f'
+		})
+		if cleaned != "" {
+			return cleaned
+		}
+	}
+	return ""
+}
+
+func extractBonusChoiceLines(text, matchLine string) string {
+	lines := strings.Split(text, "\n")
+	startIdx := -1
+	for i, l := range lines {
+		if strings.Contains(l, matchLine) {
+			startIdx = i
+			break
+		}
+	}
+	if startIdx < 0 {
+		return ""
+	}
+	var choices []string
+	for i := startIdx + 1; i < len(lines) && len(choices) < 4; i++ {
+		t := strings.TrimSpace(lines[i])
+		if t == "" {
+			break
+		}
+		if strings.HasPrefix(t, "①") || strings.HasPrefix(t, "②") || strings.HasPrefix(t, "③") || strings.HasPrefix(t, "④") {
+			choices = append(choices, t)
+		} else {
+			break
+		}
+	}
+	return strings.Join(choices, " / ")
 }

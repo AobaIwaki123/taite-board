@@ -116,12 +116,18 @@ type geminiResponse struct {
 }
 
 type extractedOutput struct {
+	Title           string `json:"title"`
 	Date            string `json:"date"`
 	VenueRaw        string `json:"venue_raw"`
 	LiveStartRaw    string `json:"live_start_raw"`
 	LiveEndRaw      string `json:"live_end_raw"`
 	BenefitStartRaw string `json:"benefit_start_raw"`
 	BenefitEndRaw   string `json:"benefit_end_raw"`
+	BenefitBoothRaw string `json:"benefit_booth_raw"`
+	AdmissionBonus  string `json:"admission_bonus"`
+	TicketURL       string `json:"ticket_url"`
+	PhotoSong       string `json:"photo_song"`
+	PhotoDevice     string `json:"photo_device"`
 	Evidence        []struct {
 		Field      string  `json:"field"`
 		Source     string  `json:"source"`
@@ -181,17 +187,23 @@ func (c *GeminiClient) Parse(ctx context.Context, req *ParseRequest) (*ParseResp
 Target group: "リボンクロック" (Ribbon Clock, リボクロ).
 Extract the following JSON strictly:
 {
+  "title": "Event title without decorative emojis",
   "date": "YYYY-MM-DD",
   "venue_raw": "Venue name",
   "live_start_raw": "HH:MM",
   "live_end_raw": "HH:MM",
   "benefit_start_raw": "HH:MM",
   "benefit_end_raw": "HH:MM",
+  "benefit_booth_raw": "Benefit booth / table / timing label (e.g. 並行A, ロビーB, 終演後)",
+  "admission_bonus": "Nomination admission bonus (do NOT put benefit session times here)",
+  "ticket_url": "Ticket sales URL if present",
+  "photo_song": "Allowed song title if photo/video is allowed",
+  "photo_device": "still_only or video_ok or empty string",
   "evidence": [
     {"field": "live_start_raw", "source": "image", "quote": "18:30", "confidence": 0.95}
   ]
 }
-If a time or venue is not found, leave as empty string. Do not hallucinate.`,
+If a field is not found, leave as empty string. Do not hallucinate.`,
 				},
 			},
 		},
@@ -295,12 +307,18 @@ If a time or venue is not found, leave as empty string. Do not hallucinate.`,
 		ModelID:       modelID,
 		PromptVersion: promptVer,
 		Candidate: candidate.EventCandidate{
+			Title:           out.Title,
 			Date:            out.Date,
 			VenueRaw:        out.VenueRaw,
 			LiveStartRaw:    out.LiveStartRaw,
 			LiveEndRaw:      out.LiveEndRaw,
 			BenefitStartRaw: out.BenefitStartRaw,
 			BenefitEndRaw:   out.BenefitEndRaw,
+			BenefitBoothRaw: out.BenefitBoothRaw,
+			AdmissionBonus:  out.AdmissionBonus,
+			TicketURL:       out.TicketURL,
+			PhotoSong:       out.PhotoSong,
+			PhotoDevice:     out.PhotoDevice,
 		},
 		Evidence: evidences,
 		Usage: UsageStats{

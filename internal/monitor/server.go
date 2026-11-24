@@ -336,12 +336,24 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 		group := normalizeGroupName(req.Group)
 		title := strings.TrimSpace(req.Title)
+		title = strings.Trim(title, "🎀✨🎂🤍🕰️ \t")
+		title = strings.NewReplacer("『", "", "』", "", "｢", "", "｣", "").Replace(title)
+		title = strings.TrimSpace(title)
 		if title == "" {
 			title = fmt.Sprintf("ライブ出演 (%s)", req.Date)
 		}
 		venue := strings.TrimSpace(req.Venue)
+		venueCanonicalID := ""
 		if venue == "" {
 			venue = "未定"
+		} else if vr, rErr := resolve.NewResolver(""); rErr == nil && vr != nil {
+			cid, display := vr.ResolveVenueName(venue)
+			if cid != "" {
+				venueCanonicalID = cid
+			}
+			if display != "" {
+				venue = display
+			}
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
@@ -359,6 +371,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			Date:             strings.TrimSpace(req.Date),
 			Title:            title,
 			VenueName:        venue,
+			VenueCanonicalID: venueCanonicalID,
 			LiveStartTime:    strings.TrimSpace(req.LiveStart),
 			LiveEndTime:      strings.TrimSpace(req.LiveEnd),
 			BenefitStartTime: strings.TrimSpace(req.BenefitStart),
