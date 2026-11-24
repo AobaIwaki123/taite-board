@@ -292,12 +292,7 @@ func shouldMergeSessions(a, b map[string]interface{}) bool {
 		return false
 	}
 
-	// Signal 1: Exact same X post or shared source_ref ID/URL
-	if shareSourceIdentity(a, b) {
-		return true
-	}
-
-	// Guard against false-merging separate multi-part / multiple shows on the same day
+	// Guard 1: Separate multi-part shows on the same day (1部 vs 2部, 昼 vs 夜) never merge
 	sessNameA := strings.TrimSpace(stringField(a, "session_name"))
 	sessNameB := strings.TrimSpace(stringField(b, "session_name"))
 	if sessNameA != "" && sessNameB != "" && sessNameA != sessNameB {
@@ -306,6 +301,14 @@ func shouldMergeSessions(a, b map[string]interface{}) bool {
 		}
 	}
 
+	// Guard 2: Concrete different venues (excluding placeholder venue:未定) never merge
+	venueIDA := nestedStringField(a, "venue", "canonical_id")
+	venueIDB := nestedStringField(b, "venue", "canonical_id")
+	if venueIDA != "" && venueIDB != "" && venueIDA != "venue:未定" && venueIDB != "venue:未定" && venueIDA != venueIDB {
+		return false
+	}
+
+	// Guard 3: Concrete different live start times (>15 min apart) never merge
 	liveStartA := nestedStringField(a, "live", "start_time")
 	liveStartB := nestedStringField(b, "live", "start_time")
 	if minA, okA := parseHHMM(liveStartA); okA {
@@ -320,16 +323,19 @@ func shouldMergeSessions(a, b map[string]interface{}) bool {
 		}
 	}
 
-	// Signal 2: Overlapping normalized titles
+	// Signal 1: Overlapping normalized titles
 	titleKeyA := normalizeMatchKey(stringField(a, "title"))
 	titleKeyB := normalizeMatchKey(stringField(b, "title"))
 	if keysOverlap(titleKeyA, titleKeyB) {
 		return true
 	}
 
-	// Signal 3: Same known canonical venue AND compatible time (exact time match or placeholder session)
-	venueIDA := nestedStringField(a, "venue", "canonical_id")
-	venueIDB := nestedStringField(b, "venue", "canonical_id")
+	// Signal 2: Same X post or shared source_ref when venue/time guards do not conflict
+	if shareSourceIdentity(a, b) {
+		return true
+	}
+
+	// Signal 3: Same known canonical venue AND compatible time or placeholder title
 	sameVenue := venueIDA != "" && venueIDA != "venue:未定" && venueIDA == venueIDB
 	if !sameVenue {
 		return false
