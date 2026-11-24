@@ -47,6 +47,7 @@ type EventCandidate struct {
 	TicketURL        string `json:"ticket_url,omitempty"`
 	PhotoAllowed     *bool  `json:"photo_allowed,omitempty"`
 	PhotoSong        string `json:"photo_song,omitempty"`
+	PhotoSongNumber  int    `json:"photo_song_number,omitempty"`
 	PhotoDevice      string `json:"photo_device,omitempty"`
 	PhotoNotes       string `json:"photo_notes,omitempty"`
 	IsPatch          bool   `json:"is_patch,omitempty"`

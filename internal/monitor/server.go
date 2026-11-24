@@ -324,11 +324,12 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		Booth          string `json:"booth"`
 		TicketURL      string `json:"ticket_url"`
 		ImageURL       string `json:"image_url"`
-		AdmissionBonus string `json:"admission_bonus"`
-		SpecialNotes   string `json:"special_notes"`
-		PhotoSong      string `json:"photo_song"`
-		PhotoDevice    string `json:"photo_device"`
-		PhotoRule      string `json:"photo_rule"`
+		AdmissionBonus  string `json:"admission_bonus"`
+		SpecialNotes    string `json:"special_notes"`
+		PhotoSong       string `json:"photo_song"`
+		PhotoSongNumber int    `json:"photo_song_number"`
+		PhotoDevice     string `json:"photo_device"`
+		PhotoRule       string `json:"photo_rule"`
 	}
 
 	mux.HandleFunc("/api/intake/promote", func(w http.ResponseWriter, r *http.Request) {
@@ -392,6 +393,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			SpecialNotes:     strings.TrimSpace(req.SpecialNotes),
 			AdmissionBonus:   strings.TrimSpace(req.AdmissionBonus),
 			PhotoSong:        strings.TrimSpace(req.PhotoSong),
+			PhotoSongNumber:  req.PhotoSongNumber,
 			PhotoDevice:      strings.TrimSpace(req.PhotoDevice),
 			PhotoRule:        strings.TrimSpace(req.PhotoRule),
 		})
@@ -478,6 +480,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		Date              string `json:"date"`
 		AdmissionBonus    string `json:"admission_bonus"`
 		PhotoSong         string `json:"photo_song"`
+		PhotoSongNumber   int    `json:"photo_song_number"`
 		PhotoDevice       string `json:"photo_device"`
 		PhotoRule         string `json:"photo_rule"`
 		SpecialNotes      string `json:"special_notes"`
@@ -559,11 +562,8 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		}
 
 		photoRule := strings.TrimSpace(req.PhotoRule)
-		if photoRule == "" && strings.TrimSpace(req.PhotoSong) != "" {
-			photoRule = fmt.Sprintf("撮可: %s", strings.TrimSpace(req.PhotoSong))
-		}
 		var photoAvailable *bool
-		if photoRule != "" || strings.TrimSpace(req.PhotoSong) != "" {
+		if photoRule != "" || strings.TrimSpace(req.PhotoSong) != "" || req.PhotoSongNumber > 0 {
 			t := true
 			photoAvailable = &t
 		}
@@ -572,6 +572,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			SessionID:         sessionID,
 			PhotoRule:         photoRule,
 			PhotoSong:         strings.TrimSpace(req.PhotoSong),
+			PhotoSongNumber:   req.PhotoSongNumber,
 			PhotoDevice:       strings.TrimSpace(req.PhotoDevice),
 			PhotoAvailable:    photoAvailable,
 			AdmissionBonus:    strings.TrimSpace(req.AdmissionBonus),

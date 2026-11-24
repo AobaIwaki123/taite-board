@@ -208,6 +208,62 @@ func TestValidateFile_CheckRemoteURLs(t *testing.T) {
 	}
 }
 
+func TestValidateBytes_PhotoSongNumberAndDeviceTypes(t *testing.T) {
+	validJSON := []byte(`{
+		"schema_version": 1,
+		"generated_at": "2026-11-25T00:00:00Z",
+		"timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"},
+		"sessions": [{
+			"id": "20261125-1",
+			"title": "POLAROID",
+			"date": "2026-11-25",
+			"venue": {"name": "原宿RUIDO"},
+			"live": {"start_time": "18:45", "end_time": "19:05"},
+			"benefit": {"start_time": "19:10", "end_time": "20:10"},
+			"ticket": {"platform": "TicketDive", "url": "https://ticketdive.com/event/261125_PF"},
+			"photo": {
+				"available": true,
+				"song_number": 1,
+				"allowed_songs": ["えすえぬ・えーす"],
+				"device": "photo_ok"
+			}
+		}]
+	}`)
+	r, err := ValidateBytes(validJSON)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !r.IsValid || len(r.Errors) > 0 {
+		t.Errorf("expected valid photo regulation, got errors: %v", r.Errors)
+	}
+
+	// String "1曲目" instead of integer must fail validation
+	invalidStrJSON := []byte(`{
+		"schema_version": 1,
+		"generated_at": "2026-11-25T00:00:00Z",
+		"timezone": "Asia/Tokyo",
+		"target_group": {"name": "リボンクロック"},
+		"sessions": [{
+			"id": "20261125-1",
+			"title": "POLAROID",
+			"date": "2026-11-25",
+			"venue": {"name": "原宿RUIDO"},
+			"live": {"start_time": "18:45"},
+			"benefit": {"start_time": "19:10"},
+			"ticket": {},
+			"photo": { "available": true, "song_number": "1曲目", "device": "invalid_dev" }
+		}]
+	}`)
+	r2, err := ValidateBytes(invalidStrJSON)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r2.IsValid || len(r2.Errors) < 2 {
+		t.Errorf("expected type errors for string song_number and bad device, got %+v", r2)
+	}
+}
+
 func TestValidateFile_TicketPlatformStatusWarning(t *testing.T) {
 	sched := validBaseSchedule()
 	sessions := sched["sessions"].([]map[string]interface{})

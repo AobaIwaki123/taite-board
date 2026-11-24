@@ -233,6 +233,39 @@ func ValidateBytesWithOptions(data []byte, opts Options) (*ValidationReport, err
 			prevBenEnd = ""
 		}
 
+		// Photo regulation type & range checks
+		if rawPhoto, exists := s["photo"]; exists && rawPhoto != nil {
+			photoMap, ok := rawPhoto.(map[string]interface{})
+			if !ok {
+				report.Errors = append(report.Errors, fmt.Sprintf("%s: photo must be an object or null", prefix))
+			} else {
+				if rawNum, hasNum := photoMap["song_number"]; hasNum && rawNum != nil {
+					f, isFloat := rawNum.(float64)
+					if !isFloat || f != float64(int(f)) || int(f) < 1 {
+						report.Errors = append(report.Errors, fmt.Sprintf("%s: photo.song_number must be an integer >= 1 (got %T %v)", prefix, rawNum, rawNum))
+					}
+				}
+				if rawSongs, hasSongs := photoMap["allowed_songs"]; hasSongs && rawSongs != nil {
+					arr, isArr := rawSongs.([]interface{})
+					if !isArr {
+						report.Errors = append(report.Errors, fmt.Sprintf("%s: photo.allowed_songs must be an array of strings", prefix))
+					} else {
+						for idx, item := range arr {
+							if str, isStr := item.(string); !isStr || strings.TrimSpace(str) == "" {
+								report.Errors = append(report.Errors, fmt.Sprintf("%s: photo.allowed_songs[%d] must be a non-empty string", prefix, idx))
+							}
+						}
+					}
+				}
+				if rawDev, hasDev := photoMap["device"]; hasDev && rawDev != nil {
+					devStr, isStr := rawDev.(string)
+					if !isStr || (devStr != "" && devStr != "photo_ok" && devStr != "still_only" && devStr != "video_ok") {
+						report.Errors = append(report.Errors, fmt.Sprintf("%s: photo.device '%v' must be one of photo_ok, still_only, video_ok", prefix, rawDev))
+					}
+				}
+			}
+		}
+
 		// Source Tweet URL verification (prevent non-X URLs in source_tweet_url)
 		if srcTweet, ok := s["source_tweet_url"].(string); ok && srcTweet != "" {
 			if !xStatusRegex.MatchString(srcTweet) {

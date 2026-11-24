@@ -132,7 +132,16 @@
             "properties": {
               "available": { "type": "boolean" },
               "rule": { "type": "string" },
-              "raw_text": { "type": "string" }
+              "raw_text": { "type": "string" },
+              "song_number": { "type": ["integer", "null"], "minimum": 1 },
+              "allowed_songs": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "device": {
+                "type": "string",
+                "enum": ["photo_ok", "still_only", "video_ok", ""]
+              }
             }
           },
           "special_notes": { "type": ["string", "null"] },
