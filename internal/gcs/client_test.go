@@ -193,3 +193,65 @@ func TestNewClientFromEnv_Unset(t *testing.T) {
 		t.Errorf("unexpected client: %+v", c)
 	}
 }
+
+func TestClient_MetadataServerAndCustomScope(t *testing.T) {
+	calls := 0
+	metaClient := NewClientFromMetadata("http://metadata.test/token")
+	metaClient.httpClient = &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			calls++
+			if r.Header.Get("Metadata-Flavor") != "Google" {
+				t.Errorf("expected Metadata-Flavor: Google header, got %q", r.Header.Get("Metadata-Flavor"))
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"access_token":"meta-tok-999","expires_in":3600}`)),
+				Header:     make(http.Header),
+			}, nil
+		}),
+	}
+
+	tok1, err := metaClient.TokenForScope(context.Background(), defaultScope)
+	if err != nil {
+		t.Fatalf("TokenForScope metadata failed: %v", err)
+	}
+	tok2, err := metaClient.TokenForScope(context.Background(), "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		t.Fatalf("TokenForScope cached metadata failed: %v", err)
+	}
+	if tok1 != "meta-tok-999" || tok2 != "meta-tok-999" {
+		t.Errorf("unexpected tokens: %q, %q", tok1, tok2)
+	}
+	if calls != 1 {
+		t.Errorf("expected cached metadata token (1 call), got %d", calls)
+	}
+
+	// Verify SA JSON client acquires distinct cached tokens per scope
+	keyJSON := generateTestServiceAccountJSON(t)
+	saClient, err := NewClientFromJSON(keyJSON)
+	if err != nil {
+		t.Fatalf("NewClientFromJSON failed: %v", err)
+	}
+	scopeCalls := 0
+	saClient.httpClient = &http.Client{
+		Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			scopeCalls++
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"access_token":"sa-tok-` + string(rune('0'+scopeCalls)) + `","expires_in":3600}`)),
+				Header:     make(http.Header),
+			}, nil
+		}),
+	}
+	s1, err := saClient.TokenForScope(context.Background(), defaultScope)
+	if err != nil {
+		t.Fatalf("default scope token failed: %v", err)
+	}
+	s2, err := saClient.TokenForScope(context.Background(), "https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		t.Fatalf("cloud-platform scope token failed: %v", err)
+	}
+	if s1 == s2 || scopeCalls != 2 {
+		t.Errorf("expected distinct token per scope (2 calls), got (%q, %q) calls=%d", s1, s2, scopeCalls)
+	}
+}

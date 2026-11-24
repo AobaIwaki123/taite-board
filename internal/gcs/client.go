@@ -28,6 +28,7 @@ const (
 	defaultAPIBaseURL = "https://storage.googleapis.com"
 	defaultScope      = "https://www.googleapis.com/auth/devstorage.read_write"
 	defaultTokenURI   = "https://oauth2.googleapis.com/token"
+	defaultMetadata   = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
 )
 
 // ErrObjectNotFound is returned when the requested object does not exist in GCS.
@@ -46,18 +47,24 @@ type serviceAccountKey struct {
 	TokenURI    string `json:"token_uri"`
 }
 
+type cachedToken struct {
+	token  string
+	expiry time.Time
+}
+
 // Client is a lightweight Google Cloud Storage JSON API client using only the Go standard library.
 type Client struct {
 	clientEmail string
 	privateKey  *rsa.PrivateKey
 	tokenURI    string
 	apiBaseURL  string
+	useMetadata bool
+	metadataURL string
 	httpClient  *http.Client
 	nowFunc     func() time.Time
 
-	mu          sync.Mutex
-	cachedToken string
-	tokenExpiry time.Time
+	mu     sync.Mutex
+	tokens map[string]cachedToken
 }
 
 // NewClientFromEnv creates a GCS client from environment variables:
@@ -81,6 +88,34 @@ func NewClientFromEnv() (*Client, error) {
 		return nil, fmt.Errorf("reading GCS credentials file %s: %w", credFile, err)
 	}
 	return NewClientFromJSON(raw)
+}
+
+// NewClientFromMetadata creates a GCS client backed by the GCE / Cloud Run metadata server.
+func NewClientFromMetadata(metadataURL string) *Client {
+	if strings.TrimSpace(metadataURL) == "" {
+		metadataURL = defaultMetadata
+	}
+	return &Client{
+		useMetadata: true,
+		metadataURL: metadataURL,
+		apiBaseURL:  defaultAPIBaseURL,
+		httpClient:  &http.Client{Timeout: 20 * time.Second},
+		nowFunc:     time.Now,
+		tokens:      make(map[string]cachedToken),
+	}
+}
+
+// NewClientFromEnvOrMetadata initializes a client from env credentials, or falls back to
+// the GCP metadata server when running on Cloud Run / GCE.
+func NewClientFromEnvOrMetadata(ctx context.Context) (*Client, error) {
+	if c, err := NewClientFromEnv(); err != nil || c != nil {
+		return c, err
+	}
+	c := NewClientFromMetadata(os.Getenv("GCP_METADATA_TOKEN_URL"))
+	if _, err := c.TokenForScope(ctx, defaultScope); err != nil {
+		return nil, fmt.Errorf("no env credentials and metadata server unavailable: %w", err)
+	}
+	return c, nil
 }
 
 // NewClientFromJSON parses a GCP service account JSON key and constructs a Client.
@@ -110,6 +145,7 @@ func NewClientFromJSON(keyJSON []byte) (*Client, error) {
 		apiBaseURL:  defaultAPIBaseURL,
 		httpClient:  &http.Client{Timeout: 20 * time.Second},
 		nowFunc:     time.Now,
+		tokens:      make(map[string]cachedToken),
 	}, nil
 }
 
@@ -313,28 +349,53 @@ func (c *Client) ListObjects(ctx context.Context, bucket, prefix string) ([]stri
 }
 
 func (c *Client) accessToken(ctx context.Context) (string, error) {
+	return c.TokenForScope(ctx, defaultScope)
+}
+
+// TokenForScope returns a cached or freshly acquired OAuth2 access token for the given scope.
+func (c *Client) TokenForScope(ctx context.Context, scope string) (string, error) {
+	if strings.TrimSpace(scope) == "" {
+		scope = defaultScope
+	}
+	cacheKey := scope
+	if c.useMetadata {
+		cacheKey = "metadata"
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.tokens == nil {
+		c.tokens = make(map[string]cachedToken)
+	}
 	now := c.nowFunc()
-	if c.cachedToken != "" && now.Add(5*time.Minute).Before(c.tokenExpiry) {
-		return c.cachedToken, nil
+	if entry, ok := c.tokens[cacheKey]; ok && entry.token != "" && now.Add(5*time.Minute).Before(entry.expiry) {
+		return entry.token, nil
 	}
 
-	assertion, err := c.signJWT(now)
-	if err != nil {
-		return "", fmt.Errorf("signing jwt assertion: %w", err)
+	var req *http.Request
+	var err error
+	if c.useMetadata {
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, c.metadataURL, nil)
+		if err != nil {
+			return "", fmt.Errorf("creating metadata token request: %w", err)
+		}
+		req.Header.Set("Metadata-Flavor", "Google")
+	} else {
+		var assertion string
+		assertion, err = c.signJWTForScope(now, scope)
+		if err != nil {
+			return "", fmt.Errorf("signing jwt assertion: %w", err)
+		}
+		form := url.Values{}
+		form.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
+		form.Set("assertion", assertion)
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURI, strings.NewReader(form.Encode()))
+		if err != nil {
+			return "", fmt.Errorf("creating token request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
-
-	form := url.Values{}
-	form.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
-	form.Set("assertion", assertion)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURI, strings.NewReader(form.Encode()))
-	if err != nil {
-		return "", fmt.Errorf("creating token request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -365,12 +426,14 @@ func (c *Client) accessToken(ctx context.Context) (string, error) {
 	if ttl <= 0 {
 		ttl = time.Hour
 	}
-	c.cachedToken = tokenResp.AccessToken
-	c.tokenExpiry = now.Add(ttl)
-	return c.cachedToken, nil
+	c.tokens[cacheKey] = cachedToken{
+		token:  tokenResp.AccessToken,
+		expiry: now.Add(ttl),
+	}
+	return tokenResp.AccessToken, nil
 }
 
-func (c *Client) signJWT(now time.Time) (string, error) {
+func (c *Client) signJWTForScope(now time.Time, scope string) (string, error) {
 	headerBytes, err := json.Marshal(map[string]string{
 		"alg": "RS256",
 		"typ": "JWT",
@@ -381,7 +444,7 @@ func (c *Client) signJWT(now time.Time) (string, error) {
 
 	claimsBytes, err := json.Marshal(map[string]any{
 		"iss":   c.clientEmail,
-		"scope": defaultScope,
+		"scope": scope,
 		"aud":   c.tokenURI,
 		"iat":   now.Unix(),
 		"exp":   now.Add(time.Hour).Unix(),

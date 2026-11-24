@@ -676,9 +676,20 @@
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <span id="discord-status-badge" class="pill">Discord通知: 確認中</span>
           </div>
-          <button type="button" id="btn-test-notify" class="btn btn-sm" onclick="sendTestNotification()">テスト通知</button>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button type="button" id="btn-test-notify" class="btn btn-sm" onclick="sendTestNotification()">テスト通知</button>
+          </div>
         </div>
         <div id="test-notify-result" class="q-error-msg" style="margin-top:0;"></div>
+
+        <div class="notify-strip" style="flex-wrap:wrap; gap:8px;">
+          <div style="font-size:12px; color:#d6d3d1; font-weight:700;">名寄せ・重複整理 (Cloud Run Job)</div>
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <button type="button" id="btn-reconcile-dry" class="btn btn-sm" onclick="runReconcileJob(true)">Dry Run</button>
+            <button type="button" id="btn-reconcile-run" class="btn btn-amber btn-sm" onclick="runReconcileJob(false)">名寄せ実行</button>
+          </div>
+        </div>
+        <div id="reconcile-result" class="q-error-msg" style="margin-top:0;"></div>
 
         <div class="seg-control" style="width:100%;">
           <button type="button" id="side-tab-activities" class="seg-btn active" style="flex:1;" onclick="switchSidebarTab('activities')">
@@ -1500,11 +1511,13 @@
 
               const cardCls = isErr ? 'is-error' : isStart ? 'is-start' : isPatch ? 'is-patch' : '';
               const actionBadge = isErr
-                ? `<span class="pill pill-err">${a.action === 'intake_error' ? '取得失敗' : a.action === 'patch_error' ? '更新失敗' : '登録失敗'}</span>`
+                ? `<span class="pill pill-err">${a.action === 'intake_error' ? '取得失敗' : a.action === 'patch_error' ? '更新失敗' : a.action === 'reconcile_error' ? '名寄せ失敗' : '登録失敗'}</span>`
                 : isStart
-                ? `<span class="pill pill-info">${a.action === 'promote_start' ? '登録開始' : '取得開始'}</span>`
+                ? `<span class="pill pill-info">${a.action === 'promote_start' ? '登録開始' : a.action === 'reconcile_start' ? '名寄せ開始' : '取得開始'}</span>`
                 : isPatch
                 ? '<span class="pill pill-warn">情報更新</span>'
+                : a.action === 'reconcile'
+                ? '<span class="pill pill-info">名寄せ実行</span>'
                 : '<span class="pill pill-ok">新規追加</span>';
 
               const notifyLabel = a.notification_status === 'sent'
@@ -1570,6 +1583,39 @@
         resBox.innerText = err.message;
       } finally {
         if (btn) btn.disabled = false;
+      }
+    }
+
+    async function runReconcileJob(dryRun) {
+      const btnDry = document.getElementById('btn-reconcile-dry');
+      const btnRun = document.getElementById('btn-reconcile-run');
+      const resBox = document.getElementById('reconcile-result');
+      if (btnDry) btnDry.disabled = true;
+      if (btnRun) btnRun.disabled = true;
+      resBox.style.display = 'none';
+      try {
+        const res = await apiFetch('/reconcile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ group: 'all', dry_run: Boolean(dryRun) })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '名寄せジョブの起動に失敗しました');
+        resBox.style.display = 'block';
+        resBox.style.background = 'rgba(16, 185, 129, 0.14)';
+        resBox.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+        resBox.style.color = '#a7f3d0';
+        resBox.innerText = data.message || '名寄せジョブを起動しました。';
+        await Promise.all([refreshStatusAndActivities(), loadCurrentSessions()]);
+      } catch (err) {
+        resBox.style.display = 'block';
+        resBox.style.background = 'rgba(244, 63, 94, 0.14)';
+        resBox.style.borderColor = 'rgba(244, 63, 94, 0.35)';
+        resBox.style.color = '#fecdd3';
+        resBox.innerText = err.message;
+      } finally {
+        if (btnDry) btnDry.disabled = false;
+        if (btnRun) btnRun.disabled = false;
       }
     }
 

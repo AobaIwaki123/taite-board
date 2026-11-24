@@ -165,4 +165,15 @@ http://ticketdive.com/event/261202_PF`
 	if lCid != "venue:lumine-0" || lName != "LUMINE 0" {
 		t.Errorf("expected LUMINE 0 canonical resolution, got (%q, %q)", lCid, lName)
 	}
+
+	timetreeText := `🎀『アイコレ♡君ときらめく冬のはじまりSP!!!』🎀
+🗓️日付：11/28(土)
+🎪会場：LUMINE 0
+🎤出演：10:45〜11:00
+📸特典会：11:05〜12:05（ロビーB）
+https://tiget.net/events/537396`
+	ttCand, _, _ := r.Resolve(timetreeText, nil)
+	if ttCand.BenefitBoothRaw != "ロビーB" {
+		t.Errorf("expected katakana booth 'ロビーB' without hyphen mangling, got %q", ttCand.BenefitBoothRaw)
+	}
 }
