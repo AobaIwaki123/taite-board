@@ -125,18 +125,21 @@ export function mergeSyncData(
   };
 }
 
-async function ensureValidSession(session: SyncSession): Promise<SyncSession> {
-  if (Date.now() + 60_000 < session.expiresAt) {
+async function ensureValidSession(session: SyncSession, forceRefresh = false): Promise<SyncSession> {
+  if (!forceRefresh && Date.now() + 60_000 < session.expiresAt) {
     return session;
   }
   const res = await fetch('/api/sync/refresh', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token: session.refreshToken }),
   });
   const data = await res.json();
   if (!res.ok) {
-    clearSyncSession();
+    if (res.status === 400 || res.status === 401) {
+      clearSyncSession();
+    }
     throw new Error(data.error || 'セッションの有効期限が切れました');
   }
   const expiresSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
@@ -150,6 +153,19 @@ async function ensureValidSession(session: SyncSession): Promise<SyncSession> {
   return refreshed;
 }
 
+export async function logoutSyncSession(): Promise<void> {
+  try {
+    await fetch('/api/sync/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+  } catch {
+    // ignore network errors on logout
+  } finally {
+    clearSyncSession();
+  }
+}
+
 export async function authenticateSyncAccount(
   mode: 'login' | 'register',
   userId: string,
@@ -158,6 +174,7 @@ export async function authenticateSyncAccount(
   const endpoint = mode === 'register' ? '/api/sync/register' : '/api/sync/login';
   const res = await fetch(endpoint, {
     method: 'POST',
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: userId, password }),
   });
@@ -181,6 +198,7 @@ async function fetchCurrentRole(idToken: string): Promise<SyncRole | null> {
   try {
     const res = await fetch('/api/sync/me', {
       method: 'GET',
+      credentials: 'same-origin',
       headers: { Authorization: `Bearer ${idToken}` },
     });
     if (!res.ok) return null;
@@ -200,12 +218,21 @@ export async function syncWithCloud(): Promise<{
   if (!current) {
     throw new Error('ログインしていません');
   }
-  const validSession = await ensureValidSession(current);
+  let validSession = await ensureValidSession(current);
 
-  const getRes = await fetch('/api/sync/data', {
+  let getRes = await fetch('/api/sync/data', {
     method: 'GET',
+    credentials: 'same-origin',
     headers: { Authorization: `Bearer ${validSession.idToken}` },
   });
+  if (getRes.status === 401) {
+    validSession = await ensureValidSession(validSession, true);
+    getRes = await fetch('/api/sync/data', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Authorization: `Bearer ${validSession.idToken}` },
+    });
+  }
   const cloudRaw = await getRes.json();
   if (!getRes.ok) {
     if (getRes.status === 401) clearSyncSession();
@@ -231,6 +258,7 @@ export async function syncWithCloud(): Promise<{
   if (cloudNeedsPush) {
     const putRes = await fetch('/api/sync/data', {
       method: 'PUT',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${validSession.idToken}`,
@@ -264,21 +292,34 @@ export async function pushLocalToCloud(): Promise<SyncSession | null> {
   const current = getSyncSession();
   if (!current) return null;
 
-  const validSession = await ensureValidSession(current);
+  let validSession = await ensureValidSession(current);
   const payload: SyncPayload = {
     schema_version: 1,
     expenses: exportAllExpenses(),
     attended: getAttendedSessionIds(),
   };
 
-  const putRes = await fetch('/api/sync/data', {
+  let putRes = await fetch('/api/sync/data', {
     method: 'PUT',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${validSession.idToken}`,
     },
     body: JSON.stringify(payload),
   });
+  if (putRes.status === 401) {
+    validSession = await ensureValidSession(validSession, true);
+    putRes = await fetch('/api/sync/data', {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${validSession.idToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  }
   const putData = await putRes.json();
   if (!putRes.ok) {
     if (putRes.status === 401) clearSyncSession();

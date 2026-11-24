@@ -604,6 +604,7 @@
         <span id="storage-badge" class="pill">Storage: -</span>
         <a id="nav-dashboard-link" href="/admin/dashboard" class="btn btn-sm">監視ダッシュボード</a>
         <a id="nav-public-link" href="/" class="btn btn-sm">公開サイトへ</a>
+        <button type="button" id="btn-admin-logout" class="btn btn-ghost btn-sm" style="display:none;" onclick="adminLogout()">ログアウト</button>
       </div>
     </header>
 
@@ -722,9 +723,11 @@
     (function configureNavLinks() {
       const dashLink = document.getElementById('nav-dashboard-link');
       const pubLink = document.getElementById('nav-public-link');
+      const logoutBtn = document.getElementById('btn-admin-logout');
       if (isAdminRoute) {
         if (dashLink) dashLink.href = '/admin/dashboard';
         if (pubLink) pubLink.href = '/';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
       } else {
         if (dashLink) dashLink.href = '/';
         if (pubLink) {
@@ -743,17 +746,18 @@
       banner.style.display = 'block';
     }
 
-    async function getAdminAuthToken() {
+    async function getAdminAuthToken(forceRefresh = false) {
       const raw = localStorage.getItem('taite_sync_session');
       if (!raw) return null;
       let session;
       try { session = JSON.parse(raw); } catch { return null; }
       if (!session || !session.idToken) return null;
 
-      if (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt) {
+      if (forceRefresh || (session.expiresAt && session.refreshToken && Date.now() + 60000 >= session.expiresAt)) {
         try {
           const refRes = await fetch('/api/sync/refresh', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refresh_token: session.refreshToken })
           });
@@ -766,7 +770,7 @@
             localStorage.setItem('taite_sync_session', JSON.stringify(session));
           }
         } catch {
-          // let API handle auth failure
+          // fall back to existing Cookie or API response
         }
       }
       return session.idToken;
@@ -774,23 +778,32 @@
 
     async function apiFetch(subpath, options = {}) {
       const url = (isAdminRoute ? '/api/admin' : '/api') + subpath;
-      const headers = Object.assign({}, options.headers || {});
-      if (isAdminRoute) {
-        const token = await getAdminAuthToken();
-        if (!token) {
-          showAdminAuthBanner('管理者ログインが必要です', '公開サイト側で admin ロールのアカウントにログインした状態で開いてください。');
-          throw new Error('管理者ログインが必要です');
+      const buildHeaders = (tok) => {
+        const h = Object.assign({}, options.headers || {});
+        if (isAdminRoute && tok) {
+          h['Authorization'] = 'Bearer ' + tok;
         }
-        headers['Authorization'] = 'Bearer ' + token;
+        return h;
+      };
+      let token = isAdminRoute ? await getAdminAuthToken(false) : null;
+      let res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers: buildHeaders(token) }));
+      if (isAdminRoute && res.status === 401 && token) {
+        token = await getAdminAuthToken(true);
+        res = await fetch(url, Object.assign({ credentials: 'same-origin' }, options, { headers: buildHeaders(token) }));
       }
-      const res = await fetch(url, Object.assign({}, options, { headers }));
       if (isAdminRoute && (res.status === 401 || res.status === 403)) {
         const msg = res.status === 403
           ? '現在ログイン中のアカウントには admin 権限がありません（roles.json で昇格が必要です）。'
-          : 'ログインセッションが切れています。トップページから再ログインしてください。';
+          : 'ログインセッションが切れています。ページを再読み込みして再ログインしてください。';
         showAdminAuthBanner('アクセス拒否 (' + res.status + ')', msg);
       }
       return res;
+    }
+
+    async function adminLogout() {
+      await fetch('/api/sync/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      localStorage.removeItem('taite_sync_session');
+      window.location.reload();
     }
 
     function escapeHtml(str) {
@@ -898,6 +911,8 @@
         booth: c.benefit_booth_raw || '',
         bonus: defaultBonus,
         ticketUrl: c.ticket_url || extractTicketUrl(item.text),
+        photoSong: c.photo_song || '',
+        photoDevice: c.photo_device || '',
         notes: '',
         patchSessionId: pickPreferredSessionId(c.date || ''),
         patchBonus: c.admission_bonus || '',
@@ -1140,6 +1155,10 @@
           if (c.benefit_booth_raw) entry.form.booth = c.benefit_booth_raw;
           if (c.admission_bonus && !entry.form.bonus) entry.form.bonus = c.admission_bonus;
           if (c.ticket_url && !entry.form.ticketUrl) entry.form.ticketUrl = c.ticket_url;
+          if (c.photo_song && !entry.form.photoSong) entry.form.photoSong = c.photo_song;
+          if (c.photo_device && !entry.form.photoDevice) entry.form.photoDevice = c.photo_device;
+          if (c.photo_song && !entry.form.patchPhotoSong) entry.form.patchPhotoSong = c.photo_song;
+          if (c.photo_device && !entry.form.patchPhotoDevice) entry.form.patchPhotoDevice = c.photo_device;
         }
         entry.item.needs_ai = false;
         entry.item.status = 'completed';
@@ -1226,6 +1245,9 @@
               ticket_url: (f.ticketUrl || '').trim(),
               image_url: (entry.item.images && entry.item.images.length > 0) ? entry.item.images[0] : '',
               admission_bonus: (f.bonus || '').trim(),
+              photo_song: (f.photoSong || '').trim(),
+              photo_device: (f.photoDevice || '').trim(),
+              photo_rule: (f.photoSong || '').trim() ? '撮可: ' + (f.photoSong || '').trim() : '',
               special_notes: (f.notes || '').trim()
             })
           });
@@ -1424,6 +1446,19 @@
               <input type="url" value="${escapeHtml(f.ticketUrl)}" oninput="updateFormField(${entry.qid}, 'ticketUrl', this.value)" placeholder="https://t.livepocket.jp/..." />
             </div>
             <div class="field col-3">
+              <label>撮影可能曲</label>
+              <input type="text" value="${escapeHtml(f.photoSong)}" oninput="updateFormField(${entry.qid}, 'photoSong', this.value)" placeholder="例: えすえぬ・えーす" />
+            </div>
+            <div class="field col-2">
+              <label>撮影種別</label>
+              <select onchange="updateFormField(${entry.qid}, 'photoDevice', this.value)">
+                <option value="" ${!f.photoDevice ? 'selected' : ''}>指定なし</option>
+                <option value="photo_ok" ${f.photoDevice === 'photo_ok' ? 'selected' : ''}>撮影OK</option>
+                <option value="still_only" ${f.photoDevice === 'still_only' ? 'selected' : ''}>静止画のみOK</option>
+                <option value="video_ok" ${f.photoDevice === 'video_ok' ? 'selected' : ''}>動画・静止画OK</option>
+              </select>
+            </div>
+            <div class="field col-4" style="grid-column: span 4;">
               <label>特記事項</label>
               <input type="text" value="${escapeHtml(f.notes)}" oninput="updateFormField(${entry.qid}, 'notes', this.value)" placeholder="任意メモ" />
             </div>

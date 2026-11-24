@@ -26,6 +26,10 @@ type AddSessionOptions struct {
 	SourceTweetURL   string
 	SpecialNotes     string
 	AdmissionBonus   string
+	PhotoRule        string
+	PhotoSong        string
+	PhotoDevice      string
+	PhotoAvailable   *bool
 	FilePath         string
 	SyncTargets      []string
 }
@@ -225,6 +229,11 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		})
 	}
 
+	var photoObj interface{}
+	if opts.PhotoSong != "" || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
+		photoObj = buildPhotoMapFromAdd(opts)
+	}
+
 	newSession := map[string]interface{}{
 		"id":               newID,
 		"title":            opts.Title,
@@ -234,7 +243,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		"venue":            venue,
 		"live":             live,
 		"benefit":          benefit,
-		"photo":            nil,
+		"photo":            photoObj,
 		"special_notes":    opts.SpecialNotes,
 		"admission_bonus":  opts.AdmissionBonus,
 		"ticket":           ticket,
@@ -387,6 +396,13 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		}
 	}
 
+	// Photo regulation: set if missing on existing session
+	if opts.PhotoSong != "" || opts.PhotoRule != "" || opts.PhotoAvailable != nil {
+		if sMap["photo"] == nil {
+			sMap["photo"] = buildPhotoMapFromAdd(opts)
+		}
+	}
+
 	// Image: populate if empty
 	if opts.ImageURL != "" {
 		if exImg, _ := sMap["image_url"].(string); exImg == "" {
@@ -433,4 +449,28 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		}
 		sMap["source_refs"] = refsRaw
 	}
+}
+
+func buildPhotoMapFromAdd(opts AddSessionOptions) map[string]interface{} {
+	available := true
+	if opts.PhotoAvailable != nil {
+		available = *opts.PhotoAvailable
+	}
+	rule := strings.TrimSpace(opts.PhotoRule)
+	song := strings.TrimSpace(opts.PhotoSong)
+	if rule == "" && song != "" {
+		rule = fmt.Sprintf("撮可: %s", song)
+	}
+	photoMap := map[string]interface{}{
+		"available": available,
+		"rule":      rule,
+		"raw_text":  rule,
+	}
+	if song != "" {
+		photoMap["allowed_songs"] = []string{song}
+	}
+	if dev := strings.TrimSpace(opts.PhotoDevice); dev != "" {
+		photoMap["device"] = dev
+	}
+	return photoMap
 }

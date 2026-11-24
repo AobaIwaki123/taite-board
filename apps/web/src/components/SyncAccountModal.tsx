@@ -4,7 +4,7 @@ import { Cloud, LogIn, LogOut, RefreshCw, SlidersHorizontal, User, X } from '../
 import {
   SyncSession,
   authenticateSyncAccount,
-  clearSyncSession,
+  logoutSyncSession,
   syncWithCloud,
 } from '../utils/sync';
 
@@ -73,7 +73,7 @@ export function SyncAccountModal({
   };
 
   const handleLogout = () => {
-    clearSyncSession();
+    void logoutSyncSession();
     setStatusMessage(null);
     setLocalError(null);
     onLoggedOut();

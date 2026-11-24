@@ -326,6 +326,9 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		ImageURL       string `json:"image_url"`
 		AdmissionBonus string `json:"admission_bonus"`
 		SpecialNotes   string `json:"special_notes"`
+		PhotoSong      string `json:"photo_song"`
+		PhotoDevice    string `json:"photo_device"`
+		PhotoRule      string `json:"photo_rule"`
 	}
 
 	mux.HandleFunc("/api/intake/promote", func(w http.ResponseWriter, r *http.Request) {
@@ -388,6 +391,9 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			SourceTweetURL:   strings.TrimSpace(req.SourceURL),
 			SpecialNotes:     strings.TrimSpace(req.SpecialNotes),
 			AdmissionBonus:   strings.TrimSpace(req.AdmissionBonus),
+			PhotoSong:        strings.TrimSpace(req.PhotoSong),
+			PhotoDevice:      strings.TrimSpace(req.PhotoDevice),
+			PhotoRule:        strings.TrimSpace(req.PhotoRule),
 		})
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to add session: %v", err)
@@ -431,6 +437,11 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		}
 		if strings.TrimSpace(req.AdmissionBonus) != "" {
 			summaryParts = append(summaryParts, "入場特典: "+strings.TrimSpace(req.AdmissionBonus))
+		}
+		if strings.TrimSpace(req.PhotoSong) != "" {
+			summaryParts = append(summaryParts, "撮可: "+strings.TrimSpace(req.PhotoSong))
+		} else if strings.TrimSpace(req.PhotoRule) != "" {
+			summaryParts = append(summaryParts, strings.TrimSpace(req.PhotoRule))
 		}
 		act := recordAndNotifyActivity(collector, cfg, ActivityEntry{
 			ID:        fmt.Sprintf("act-%d", time.Now().UnixNano()),

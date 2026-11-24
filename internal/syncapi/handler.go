@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
@@ -13,9 +15,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -34,6 +38,9 @@ const (
 	RoleUser                  = "user"
 	RoleAdmin                 = "admin"
 	RolesObjectPath           = "auth/roles.json"
+	CookieSecretObjectPath    = "auth/cookie_secret.json"
+	SessionCookieName         = "taite_session"
+	sessionCookieTTL          = 30 * 24 * time.Hour // 30 days
 )
 
 var userIDRegex = regexp.MustCompile(`^[a-z0-9._-]{3,32}$`)
@@ -47,6 +54,7 @@ type Config struct {
 	AdminHandler       http.Handler
 	AdminHTML          []byte
 	DashboardHTML      []byte
+	SessionSecret      []byte
 	HTTPClient         *http.Client
 	IdentityBaseURL    string
 	SecureTokenBaseURL string
@@ -68,6 +76,9 @@ type Handler struct {
 	certMu     sync.RWMutex
 	certs      map[string]*rsa.PublicKey
 	certsUntil time.Time
+
+	secretMu  sync.Mutex
+	secretKey []byte
 }
 
 // NewHandler creates a Handler for user authentication and GCS sync.
@@ -106,33 +117,23 @@ func (h *Handler) Mux() http.Handler {
 	mux.HandleFunc("/api/sync/register", h.handleAuthAction("accounts:signUp"))
 	mux.HandleFunc("/api/sync/login", h.handleAuthAction("accounts:signInWithPassword"))
 	mux.HandleFunc("/api/sync/refresh", h.handleRefresh)
+	mux.HandleFunc("/api/sync/logout", h.handleLogout)
 	mux.HandleFunc("/api/sync/me", h.handleMe)
 	mux.HandleFunc("/api/sync/data", h.handleSyncData)
-
-	serveStaticPage := func(html []byte) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet && r.Method != http.MethodHead {
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-cache")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(html)
-		}
-	}
 
 	adminPage := h.cfg.AdminHTML
 	if len(adminPage) == 0 {
 		adminPage = h.cfg.DashboardHTML
 	}
 	if len(adminPage) > 0 {
-		mux.HandleFunc("/admin", serveStaticPage(adminPage))
-		mux.HandleFunc("/admin/", serveStaticPage(adminPage))
+		protectedAdmin := h.requireAdminPage(adminPage)
+		mux.Handle("/admin", protectedAdmin)
+		mux.Handle("/admin/", protectedAdmin)
 	}
 	if len(h.cfg.DashboardHTML) > 0 {
-		mux.HandleFunc("/admin/dashboard", serveStaticPage(h.cfg.DashboardHTML))
-		mux.HandleFunc("/admin/dashboard/", serveStaticPage(h.cfg.DashboardHTML))
+		protectedDash := h.requireAdminPage(h.cfg.DashboardHTML)
+		mux.Handle("/admin/dashboard", protectedDash)
+		mux.Handle("/admin/dashboard/", protectedDash)
 	}
 
 	if h.cfg.AdminHandler != nil {
@@ -244,6 +245,7 @@ func (h *Handler) handleAuthAction(action string) http.HandlerFunc {
 		}
 
 		role := h.ResolveRole(r.Context(), idResp.LocalID, userID)
+		h.setSessionCookie(r.Context(), w, r, idResp.LocalID, userID)
 
 		writeJSON(w, http.StatusOK, authResponse{
 			UserID:       userID,
@@ -315,6 +317,12 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if tokenResp.IDToken != "" {
+		if uid, userID, err := h.VerifyIDToken(r.Context(), tokenResp.IDToken); err == nil {
+			h.setSessionCookie(r.Context(), w, r, uid, userID)
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{
 		"id_token":      tokenResp.IDToken,
 		"refresh_token": tokenResp.RefreshToken,
@@ -322,7 +330,19 @@ func (h *Handler) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	clearSessionCookie(w, r)
+	writeJSON(w, http.StatusOK, map[string]string{"status": "logged_out"})
+}
+
 func (h *Handler) authenticateRequest(r *http.Request) (uid, userID string, ok bool) {
+	if uid, userID, _, ok := h.verifySessionCookie(r); ok {
+		return uid, userID, true
+	}
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
 		return "", "", false
@@ -345,6 +365,9 @@ func (h *Handler) handleMe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "トークンが無効または期限切れです")
 		return
 	}
+	if _, _, remaining, hasCookie := h.verifySessionCookie(r); !hasCookie || remaining < 23*24*time.Hour {
+		h.setSessionCookie(r.Context(), w, r, uid, userID)
+	}
 	role := h.ResolveRole(r.Context(), uid, userID)
 	writeJSON(w, http.StatusOK, map[string]string{
 		"user_id": userID,
@@ -357,7 +380,7 @@ func (h *Handler) requireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uid, userID, ok := h.authenticateRequest(r)
 		if !ok {
-			writeError(w, http.StatusUnauthorized, "認証トークンが無効または期限切れです")
+			writeError(w, http.StatusUnauthorized, "認証トークンまたはセッション Cookie が無効・期限切れです")
 			return
 		}
 		if h.ResolveRole(r.Context(), uid, userID) != RoleAdmin {
@@ -366,6 +389,37 @@ func (h *Handler) requireAdmin(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (h *Handler) requireAdminPage(html []byte) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		uid, userID, ok := h.authenticateRequest(r)
+		if !ok {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(adminLoginGateHTML("", "")))
+			return
+		}
+		if h.ResolveRole(r.Context(), uid, userID) != RoleAdmin {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusForbidden)
+			_, _ = w.Write([]byte(adminLoginGateHTML(userID, "現在ログイン中のアカウントには admin 権限がありません（roles.json で昇格が必要です）。")))
+			return
+		}
+		if _, _, remaining, hasCookie := h.verifySessionCookie(r); !hasCookie || remaining < 23*24*time.Hour {
+			h.setSessionCookie(r.Context(), w, r, uid, userID)
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(html)
+	}
 }
 
 // ResolveRole resolves the role ("user" or "admin") from gs://<state_bucket>/auth/roles.json.
@@ -674,4 +728,270 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+type sessionCookieClaims struct {
+	UID    string `json:"uid"`
+	UserID string `json:"user_id"`
+	Exp    int64  `json:"exp"`
+	Iat    int64  `json:"iat"`
+}
+
+func isSecureRequest(r *http.Request) bool {
+	if r == nil {
+		return false
+	}
+	if r.TLS != nil {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
+}
+
+func (h *Handler) getOrInitCookieSecret(ctx context.Context) ([]byte, error) {
+	h.secretMu.Lock()
+	defer h.secretMu.Unlock()
+
+	if len(h.secretKey) >= 32 {
+		return h.secretKey, nil
+	}
+	if len(h.cfg.SessionSecret) >= 32 {
+		h.secretKey = append([]byte(nil), h.cfg.SessionSecret...)
+		return h.secretKey, nil
+	}
+	if envSecret := strings.TrimSpace(os.Getenv("SESSION_COOKIE_SECRET")); envSecret != "" {
+		sum := sha256.Sum256([]byte(envSecret))
+		h.secretKey = sum[:]
+		return h.secretKey, nil
+	}
+
+	if h.cfg.Store != nil && h.cfg.StateBucket != "" {
+		if data, err := h.cfg.Store.GetObject(ctx, h.cfg.StateBucket, CookieSecretObjectPath); err == nil {
+			var doc struct {
+				SecretHex string `json:"secret_hex"`
+			}
+			if json.Unmarshal(data, &doc) == nil && doc.SecretHex != "" {
+				if decoded, hexErr := hex.DecodeString(doc.SecretHex); hexErr == nil && len(decoded) >= 32 {
+					h.secretKey = decoded
+					return h.secretKey, nil
+				}
+			}
+		}
+	}
+
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		return nil, fmt.Errorf("generating cookie secret: %w", err)
+	}
+	if h.cfg.Store != nil && h.cfg.StateBucket != "" {
+		payload, _ := json.Marshal(map[string]string{"secret_hex": hex.EncodeToString(raw)})
+		_ = h.cfg.Store.PutObject(ctx, h.cfg.StateBucket, CookieSecretObjectPath, "application/json", "no-store", payload)
+	}
+	h.secretKey = raw
+	return h.secretKey, nil
+}
+
+func (h *Handler) setSessionCookie(ctx context.Context, w http.ResponseWriter, r *http.Request, uid, userID string) {
+	if uid == "" && userID == "" {
+		return
+	}
+	secret, err := h.getOrInitCookieSecret(ctx)
+	if err != nil {
+		return
+	}
+	now := h.cfg.NowFunc()
+	claims := sessionCookieClaims{
+		UID:    uid,
+		UserID: userID,
+		Iat:    now.Unix(),
+		Exp:    now.Add(sessionCookieTTL).Unix(),
+	}
+	claimsBytes, err := json.Marshal(claims)
+	if err != nil {
+		return
+	}
+	payload := base64.RawURLEncoding.EncodeToString(claimsBytes)
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write([]byte(payload))
+	sig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    payload + "." + sig,
+		Path:     "/",
+		MaxAge:   int(sessionCookieTTL.Seconds()),
+		HttpOnly: true,
+		Secure:   isSecureRequest(r),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     SessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   isSecureRequest(r),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (h *Handler) verifySessionCookie(r *http.Request) (uid, userID string, remaining time.Duration, ok bool) {
+	c, err := r.Cookie(SessionCookieName)
+	if err != nil || c == nil || c.Value == "" {
+		return "", "", 0, false
+	}
+	parts := strings.SplitN(c.Value, ".", 2)
+	if len(parts) != 2 {
+		return "", "", 0, false
+	}
+	secret, err := h.getOrInitCookieSecret(r.Context())
+	if err != nil {
+		return "", "", 0, false
+	}
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write([]byte(parts[0]))
+	expectedSig := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	if !hmac.Equal([]byte(parts[1]), []byte(expectedSig)) {
+		return "", "", 0, false
+	}
+	claimsBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return "", "", 0, false
+	}
+	var claims sessionCookieClaims
+	if err := json.Unmarshal(claimsBytes, &claims); err != nil {
+		return "", "", 0, false
+	}
+	nowUnix := h.cfg.NowFunc().Unix()
+	if claims.Exp <= nowUnix {
+		return "", "", 0, false
+	}
+	return claims.UID, claims.UserID, time.Duration(claims.Exp-nowUnix) * time.Second, true
+}
+
+func adminLoginGateHTML(loggedInUser, errMsg string) string {
+	safeUser := html.EscapeString(loggedInUser)
+	safeErr := html.EscapeString(errMsg)
+	noticeHTML := ""
+	if safeErr != "" {
+		noticeHTML = fmt.Sprintf(`<div class="err">%s</div>`, safeErr)
+	}
+	logoutBlock := ""
+	if safeUser != "" {
+		logoutBlock = fmt.Sprintf(`
+      <p class="sub">現在のログイン: <strong>%s</strong></p>
+      <button type="button" class="btn-secondary" onclick="doLogout()">ログアウトして別アカウントでログイン</button>
+    `, safeUser)
+	}
+	return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ribbon Clock Admin Login</title>
+  <style>
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; background:#09090b; color:#fafaf9; font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif; }
+    .card { width:100%; max-width:380px; background:#111114; border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:22px; box-shadow:0 20px 40px rgba(0,0,0,0.5); }
+    h1 { margin:0 0 6px; font-size:18px; }
+    .sub { margin:0 0 14px; font-size:12px; color:#a8a29e; line-height:1.5; }
+    label { display:block; font-size:12px; color:#d6d3d1; margin:10px 0 4px; font-weight:600; }
+    input { width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:#09090b; color:#fff; font-size:14px; }
+    button { width:100%; margin-top:16px; padding:10px 14px; border-radius:10px; border:0; background:#e11d48; color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+    button:disabled { opacity:0.6; }
+    .btn-secondary { background:#27272a; margin-top:8px; }
+    .err { margin-top:10px; padding:10px; border-radius:10px; background:rgba(244,63,94,0.14); border:1px solid rgba(244,63,94,0.35); color:#fecdd3; font-size:12px; }
+    .foot { margin-top:14px; text-align:center; font-size:12px; }
+    a { color:#38bdf8; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Ribbon Clock 管理画面</h1>
+    <p class="sub">admin ロールを持つアカウントでログインすると、30日間有効な HttpOnly Cookie セッションで保護された管理画面へアクセスできます。</p>
+    ` + noticeHTML + `
+    ` + logoutBlock + `
+    <form id="login-form" onsubmit="doLogin(event)">
+      <label for="uid">ユーザーID</label>
+      <input id="uid" type="text" required autocomplete="username" placeholder="例: ribbon_01" />
+      <label for="pw">パスワード</label>
+      <input id="pw" type="password" required autocomplete="current-password" />
+      <button type="submit" id="submit-btn">ログインして開く</button>
+    </form>
+    <div id="js-err" class="err" style="display:none;"></div>
+    <div class="foot"><a href="/">公開スケジュールへ戻る</a></div>
+  </div>
+  <script>
+    (async function tryAutoUpgradeFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem('taite_sync_session');
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (!s || !s.refreshToken) return;
+        const res = await fetch('/api/sync/refresh', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: s.refreshToken })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const expSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
+          s.idToken = data.id_token;
+          s.refreshToken = data.refresh_token || s.refreshToken;
+          s.expiresAt = Date.now() + expSec * 1000;
+          localStorage.setItem('taite_sync_session', JSON.stringify(s));
+          const me = await fetch('/api/sync/me', { credentials: 'same-origin' });
+          if (me.ok) {
+            const meData = await me.json();
+            if (meData.role === 'admin') {
+              window.location.reload();
+            }
+          }
+        }
+      } catch {}
+    })();
+    async function doLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errEl = document.getElementById('js-err');
+      errEl.style.display = 'none';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/sync/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: document.getElementById('uid').value.trim(),
+            password: document.getElementById('pw').value
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'ログインに失敗しました');
+        if (data.role !== 'admin') throw new Error('このアカウントには admin 権限がありません');
+        const expSec = parseInt(String(data.expires_in || '3600'), 10) || 3600;
+        localStorage.setItem('taite_sync_session', JSON.stringify({
+          userId: data.user_id,
+          role: data.role,
+          idToken: data.id_token,
+          refreshToken: data.refresh_token,
+          expiresAt: Date.now() + expSec * 1000
+        }));
+        window.location.reload();
+      } catch (err) {
+        errEl.innerText = err.message;
+        errEl.style.display = 'block';
+        btn.disabled = false;
+      }
+    }
+    async function doLogout() {
+      await fetch('/api/sync/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      localStorage.removeItem('taite_sync_session');
+      window.location.reload();
+    }
+  </script>
+</body>
+</html>`
 }
