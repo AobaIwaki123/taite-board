@@ -58,7 +58,7 @@ func TestApplyReconcileSchedule_MergesDuplicatesAndNormalizesEntities(t *testing
       "live": { "start_time": "18:40", "end_time": "19:00", "stage": null },
       "benefit": { "type": "並行", "start_time": "19:10", "end_time": "20:10", "booth": "C" },
       "ticket": { "platform": "", "url": "https://tiget.net/events/444", "prices": [] },
-      "source_tweet_url": "https://x.com/Ribbon_Clock/status/444"
+      "source_tweet_url": "https://x.com/Ribbon_Clock/status/333"
     }
   ]
 }`

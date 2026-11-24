@@ -81,10 +81,12 @@ func main() {
 	collector.SetDiscordNotifyEnabled(webhookURL != "")
 
 	handler := monitor.NewHandlerWithConfig(collector, nil, nil, monitor.HandlerConfig{
-		Store:       gcsStore,
-		DataBucket:  dataBucket,
-		StateBucket: stateBucket,
-		WebhookURL:  webhookURL,
+		Store:           gcsStore,
+		DataBucket:      dataBucket,
+		StateBucket:     stateBucket,
+		WebhookURL:      webhookURL,
+		CloudRunJob:     strings.TrimSpace(os.Getenv("CLOUD_RUN_RECONCILE_JOB")),
+		CloudRunAPIBase: strings.TrimSpace(os.Getenv("CLOUD_RUN_API_BASE")),
 	})
 
 	// Dashboard Server (port 8082)
