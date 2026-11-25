@@ -34,6 +34,11 @@ spec:
                   value: "taite-board-data"
                 - name: GOOGLE_APPLICATION_CREDENTIALS
                   value: "/var/secrets/gcs/key.json"
+                - name: DISCORD_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: ribonclock-access-report
+                      key: DISCORD_WEBHOOK_URL
               volumeMounts:
                 - name: gcs-key
                   mountPath: /var/secrets/gcs
