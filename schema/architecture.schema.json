@@ -3,15 +3,17 @@
   "title": "taite-board architecture and tenant boundaries",
   "type": "object",
   "additionalProperties": false,
-  "required": ["components", "boundaries", "tenants"],
+  "required": ["components", "boundaries", "tenants", "pipelines"],
   "properties": {
     "components": {
       "type": "array", "minItems": 1,
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["id", "path", "dependsOn"],
+        "required": ["id", "label", "layer", "path", "dependsOn"],
         "properties": {
           "id": {"type": "string", "minLength": 1},
+          "label": {"type": "string", "minLength": 1},
+          "layer": {"enum": ["edge", "app", "pipeline", "storage"]},
           "path": {"type": "string", "minLength": 1},
           "dependsOn": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
         }
@@ -41,6 +43,35 @@
           "dataUrl": {"type": "string", "minLength": 1},
           "fallbackDataUrl": {"type": "string", "minLength": 1},
           "storagePrefix": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "pipelines": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "name", "mode", "description", "steps"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+          "name": {"type": "string", "minLength": 1},
+          "mode": {"enum": ["pull", "manual", "cron", "reconcile"]},
+          "description": {"type": "string", "minLength": 1},
+          "steps": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["id", "label", "component", "entryPath", "summary", "guards"],
+              "properties": {
+                "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+                "label": {"type": "string", "minLength": 1},
+                "component": {"type": "string", "minLength": 1},
+                "entryPath": {"type": "string", "minLength": 1},
+                "summary": {"type": "string", "minLength": 1},
+                "guards": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+                "stores": {"type": "array", "items": {"type": "string", "minLength": 1}}
+              }
+            }
+          }
         }
       }
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
+import type { ComponentType } from 'preact';
 import { ScheduleData, Session } from './types/schedule';
 import { loadScheduleData } from './state';
 import { resolveCurrentGroup, GroupConfig, isPortalMode } from './config/group';
@@ -33,6 +34,36 @@ function isAdminMode(): boolean {
   );
 }
 
+function isArchMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const url = new URL(window.location.href);
+  return url.searchParams.get('view') === 'arch' || url.pathname === '/arch';
+}
+
+function LazyArchView() {
+  const [ViewComponent, setViewComponent] = useState<ComponentType | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    import('./components/ArchView').then((mod) => {
+      if (active) setViewComponent(() => mod.ArchView);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!ViewComponent) {
+    return (
+      <div class="h-[100dvh] flex items-center justify-center bg-stone-950 text-stone-300 text-meta">
+        Architecture 3D Reviewer 読み込み中...
+      </div>
+    );
+  }
+
+  return <ViewComponent />;
+}
+
 function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
   if (typeof window === 'undefined') return { isLive: false };
   const url = new URL(window.location.href);
@@ -53,6 +84,10 @@ function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
 }
 
 export function App() {
+  if (isArchMode()) {
+    return <LazyArchView />;
+  }
+
   if (isAdminMode()) {
     return <AdminView />;
   }

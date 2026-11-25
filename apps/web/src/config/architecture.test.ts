@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
 import Ajv from 'ajv';
 import { parse } from 'yaml';
 import { DEFAULT_GROUP_ID, GROUP_ALIASES, REGISTERED_GROUPS, resolveGroupId, type GroupConfig } from './group.ts';
@@ -27,6 +28,17 @@ function verifyArchitecture(architecture: typeof manifest, groups: Record<string
   assert.equal(new Set(layers).size, layers.length, 'duplicate boundary');
   for (const layer of ['namespace', 'ingress', 'service_pod', 'nginx', 'schedule_gcs', 'auth_rbac', 'monitor_state', 'client_storage']) assert.ok(layers.includes(layer), `missing boundary: ${layer}`);
   for (const boundary of architecture.boundaries) assert.ok(existsSync(resolve(root, boundary.path)), `missing boundary path: ${boundary.path}`);
+
+  const pipelineIds = architecture.pipelines.map((pipeline: {id: string}) => pipeline.id);
+  assert.equal(new Set(pipelineIds).size, pipelineIds.length, 'duplicate pipeline');
+  for (const pipeline of architecture.pipelines) {
+    const stepIds = pipeline.steps.map((step: {id: string}) => step.id);
+    assert.equal(new Set(stepIds).size, stepIds.length, `duplicate step in pipeline: ${pipeline.id}`);
+    for (const step of pipeline.steps) {
+      assert.ok(ids.includes(step.component), `unknown pipeline step component: ${pipeline.id}.${step.id} -> ${step.component}`);
+      assert.ok(existsSync(resolve(root, step.entryPath)), `missing pipeline step entryPath: ${step.entryPath}`);
+    }
+  }
 
   const tenantIds = architecture.tenants.map((tenant: {id: string}) => tenant.id).sort();
   assert.deepEqual(tenantIds, Object.keys(registry.groups).sort());
@@ -67,10 +79,22 @@ function verifyArchitecture(architecture: typeof manifest, groups: Record<string
 
 test('architecture schema and tenant configuration agree', () => verifyArchitecture(manifest));
 
+test('generated D2 diagrams stay in sync with architecture manifest', () => {
+  execFileSync(process.execPath, [resolve(root, 'scripts/gen-d2.mjs'), '--check'], { stdio: 'pipe' });
+  assert.ok(existsSync(resolve(root, 'docs/architecture.svg')), 'missing rendered docs/architecture.svg');
+  assert.ok(existsSync(resolve(root, 'docs/pipelines.svg')), 'missing rendered docs/pipelines.svg');
+});
+
 test('a cross-tenant fallback is rejected', () => {
   const broken = structuredClone(manifest);
   broken.tenants.find((tenant: {id: string}) => tenant.id === 'dollykiss').fallbackDataUrl = 'schedule.json';
   const brokenGroups = structuredClone(REGISTERED_GROUPS);
   brokenGroups.dollykiss.fallbackDataUrl = 'schedule.json';
   assert.throws(() => verifyArchitecture(broken, brokenGroups), /cross-group fallback/);
+});
+
+test('a pipeline referencing an unknown component is rejected', () => {
+  const broken = structuredClone(manifest);
+  broken.pipelines[0].steps[0].component = 'ghost-component';
+  assert.throws(() => verifyArchitecture(broken), /unknown pipeline step component/);
 });
