@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Session } from '../types/schedule';
-import { isSessionPast } from '../utils/date';
+import { getTodayStr, isSessionPast } from '../utils/date';
 import {
   calculateMonthExpenseSummary,
 } from '../utils/expense';
@@ -15,6 +15,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ sessions, attendedSessionIds = [], onSelectSession }: CalendarViewProps) {
   const today = new Date();
+  const todayStr = getTodayStr(today);
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -183,6 +184,7 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           const monthStr = String(month).padStart(2, '0');
           const dayStr = String(day).padStart(2, '0');
           const dateStr = `${year}-${monthStr}-${dayStr}`;
+          const isToday = dateStr === todayStr;
           const daySessions = sessions.filter((s) => s.date === dateStr);
           const hasLive = daySessions.length > 0;
           const isAttended = daySessions.some((s) => attendedSessionIds.includes(s.id));
@@ -194,20 +196,20 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
           const cellTheme = {
             planned: {
               selected:
-                'bg-sky-500 text-stone-950 font-black shadow-md shadow-sky-500/25 scale-105 ring-2 ring-sky-200/90 cursor-pointer',
-              idle: 'bg-sky-950/50 border border-sky-500/60 text-white font-bold hover:bg-sky-900/60 focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer',
+                'bg-sky-500 text-stone-950 font-black focus-visible:bg-sky-300 cursor-pointer',
+              idle: 'bg-sky-950/50 border border-sky-500/60 text-white font-bold hover:bg-sky-900/60 focus-visible:bg-sky-700 cursor-pointer',
               dot: 'bg-sky-400',
             },
             attended: {
               selected:
-                'bg-emerald-500 text-stone-950 font-black shadow-md shadow-emerald-500/25 scale-105 ring-2 ring-emerald-200/90 cursor-pointer',
-              idle: 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer',
+                'bg-emerald-500 text-stone-950 font-black focus-visible:bg-emerald-300 cursor-pointer',
+              idle: 'bg-emerald-950/50 border border-emerald-500/60 text-white font-bold hover:bg-emerald-900/60 focus-visible:bg-emerald-700 cursor-pointer',
               dot: 'bg-emerald-400',
             },
             default: {
               selected:
-                'bg-rose-500 text-stone-950 font-black shadow-md shadow-rose-500/25 scale-105 ring-2 ring-rose-200/90 cursor-pointer',
-              idle: 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 focus-visible:ring-2 focus-visible:ring-rose-400 cursor-pointer',
+                'bg-rose-500 text-stone-950 font-black focus-visible:bg-rose-300 cursor-pointer',
+              idle: 'bg-rose-950/50 border border-rose-500/60 text-white font-bold hover:bg-rose-900/60 focus-visible:bg-rose-700 cursor-pointer',
               dot: 'bg-rose-400 animate-pulse',
             },
           }[liveState];
@@ -222,15 +224,16 @@ export function CalendarView({ sessions, attendedSessionIds = [], onSelectSessio
                 }
               }}
               aria-disabled={!hasLive}
+              aria-current={isToday ? 'date' : undefined}
               class={`py-1.5 rounded-xl flex flex-col items-center justify-center transition-all select-none min-h-[44px] focus:outline-none ${
                 hasLive
                   ? isSelected
                     ? cellTheme.selected
                     : cellTheme.idle
-                  : 'bg-stone-900/30 text-stone-600 cursor-default'
+                  : 'bg-stone-900/30 text-stone-600 focus-visible:bg-stone-700 focus-visible:text-white cursor-default'
               }`}
             >
-              <span class="text-xs font-display">{day}</span>
+              <span class={`text-xs font-display ${isToday ? 'underline decoration-2 underline-offset-2' : ''} ${isToday && !hasLive ? 'text-white font-bold' : ''}`}>{day}</span>
               {hasLive ? (
                 <div class="flex items-center justify-center mt-0.5">
                   <span
