@@ -21,6 +21,17 @@ import { LightboxModal } from './components/LightboxModal';
 import { PortalView } from './components/PortalView';
 import { LiveCrossTrackView } from './components/LiveCrossTrackView';
 import { SyncAccountModal } from './components/SyncAccountModal';
+import { AdminView } from './components/AdminView';
+
+function isAdminMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const url = new URL(window.location.href);
+  return (
+    url.searchParams.get('view') === 'admin' ||
+    url.pathname === '/admin' ||
+    url.pathname.startsWith('/admin/')
+  );
+}
 
 function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
   if (typeof window === 'undefined') return { isLive: false };
@@ -42,6 +53,10 @@ function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
 }
 
 export function App() {
+  if (isAdminMode()) {
+    return <AdminView />;
+  }
+
   const liveMode = isLiveTrackMode();
   if (liveMode.isLive) {
     const fromGroup = typeof window !== 'undefined'

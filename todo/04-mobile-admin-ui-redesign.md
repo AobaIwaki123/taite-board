@@ -1,6 +1,6 @@
 # TODO-04: 管理画面（/admin）のモバイル最適化・情報削減とデザインシステム統合
 
-- **ステータス**: 未着手（UI/UX の細部確認を伴うため、他タスク完了後またはユーザーとの対話を交えながら進める推奨）
+- **ステータス**: 完了（`apps/web/src/components/AdminView.tsx` 実装、`deploy/nginx.conf` `/admin` 統合、`POST /api/intake/promote` 統合 Upsert 連携済み。監視ダッシュボード `/admin/dashboard` は既存維持）
 - **優先度**: 最優先（ただし UI/UX 判断の比重が高いトラック）
 - **依存関係**: [`TODO-02`](02-deterministic-upsert-and-media-link-priority.md) の「新規/既存更新トグル不要の単一 Upsert API」と密接に連動します。
 
