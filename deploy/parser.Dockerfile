@@ -4,7 +4,6 @@ ARG APP_VERSION=dev
 
 WORKDIR /app
 COPY go.mod go.sum* ./
-COPY VERSION ./
 COPY cmd/ cmd/
 COPY internal/ internal/
 

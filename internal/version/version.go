@@ -1,12 +1,8 @@
 package version
 
-import (
-	"os"
-	"path/filepath"
-	"strings"
-)
+import "strings"
 
-// DefaultVersion is used as a fallback if neither BuildVersion nor a VERSION file is available.
+// DefaultVersion is used as a fallback when BuildVersion is unset or "dev".
 const DefaultVersion = "1.0.0"
 
 // BuildVersion can be injected at compile time via:
@@ -17,23 +13,6 @@ var BuildVersion = ""
 func Get() string {
 	if v := normalize(BuildVersion); v != "" && v != "dev" {
 		return v
-	}
-
-	dir, err := os.Getwd()
-	if err == nil {
-		for i := 0; i < 5; i++ {
-			vPath := filepath.Join(dir, "VERSION")
-			if data, err := os.ReadFile(vPath); err == nil {
-				if v := normalize(string(data)); v != "" {
-					return v
-				}
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-			dir = parent
-		}
 	}
 	return DefaultVersion
 }

@@ -6,7 +6,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-VERSION_FILE="${ROOT_DIR}/VERSION"
 PKG_FILE="${ROOT_DIR}/apps/web/package.json"
 
 DRY_RUN=false
@@ -40,9 +39,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Read current version
-if [[ -f "${VERSION_FILE}" ]]; then
-  CURRENT_VERSION="$(tr -d '[:space:]' < "${VERSION_FILE}")"
+# Read current version from latest git tag, falling back to package.json
+LATEST_TAG="$(git -C "${ROOT_DIR}" tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1 || true)"
+if [[ -n "${LATEST_TAG}" ]]; then
+  CURRENT_VERSION="${LATEST_TAG#v}"
 elif [[ -f "${PKG_FILE}" ]]; then
   CURRENT_VERSION="$(node -p "require('${PKG_FILE}').version")"
 else
@@ -98,7 +98,7 @@ echo ""
 
 if [[ "${DRY_RUN}" == "true" ]]; then
   echo "[DRY-RUN] Version calculation and validation successful."
-  echo "[DRY-RUN] Would update: VERSION, apps/web/package.json"
+  echo "[DRY-RUN] Would update: apps/web/package.json"
   echo "[DRY-RUN] Would create commit: chore(release): bump version to ${TAG_NAME}"
   echo "[DRY-RUN] Would create tag: ${TAG_NAME}"
   echo "[DRY-RUN] Would push to origin and trigger GitHub Release."
@@ -112,22 +112,20 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 echo "=== [1/5] Updating version files ==="
-echo "${NEW_VERSION}" > "${VERSION_FILE}"
-
 if [[ -f "${PKG_FILE}" ]]; then
   npm --prefix "${ROOT_DIR}/apps/web" version "${NEW_VERSION}" --no-git-tag-version --allow-same-version >/dev/null
 fi
-echo "Updated ${VERSION_FILE} and ${PKG_FILE} to ${NEW_VERSION}"
+echo "Updated ${PKG_FILE} to ${NEW_VERSION}"
 
 echo "=== [2/5] Running mechanical verification pipeline ==="
 if ! "${SCRIPT_DIR}/verify.sh"; then
   echo "Verification failed! Reverting version files..." >&2
-  git checkout "${VERSION_FILE}" "${PKG_FILE}"
+  git checkout "${PKG_FILE}"
   exit 1
 fi
 
 echo "=== [3/5] Committing version bump ==="
-git add "${VERSION_FILE}" "${PKG_FILE}" "${ROOT_DIR}/apps/web/package-lock.json" 2>/dev/null || true
+git add "${PKG_FILE}" "${ROOT_DIR}/apps/web/package-lock.json" 2>/dev/null || true
 git commit -m "chore(release): bump version to ${TAG_NAME}"
 
 echo "=== [4/5] Creating annotated git tag ==="
