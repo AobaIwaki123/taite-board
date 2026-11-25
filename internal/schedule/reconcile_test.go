@@ -101,7 +101,7 @@ func TestApplyReconcileSchedule_MergesDuplicatesAndNormalizesEntities(t *testing
 			Ticket struct {
 				Platform string `json:"platform"`
 			} `json:"ticket"`
-			SourceRefs []map[string]string `json:"source_refs"`
+			SourceRefs []map[string]interface{} `json:"source_refs"`
 		} `json:"sessions"`
 	}
 	if err := json.Unmarshal(out, &doc); err != nil {

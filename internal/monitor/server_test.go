@@ -221,14 +221,14 @@ func TestServer_Intake_Promote(t *testing.T) {
 	_ = os.WriteFile("data/generated/schedule.json", []byte(`{"target_group":{"name":"test"},"sessions":[]}`), 0644)
 
 	body, _ := json.Marshal(map[string]any{
-		"group":        "ribonclock",
-		"source_id":    "11223344",
-		"source_url":   "https://x.com/test/status/11223344",
-		"title":        "Girls Face in RING",
-		"date":         "2026-11-21",
-		"venue":        "渋谷RING",
-		"live_start":   "20:20",
-		"live_end":     "20:40",
+		"group":         "ribonclock",
+		"source_id":     "11223344",
+		"source_url":    "https://x.com/test/status/11223344",
+		"title":         "Girls Face in RING",
+		"date":          "2026-11-21",
+		"venue":         "渋谷RING",
+		"live_start":    "20:20",
+		"live_end":      "20:40",
 		"benefit_start": "21:10",
 		"benefit_end":   "22:10",
 	})
@@ -248,8 +248,48 @@ func TestServer_Intake_Promote(t *testing.T) {
 	if res["status"] != "success" {
 		t.Errorf("expected status=success, got %v", res["status"])
 	}
+	if res["action"] != "created" {
+		t.Errorf("expected created, got %v", res["action"])
+	}
 	if res["domain"] != "ribonclock.iorin.net" {
 		t.Errorf("expected domain=ribonclock.iorin.net, got %v", res["domain"])
+	}
+
+	post := func(data map[string]any) *httptest.ResponseRecorder {
+		t.Helper()
+		b, err := json.Marshal(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r := httptest.NewRecorder()
+		handler.ServeHTTP(r, httptest.NewRequest(http.MethodPost, "/api/intake/promote", bytes.NewReader(b)))
+		return r
+	}
+	merged := post(map[string]any{"date": "2026-11-21", "photo_rule": "撮影可能"})
+	var mergedResponse map[string]any
+	if err := json.Unmarshal(merged.Body.Bytes(), &mergedResponse); err != nil {
+		t.Fatal(err)
+	}
+	if merged.Code != http.StatusOK || mergedResponse["action"] != "merged" || mergedResponse["session_id"] != res["session_id"] {
+		t.Fatalf("unexpected merge: %d %s", merged.Code, merged.Body.String())
+	}
+	second := post(map[string]any{"date": "2026-11-21", "title": "別公演", "venue": "渋谷RING", "live_start": "23:00"})
+	if second.Code != http.StatusOK {
+		t.Fatalf("second event: %d %s", second.Code, second.Body.String())
+	}
+	conflict := post(map[string]any{"date": "2026-11-21", "photo_rule": "撮影可能"})
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("expected 409: %d %s", conflict.Code, conflict.Body.String())
+	}
+	patchBody, _ := json.Marshal(map[string]any{"date": "2026-11-21", "photo_rule": "撮影可能"})
+	patchResponse := httptest.NewRecorder()
+	handler.ServeHTTP(patchResponse, httptest.NewRequest(http.MethodPost, "/api/intake/patch", bytes.NewReader(patchBody)))
+	if patchResponse.Code != http.StatusConflict {
+		t.Fatalf("patch should require a target: %d %s", patchResponse.Code, patchResponse.Body.String())
+	}
+	targeted := post(map[string]any{"date": "2026-11-21", "target_session_id": res["session_id"], "photo_rule": "撮影可能"})
+	if targeted.Code != http.StatusOK {
+		t.Fatalf("targeted merge: %d %s", targeted.Code, targeted.Body.String())
 	}
 }
 

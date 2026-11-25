@@ -186,6 +186,7 @@
               "properties": {
                 "type": { "type": "string" },
                 "source_id": { "type": "string" },
+                "information_score": { "type": "integer", "minimum": 0 },
               "url": { "type": "string" },
               "observed_at": { "type": "string", "format": "date-time" }
               }
