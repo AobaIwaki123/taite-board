@@ -4,8 +4,6 @@ FROM node:26-alpine AS builder
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
-WORKDIR /app
-COPY VERSION ./
 WORKDIR /app/apps/web
 COPY apps/web/package*.json ./
 RUN npm ci

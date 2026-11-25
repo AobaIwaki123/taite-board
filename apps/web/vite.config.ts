@@ -4,16 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import { readFileSync, existsSync } from 'fs';
 
-// Read version from build-time APP_VERSION env, root VERSION file, or package.json
+// Read version from build-time APP_VERSION env or package.json
 let appVersion = '1.0.0';
 const envAppVersion = (process.env.APP_VERSION || '').trim().replace(/^v/, '');
-const rootVersionPath = path.resolve(import.meta.dirname, '../../VERSION');
 const pkgPath = path.resolve(import.meta.dirname, './package.json');
 
 if (envAppVersion && envAppVersion !== 'dev') {
   appVersion = envAppVersion;
-} else if (existsSync(rootVersionPath)) {
-  appVersion = readFileSync(rootVersionPath, 'utf-8').trim().replace(/^v/, '');
 } else if (existsSync(pkgPath)) {
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
   appVersion = (pkg.version || appVersion).replace(/^v/, '');

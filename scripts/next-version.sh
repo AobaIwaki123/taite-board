@@ -74,15 +74,10 @@ if [[ -n "${HEAD_TAG}" ]]; then
   exit 0
 fi
 
-# 2. Find latest semver tag (fallback to VERSION file or 0.0.0)
+# 2. Find latest semver tag (fallback to 0.0.0)
 BASE_TAG="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1 || true)"
 if [[ -z "${BASE_TAG}" ]]; then
-  if [[ -f "${ROOT_DIR}/VERSION" ]]; then
-    BASE_VER="$(tr -d '[:space:]' < "${ROOT_DIR}/VERSION")"
-    BASE_TAG="v${BASE_VER#v}"
-  else
-    BASE_TAG="v0.0.0"
-  fi
+  BASE_TAG="v0.0.0"
   LOG_RANGE="HEAD"
 else
   LOG_RANGE="${BASE_TAG}..HEAD"
