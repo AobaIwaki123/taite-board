@@ -20,6 +20,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/reconcile"
 	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
+	"github.com/AobaIwaki123/taite-board/internal/scrape"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 )
 
@@ -39,6 +40,7 @@ type HandlerConfig struct {
 	NotifySync          bool
 	CloudRunJob         string
 	CloudRunAPIBase     string
+	ScrapeStatePath     string
 	TriggerReconcileJob func(ctx context.Context, group string, dryRun bool) (string, error)
 }
 
@@ -443,6 +445,15 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 		if collector != nil {
 			collector.IncrementPromoted()
+		}
+
+		if sid := strings.TrimSpace(req.SourceID); sid != "" && (cfg.ScrapeStatePath != "" || (cfg.Store != nil && cfg.StateBucket != "")) {
+			stStore := scrapeStateStore(cfg)
+			if stDoc, stErr := stStore.Load(ctx); stErr == nil && stDoc != nil {
+				if stDoc.UpdatePendingStatus(fmt.Sprintf("%s:%s", group, sid), scrape.StatusPromoted) {
+					_ = stStore.Save(ctx, stDoc)
+				}
+			}
 		}
 
 		domain := fmt.Sprintf("%s.iorin.net", group)
@@ -949,7 +960,184 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		writeJSONError(w, http.StatusServiceUnavailable, errMsg)
 	})
 
+	// 9. Scrape pipeline pending queue (GET list, DELETE dismiss)
+	mux.HandleFunc("/api/scrape/pending", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		stStore := scrapeStateStore(cfg)
+
+		switch r.Method {
+		case http.MethodGet:
+			doc, err := stStore.Load(ctx)
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			groupFilter := strings.TrimSpace(r.URL.Query().Get("group"))
+			if groupFilter != "" {
+				groupFilter = normalizeGroupName(groupFilter)
+			}
+			items := make([]scrape.PendingItem, 0)
+			for _, item := range doc.PendingQueue {
+				if item.Status != scrape.StatusPending && item.Status != scrape.StatusAmbiguous {
+					continue
+				}
+				if groupFilter != "" && item.Group != groupFilter {
+					continue
+				}
+				items = append(items, item)
+			}
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"items": items,
+			})
+		case http.MethodDelete:
+			id := strings.TrimSpace(r.URL.Query().Get("id"))
+			if id == "" {
+				writeJSONError(w, http.StatusBadRequest, "id query parameter is required")
+				return
+			}
+			doc, err := stStore.Load(ctx)
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			if !doc.UpdatePendingStatus(id, scrape.StatusDismissed) {
+				writeJSONError(w, http.StatusNotFound, "pending item not found")
+				return
+			}
+			if err := stStore.Save(ctx, doc); err != nil {
+				writeJSONError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"status": "dismissed",
+				"id":     id,
+			})
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// 10. Scrape pipeline execution (mock URLs, fixture file, or official X API v2)
+	mux.HandleFunc("/api/scrape/run", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Group            string   `json:"group"`
+			URLs             []string `json:"urls"`
+			FixturePath      string   `json:"fixture_path"`
+			UseXAPI          bool     `json:"use_x_api"`
+			UserID           string   `json:"user_id"`
+			SinceID          string   `json:"since_id"`
+			IgnoreCheckpoint bool     `json:"ignore_checkpoint"`
+			MaxAgeHours      int      `json:"max_age_hours"`
+			RequireMedia     *bool    `json:"require_media"`
+			AutoUpsert       bool     `json:"auto_upsert"`
+			DryRun           bool     `json:"dry_run"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("invalid json body: %v", err))
+			return
+		}
+
+		group := normalizeGroupName(req.Group)
+		var src scrape.TimelineSource
+		switch {
+		case req.UseXAPI:
+			token := strings.TrimSpace(os.Getenv("X_BEARER_TOKEN"))
+			src = scrape.NewXAPISource(token, 15*time.Second)
+		case strings.TrimSpace(req.FixturePath) != "":
+			src = &scrape.FixtureSource{Path: strings.TrimSpace(req.FixturePath)}
+		case len(req.URLs) > 0:
+			src = &scrape.URLListSource{URLs: req.URLs, Fetcher: fetcher, Timeout: 12 * time.Second, Workers: 4}
+		default:
+			writeJSONError(w, http.StatusBadRequest, "urls, fixture_path, or use_x_api=true is required")
+			return
+		}
+
+		var aiClient scrape.AIParserClient
+		if parserURL := strings.TrimSpace(os.Getenv("AI_PARSER_URL")); parserURL != "" {
+			aiClient = &scrape.HTTPAIParserClient{
+				BaseURL: parserURL,
+				Token:   strings.TrimSpace(os.Getenv("AI_PARSER_TOKEN")),
+			}
+		}
+
+		runner, err := scrape.NewRunner("")
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 45*time.Second)
+		defer cancel()
+
+		maxAge := req.MaxAgeHours
+		if maxAge == 0 {
+			maxAge = -1
+		}
+
+		report, err := runner.Run(ctx, scrape.RunOptions{
+			Group:            group,
+			UserID:           strings.TrimSpace(req.UserID),
+			SinceID:          strings.TrimSpace(req.SinceID),
+			IgnoreCheckpoint: req.IgnoreCheckpoint,
+			RequireMedia:     req.RequireMedia,
+			MaxAgeHours:      maxAge,
+			AutoUpsert:       req.AutoUpsert,
+			DryRun:           req.DryRun,
+			Source:           src,
+			State:            scrapeStateStore(cfg),
+			Schedule:         &monitorScheduleAccessor{cfg: cfg},
+			AIParser:         aiClient,
+		})
+		if err != nil {
+			writeJSONError(w, http.StatusUnprocessableEntity, err.Error())
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(report)
+	})
+
 	return mux
+}
+
+type monitorScheduleAccessor struct {
+	cfg HandlerConfig
+}
+
+func (a *monitorScheduleAccessor) ReadSchedule(ctx context.Context, group string) ([]byte, error) {
+	data, _, err := readGroupSchedule(ctx, a.cfg, group)
+	return data, err
+}
+
+func (a *monitorScheduleAccessor) WriteSchedule(ctx context.Context, group string, data []byte) error {
+	return writeGroupSchedule(ctx, a.cfg, group, data)
+}
+
+func scrapeStateStore(cfg HandlerConfig) scrape.StateStore {
+	if cfg.Store != nil && cfg.StateBucket != "" {
+		return &scrape.GCSStateStore{
+			Store:  cfg.Store,
+			Bucket: cfg.StateBucket,
+			Object: scrape.DefaultGCSStateObject,
+		}
+	}
+	path := strings.TrimSpace(cfg.ScrapeStatePath)
+	if path == "" {
+		if _, err := os.Stat("/var/log/ribonclock"); err == nil {
+			path = "/var/log/ribonclock/scrape_state.json"
+		} else {
+			path = "data/scrape_state.json"
+		}
+	}
+	return &scrape.FileStateStore{Path: path}
 }
 
 func defaultTriggerCloudRunJob(ctx context.Context, cfg HandlerConfig, group string, dryRun bool) (string, error) {
