@@ -8,6 +8,7 @@ WORKDIR /app/apps/web
 COPY apps/web/package*.json ./
 RUN npm ci
 
+COPY docs/architecture.manifest.json /app/docs/architecture.manifest.json
 COPY apps/web/ ./
 RUN npm run build
 

@@ -11,8 +11,10 @@
     "test": "node --experimental-strip-types --test src/**/*.test.ts"
   },
   "dependencies": {
+    "@types/three": "^0.187.0",
     "lucide": "^1.64.0",
-    "preact": "^11.1.0"
+    "preact": "^11.1.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
