@@ -9,7 +9,7 @@
 | **01** | [`01-calendar-view-selection-and-today.md`](01-calendar-view-selection-and-today.md) | カレンダー選択時の白縁取り・拡大廃止と「今日」の日付表示追加 | **可能（完全独立）** | `apps/web/src/components/CalendarView.tsx` |
 | **02** | [`02-deterministic-upsert-and-media-link-priority.md`](02-deterministic-upsert-and-media-link-priority.md) | 新規/既存更新トグル廃止に向けた決定論的 Upsert 統合、画像 ID 重複排除、代表リンク優先順位付け | **可能（Go バックエンド中心で独立可）** | `internal/schedule/`, `internal/resolve/`, `internal/monitor/server.go`, `internal/reconcile/` |
 | **03** | [`03-arch-schema-and-tenant-verification.md`](03-arch-schema-and-tenant-verification.md) | システム構成・テナント分離レベルの JSON スキーマ化、設定ドリフト検証スクリプト整備、既知ズレ修正 | **可能（完全独立）** | `schema/`, `scripts/`, `docs/architecture.md`, `apps/web/src/config/group.ts`, `k8s/manifests/` |
-| **04** | [`04-mobile-admin-ui-redesign.md`](04-mobile-admin-ui-redesign.md) | 管理画面（`/admin`）の `apps/web/` デザインシステム統合、情報削減、モバイル縦積み最適化 | **対話重視（UI/UX 実機確認や 02 の API 統一を前提に進める想定）** | `apps/web/`, `internal/monitor/admin.html`, `internal/monitor/server.go` |
+| **04** | [`04-mobile-admin-ui-redesign.md`](04-mobile-admin-ui-redesign.md) | 管理画面（`/admin`）の `apps/web/` デザインシステム統合、情報削減、モバイル縦積み最適化 | **完了（UI/UX刷新・`/admin`統合済み）** | `apps/web/`, `deploy/nginx.conf` |
 
 ## 共通の開発ルール・前提
 

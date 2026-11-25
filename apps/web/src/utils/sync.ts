@@ -333,3 +333,49 @@ export async function pushLocalToCloud(): Promise<SyncSession | null> {
   saveSyncSession(updatedSession);
   return updatedSession;
 }
+
+/**
+ * Fetches an admin API path (/api/admin/...) attaching Bearer token if available
+ * and retrying once after refreshing an expired session.
+ */
+export async function authorizedAdminFetch(
+  subpath: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const url = subpath.startsWith('/api/admin') ? subpath : `/api/admin${subpath}`;
+  let current = getSyncSession();
+  if (current) {
+    try {
+      current = await ensureValidSession(current, false);
+    } catch {
+      current = getSyncSession();
+    }
+  }
+
+  const buildHeaders = (token?: string): Headers => {
+    const h = new Headers(options.headers);
+    if (token) h.set('Authorization', `Bearer ${token}`);
+    return h;
+  };
+
+  let res = await fetch(url, {
+    credentials: 'same-origin',
+    ...options,
+    headers: buildHeaders(current?.idToken),
+  });
+
+  if (res.status === 401 && current) {
+    try {
+      const refreshed = await ensureValidSession(current, true);
+      res = await fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers: buildHeaders(refreshed.idToken),
+      });
+    } catch {
+      // keep initial 401 response for caller handling
+    }
+  }
+
+  return res;
+}

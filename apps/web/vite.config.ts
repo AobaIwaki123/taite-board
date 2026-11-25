@@ -35,6 +35,17 @@ export default defineConfig({
   server: {
     port: 8089,
     host: true,
+    proxy: {
+      '/api/admin': {
+        target: 'http://127.0.0.1:8082',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/api\/admin/, '/api'),
+      },
+      '/api/sync': {
+        target: 'http://127.0.0.1:8083',
+        changeOrigin: true,
+      },
+    },
   },
   resolve: {
     alias: {
