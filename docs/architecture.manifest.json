@@ -1,0 +1,28 @@
+{
+  "components": [
+    {"id": "web", "path": "apps/web", "dependsOn": ["nginx", "schedule_gcs", "syncapi"]},
+    {"id": "nginx", "path": "deploy/nginx.conf", "dependsOn": ["schedule_gcs", "syncapi"]},
+    {"id": "monitor", "path": "internal/monitor", "dependsOn": ["schedule_gcs", "monitor_state", "taite-parser", "taite-reconcile"]},
+    {"id": "syncapi", "path": "internal/syncapi", "dependsOn": ["auth_state", "monitor"]},
+    {"id": "crawler", "path": "crawler", "dependsOn": []},
+    {"id": "taite-reconcile", "path": "cmd/reconcile", "dependsOn": ["schedule_gcs"]},
+    {"id": "taite-parser", "path": "cmd/parser", "dependsOn": []},
+    {"id": "schedule_gcs", "path": "data/groups.json", "dependsOn": []},
+    {"id": "monitor_state", "path": "internal/monitor/collector.go", "dependsOn": []},
+    {"id": "auth_state", "path": "internal/syncapi/handler.go", "dependsOn": []}
+  ],
+  "boundaries": [
+    {"layer": "namespace", "level": "shared", "details": "単一 namespace ribonclock", "path": "k8s/manifests/namespace.yaml"},
+    {"layer": "ingress", "level": "host_routed", "details": "単一 Ingress の全ホストが同じ Service に到達する", "path": "k8s/manifests/ingress.yaml"},
+    {"layer": "service_pod", "level": "shared", "details": "単一 Rollout の web と monitor を共有する", "path": "k8s/manifests/base/rollout.yaml"},
+    {"layer": "nginx", "level": "shared", "details": "全ホストが共通設定を使い、ホスト別のデータアクセス制限は行わない", "path": "deploy/nginx.conf"},
+    {"layer": "schedule_gcs", "level": "path_isolated", "details": "taite-board-data/data/groups/<id>/schedule.json に分離するが認可境界ではない", "path": "data/groups.json"},
+    {"layer": "auth_rbac", "level": "shared", "details": "ロールはグローバル、同期データは UID 単位でテナント境界ではない", "path": "internal/syncapi/handler.go"},
+    {"layer": "monitor_state", "level": "shared", "details": "インテーク・履歴・パイプライン状態を共有する", "path": "internal/monitor/collector.go"},
+    {"layer": "client_storage", "level": "prefix_isolated", "details": "localStorage の接頭辞をグループごとに切り替える", "path": "apps/web/src/config/group.ts"}
+  ],
+  "tenants": [
+    {"id": "ribonclock", "hosts": ["ribonclock.iorin.net", "rincent.iorin.net"], "dataUrl": "data/groups/ribonclock/schedule.json", "fallbackDataUrl": "schedule.json", "storagePrefix": "ribonclock_"},
+    {"id": "dollykiss", "hosts": ["dollykiss.iorin.net"], "dataUrl": "data/groups/dollykiss/schedule.json", "fallbackDataUrl": "data/groups/dollykiss/schedule.json", "storagePrefix": "dollykiss_"}
+  ]
+}

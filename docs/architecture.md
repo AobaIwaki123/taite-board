@@ -1,5 +1,38 @@
 # taite-board アーキテクチャ設計書
 
+## 現行のテナント分離（2026-11）
+
+この節は現行のコード・マニフェストを記述する。以降の初期構想には現在と異なる記述が残る。機械検証対象は [architecture.manifest.json](architecture.manifest.json) と [architecture.schema.json](../schema/architecture.schema.json) である。
+
+| レイヤー | 分離 | 現状 |
+|---|---|---|
+| Namespace | 共有 | 単一 namespace `ribonclock` |
+| Ingress | ホストによるルーティング | 単一 Ingress の全ホストが同じ Service に到達する |
+| Service / Pod | 共有 | 単一 Rollout の web と monitor を共有する |
+| Nginx | 共有 | 全ホストが共通設定を使い、ホスト別のデータアクセス制限は行わない |
+| スケジュール GCS | パス分離 | `taite-board-data/data/groups/<id>/schedule.json` に分離するが認可境界ではない |
+| 認証・RBAC | 共有 | ロールはグローバル、同期データは UID 単位でテナント境界ではない |
+| Monitor 状態 | 共有 | インテーク・履歴・パイプライン状態を共有する |
+| クライアント保存 | 接頭辞で分離 | localStorage の接頭辞をグループごとに切り替える |
+
+`taite.iorin.net` は共通ポータル、`rincent.iorin.net` はリボンクロックの互換ホストである。Dolly Kiss は同グループのパスだけを再試行し、Nginx は GCS エラー時に同梱データへフォールバックする。クライアントからサーバー自体へ接続できない場合は localStorage のキャッシュを使う。同一パスの再試行は独立したオフライン用ファイルを意味しない。
+
+`tailscale-service.yaml` は現在も Kustomize に含まれ、monitor の 8082 ポートを Tailscale 用 Service として公開する。利用の有無は別途運用確認が必要であり、ここでは削除しない。
+
+```mermaid
+flowchart LR
+  web["Web"] --> nginx["Nginx"]
+  nginx --> schedules["GCS: グループ別スケジュール"]
+  web --> sync["同期 API"]
+  sync --> auth["GCS: 認証とユーザー状態"]
+  sync --> monitor["Monitor"]
+  monitor --> state["GCS: 共有運用状態"]
+  monitor --> parser["Cloud Run: parser"]
+  monitor --> reconcile["Cloud Run Job: reconcile"]
+  reconcile --> schedules
+  crawler["Crawler: 定期取得"]
+```
+
 ## 1. この文書の位置づけ
 
 taite-boardのMVPから、Web実装とネイティブアプリ実装が混在する段階へ拡張するための全体設計を記録する。

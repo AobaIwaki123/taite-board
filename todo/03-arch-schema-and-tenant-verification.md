@@ -1,6 +1,6 @@
 # TODO-03: システム構成・マルチテナント分離スキーマ定義、整合検証スクリプト整備、既知ドリフト修正
 
-- **ステータス**: 未着手
+- **ステータス**: 実装済み
 - **優先度**: 中（構造可視化と事故防止・既知不整合の解消）
 - **並列着手**: 可能（完全独立）
 
@@ -69,7 +69,7 @@
 
 ## 4. 検証条件
 
-- [ ] `apps/web/src/config/group.ts` の `dollykiss.fallbackDataUrl` および `sample` 定義の不整合が解消されていること
-- [ ] アーキテクチャ / テナント分離マニフェスト JSON とスキーマが追加され、整合性検証スクリプトが `verify.sh` に組み込まれていること
-- [ ] 意図的に設定を壊したケース（別グループの `fallbackDataUrl` を設定する等）で検証スクリプトが失敗することをテストで確認すること
-- [ ] `./scripts/verify.sh` および `go test ./internal/...` が全通過すること
+- [x] `apps/web/src/config/group.ts` の `dollykiss.fallbackDataUrl` および `sample` 定義の不整合が解消されていること
+- [x] アーキテクチャ / テナント分離マニフェスト JSON とスキーマが追加され、整合性検証が `verify.sh` の Web テストに組み込まれていること
+- [x] 意図的に設定を壊したケース（別グループの `fallbackDataUrl` を設定する等）で検証が失敗することをテストで確認すること
+- [x] `./scripts/verify.sh` および `go test ./internal/...` が全通過すること
