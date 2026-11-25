@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "taite-board architecture and tenant boundaries",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["components", "boundaries", "tenants"],
+  "properties": {
+    "components": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "path", "dependsOn"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "dependsOn": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+        }
+      }
+    },
+    "boundaries": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["layer", "level", "details", "path"],
+        "properties": {
+          "layer": {"type": "string", "minLength": 1},
+          "level": {"enum": ["shared", "host_routed", "path_isolated", "prefix_isolated"]},
+          "details": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "tenants": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "hosts", "dataUrl", "fallbackDataUrl", "storagePrefix"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+          "hosts": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+          "dataUrl": {"type": "string", "minLength": 1},
+          "fallbackDataUrl": {"type": "string", "minLength": 1},
+          "storagePrefix": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}

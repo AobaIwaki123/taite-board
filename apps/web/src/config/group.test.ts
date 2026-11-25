@@ -18,7 +18,7 @@ test('resolveCurrentGroup returns default group when window is undefined', () =>
   assert.equal(group.dataUrl, 'data/groups/ribonclock/schedule.json');
 });
 
-test('REGISTERED_GROUPS contains valid default and template configurations', () => {
+test('REGISTERED_GROUPS contains only active group configurations', () => {
   assert.ok(REGISTERED_GROUPS.ribonclock);
   assert.equal(REGISTERED_GROUPS.ribonclock.id, 'ribonclock');
   assert.equal(REGISTERED_GROUPS.ribonclock.name, 'リボンクロック');
@@ -37,8 +37,8 @@ test('REGISTERED_GROUPS contains valid default and template configurations', () 
     'https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large'
   );
 
-  assert.ok(REGISTERED_GROUPS.sample);
-  assert.equal(REGISTERED_GROUPS.sample.theme.primary, 'emerald');
+  assert.equal(REGISTERED_GROUPS.sample, undefined);
+  assert.equal(REGISTERED_GROUPS.dollykiss.fallbackDataUrl, 'data/groups/dollykiss/schedule.json');
 });
 
 test('backward compatibility alias resolves rincent to ribonclock', () => {

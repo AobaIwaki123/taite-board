@@ -23,6 +23,7 @@
       "aliases": ["Dolly Kiss", "DollyKiss", "ドリキス"],
       "timetree_id": "lui_17707",
       "data_path": "data/groups/dollykiss/schedule.json",
+      "heroImage": "https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large",
       "theme": {
         "primary": "pink",
         "accent": "purple"

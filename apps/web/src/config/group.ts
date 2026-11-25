@@ -50,25 +50,11 @@ export const REGISTERED_GROUPS: Record<string, GroupConfig> = {
     logoText: '🎀',
     heroImage: 'https://pbs.twimg.com/media/HVumF5haAAAHcXU.jpg?name=large',
     dataUrl: 'data/groups/dollykiss/schedule.json',
-    fallbackDataUrl: 'schedule.json',
+    fallbackDataUrl: 'data/groups/dollykiss/schedule.json',
     storagePrefix: 'dollykiss_',
     theme: {
       primary: 'pink',
       accent: 'purple',
-    },
-  },
-  // 拡張用テンプレート (新規グループ追加時はここに設定を追加し data/groups/<id>/schedule.json を配置)
-  sample: {
-    id: 'sample',
-    name: 'アイドルタイテ',
-    shortName: 'Sample',
-    logoText: '✨',
-    dataUrl: 'data/groups/sample/schedule.json',
-    fallbackDataUrl: 'schedule.json',
-    storagePrefix: 'taite_sample_',
-    theme: {
-      primary: 'emerald',
-      accent: 'sky',
     },
   },
 };
