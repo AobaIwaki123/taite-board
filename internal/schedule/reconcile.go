@@ -368,8 +368,8 @@ func sessionsCompatible(a, b map[string]interface{}) bool {
 	}
 
 	// Guard 1: Separate multi-part shows on the same day (1部 vs 2部, 昼 vs 夜) never merge
-	sessNameA := strings.TrimSpace(stringField(a, "session_name"))
-	sessNameB := strings.TrimSpace(stringField(b, "session_name"))
+	sessNameA := sessionLabel(a)
+	sessNameB := sessionLabel(b)
 	if sessNameA != "" && sessNameB != "" && sessNameA != sessNameB {
 		if isDistinctSessionLabel(sessNameA, sessNameB) {
 			return false
@@ -406,6 +406,20 @@ func sessionsCompatible(a, b map[string]interface{}) bool {
 	}
 
 	return true
+}
+
+func sessionLabel(s map[string]interface{}) string {
+	if label := strings.TrimSpace(stringField(s, "session_name")); label != "" {
+		return label
+	}
+	title := resolve.NormalizeText(stringField(s, "title"))
+	if strings.Contains(title, "1部") && !strings.Contains(title, "2部") {
+		return "1部"
+	}
+	if strings.Contains(title, "2部") && !strings.Contains(title, "1部") {
+		return "2部"
+	}
+	return ""
 }
 
 func concreteVenue(s string) bool {

@@ -7,7 +7,7 @@
       "short_name": "リボクロ",
       "x_account": "Ribbon_Clock",
       "aliases": ["リボンクロック", "リボクロ", "Ribbon_Clock", "ribonclock"],
-      "timetree_id": "",
+      "timetree_id": "ribbon_clock",
       "data_path": "data/groups/ribonclock/schedule.json",
       "heroImage": "https://pbs.twimg.com/media/HVi3dC9bsAAinY6?format=jpg&name=large",
       "theme": {

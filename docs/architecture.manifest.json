@@ -5,6 +5,8 @@
     {"id": "monitor", "path": "internal/monitor", "dependsOn": ["schedule_gcs", "monitor_state", "taite-parser", "taite-reconcile"]},
     {"id": "syncapi", "path": "internal/syncapi", "dependsOn": ["auth_state", "monitor"]},
     {"id": "crawler", "path": "crawler", "dependsOn": []},
+    {"id": "timetree-sync", "path": "cmd/timetree-sync", "dependsOn": ["lumitree-client", "schedule_gcs"]},
+    {"id": "lumitree-client", "path": "internal/source/timetree", "dependsOn": []},
     {"id": "taite-reconcile", "path": "cmd/reconcile", "dependsOn": ["schedule_gcs"]},
     {"id": "taite-parser", "path": "cmd/parser", "dependsOn": []},
     {"id": "schedule_gcs", "path": "data/groups.json", "dependsOn": []},

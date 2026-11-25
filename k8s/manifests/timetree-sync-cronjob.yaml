@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: taite-timetree-sync
+  namespace: ribonclock
+spec:
+  # 12:00 and 22:00 JST; all configured calendars run sequentially in one job.
+  schedule: "0 3,13 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: sync
+              image: ghcr.io/aobaiwaki123/taite-board-monitor:sha-b64d705
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/timetree-sync"]
+              args: ["--group", "all", "--months", "3"]
+              env:
+                - name: GCS_DATA_BUCKET
+                  value: "taite-board-data"
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: "/var/secrets/gcs/key.json"
+              volumeMounts:
+                - name: gcs-key
+                  mountPath: /var/secrets/gcs
+                  readOnly: true
+              resources:
+                requests: {cpu: 10m, memory: 32Mi}
+                limits: {cpu: 200m, memory: 128Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+          volumes:
+            - name: gcs-key
+              secret:
+                secretName: ribonclock-gcs

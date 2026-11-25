@@ -1,8 +1,11 @@
 // Ribbon Clock Service Worker (Underground Venue Offline Image Cache)
-// Provides Cache-First retrieval for Twitter / X image media (pbs.twimg.com).
+// Provides Cache-First retrieval for X and TimeTree public event images.
 
 const CACHE_NAME = 'ribonclock-images-v1';
-const TWITTER_MEDIA_PREFIX = 'https://pbs.twimg.com/media/';
+const IMAGE_PREFIXES = [
+  'https://pbs.twimg.com/media/',
+  'https://attachments.timetreeapp.com/public_event/',
+];
 
 self.addEventListener('install', () => {
   // Activate worker immediately without waiting for existing worker to shut down
@@ -27,8 +30,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = event.request.url;
 
-  // Intercept GET requests to Twitter / X media assets
-  if (url.startsWith(TWITTER_MEDIA_PREFIX) && event.request.method === 'GET') {
+  // Intercept GET requests to supported public image hosts.
+  if (IMAGE_PREFIXES.some((prefix) => url.startsWith(prefix)) && event.request.method === 'GET') {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         // 1. Cache-first strategy: return locally stored image immediately

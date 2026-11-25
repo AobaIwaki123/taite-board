@@ -31,6 +31,8 @@ flowchart LR
   monitor --> reconcile["Cloud Run Job: reconcile"]
   reconcile --> schedules
   crawler["Crawler: 定期取得"]
+  calendar["CronJob: TimeTree 同期"] --> lumitree["lumitree API"]
+  calendar --> schedules
 ```
 
 ## 1. この文書の位置づけ

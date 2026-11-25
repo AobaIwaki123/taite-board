@@ -18,6 +18,34 @@ import (
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
+func TestGenerationPreconditions(t *testing.T) {
+	client := NewClientFromMetadata("")
+	client.tokens["metadata"] = cachedToken{token: "test", expiry: time.Now().Add(time.Hour)}
+	client.httpClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		status, body := http.StatusOK, `{"generation":"42"}`
+		if r.Method == http.MethodGet && r.URL.Query().Get("alt") == "media" {
+			if r.URL.Query().Get("generation") != "42" {
+				t.Errorf("generation not pinned: %s", r.URL.RawQuery)
+			}
+			body = `{"sessions":[]}`
+		} else if r.Method == http.MethodPost {
+			if r.URL.Query().Get("ifGenerationMatch") != "42" {
+				t.Errorf("missing precondition: %s", r.URL.RawQuery)
+			}
+			status, body = http.StatusPreconditionFailed, "changed"
+		}
+		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}
+	data, generation, err := client.GetObjectVersion(context.Background(), "bucket", "schedule.json")
+	if err != nil || generation != "42" || string(data) != `{"sessions":[]}` {
+		t.Fatalf("generation=%s data=%s err=%v", generation, data, err)
+	}
+	err = client.PutObjectIfGeneration(context.Background(), "bucket", "schedule.json", "application/json", "", data, generation)
+	if !errors.Is(err, ErrGenerationMismatch) {
+		t.Fatalf("expected precondition error, got %v", err)
+	}
+}
+
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
 }

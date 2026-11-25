@@ -191,12 +191,7 @@ export function CockpitView({
 
           {/* タイテ表 / フライヤー 切替ピル */}
           {images.length > 1 && (
-            <div class="absolute bottom-2.5 left-2.5 z-10 flex items-center p-1 rounded-xl bg-stone-950/85 backdrop-blur-md border border-white/10 shadow-lg select-none">
-              {/* スライディング・ピルインジケーター */}
-              <div
-                class="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-lg bg-rose-500 shadow-sm transition-transform duration-200 ease-out pointer-events-none"
-                style={{ transform: `translateX(${selectedImageIndex * 100}%)` }}
-              />
+            <div class="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex items-center w-fit max-w-[calc(100%-1.25rem)] overflow-x-auto p-1 rounded-xl bg-stone-950/85 backdrop-blur-md border border-white/10 shadow-lg select-none">
               {images.map((img, idx) => {
                 const isActive = idx === selectedImageIndex;
                 const isTimetable = img.type === 'timetable';
@@ -207,12 +202,12 @@ export function CockpitView({
                       e.stopPropagation();
                       onSelectImageIndex(idx);
                     }}
-                    class={`relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
-                      isActive ? 'text-stone-950' : 'text-stone-400 hover:text-stone-200'
+                    class={`flex shrink-0 items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors duration-150 ${
+                      isActive ? 'bg-rose-500 text-stone-950' : 'text-stone-400 hover:text-stone-200'
                     }`}
                   >
                     <Icon icon={isTimetable ? CalendarDays : ImageIcon} class="w-3.5 h-3.5" />
-                    <span>{isTimetable ? 'タイテ表' : 'フライヤー'}</span>
+                    <span>{images.length > 2 || img.label === '告知画像' ? `画像 ${idx + 1}` : isTimetable ? 'タイテ表' : 'フライヤー'}</span>
                   </button>
                 );
               })}
