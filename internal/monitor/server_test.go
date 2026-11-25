@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/candidate"
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
@@ -955,5 +957,79 @@ func TestServer_ReconcileEndpoint_CloudRunAndFallback(t *testing.T) {
 	updatedStr := string(updatedBytes)
 	if !strings.Contains(updatedStr, "ZEAL THEATER 新橋") || !strings.Contains(updatedStr, "ロビーB") {
 		t.Errorf("expected reconciled schedule mirrored to schedule.json, got %s", updatedStr)
+	}
+}
+
+func TestServer_ScrapePipelineEndpoints(t *testing.T) {
+	mem := newMemoryObjectStore()
+	statePath := filepath.Join(t.TempDir(), "scrape_state.json")
+
+	fetcher := &mockFetcher{
+		post: &raw.Post{
+			Source:    "x",
+			SourceID:  "2116002151944401001",
+			URL:       "https://x.com/Ribbon_Clock/status/2116002151944401001",
+			Author:    "リボンクロック",
+			Text:      "ライブ出演告知\n11/28(土) 渋谷RING\n『スクレイプテスト公演』\n出演 18:30-18:55\n入場特典: 2S写メ券",
+			Images:    []string{"https://pbs.twimg.com/media/scrape1.jpg?name=large"},
+			FetchedAt: time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+
+	handler := NewHandlerWithConfig(NewCollector("test-v1"), fetcher, nil, HandlerConfig{
+		Store:           mem,
+		StateBucket:     "taite-board-state",
+		ScrapeStatePath: statePath,
+	})
+
+	runBody := `{"group":"ribonclock","urls":["https://x.com/Ribbon_Clock/status/2116002151944401001"],"dry_run":false}`
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/scrape/run", bytes.NewReader([]byte(runBody))))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on /api/scrape/run, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var runResp struct {
+		PassedCount int `json:"passed_count"`
+		StagedCount int `json:"staged_count"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &runResp); err != nil {
+		t.Fatalf("decode run response: %v", err)
+	}
+	if runResp.PassedCount != 1 || runResp.StagedCount != 1 {
+		t.Fatalf("expected passed=1 staged=1, got %+v", runResp)
+	}
+
+	// Verify pending item appears in GET /api/scrape/pending
+	recGet := httptest.NewRecorder()
+	handler.ServeHTTP(recGet, httptest.NewRequest(http.MethodGet, "/api/scrape/pending?group=ribonclock", nil))
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 on GET /api/scrape/pending, got %d", recGet.Code)
+	}
+	var listResp struct {
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal(recGet.Body.Bytes(), &listResp); err != nil {
+		t.Fatalf("decode pending list: %v", err)
+	}
+	if len(listResp.Items) != 1 || listResp.Items[0].ID != "ribonclock:2116002151944401001" {
+		t.Fatalf("unexpected pending items: %+v", listResp.Items)
+	}
+
+	// Dismiss item via DELETE /api/scrape/pending
+	recDel := httptest.NewRecorder()
+	handler.ServeHTTP(recDel, httptest.NewRequest(http.MethodDelete, "/api/scrape/pending?id=ribonclock:2116002151944401001", nil))
+	if recDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 on DELETE /api/scrape/pending, got %d: %s", recDel.Code, recDel.Body.String())
+	}
+
+	// Pending list should now be empty
+	recGet2 := httptest.NewRecorder()
+	handler.ServeHTTP(recGet2, httptest.NewRequest(http.MethodGet, "/api/scrape/pending?group=ribonclock", nil))
+	_ = json.Unmarshal(recGet2.Body.Bytes(), &listResp)
+	if len(listResp.Items) != 0 {
+		t.Fatalf("expected 0 pending items after dismiss, got %+v", listResp.Items)
 	}
 }
