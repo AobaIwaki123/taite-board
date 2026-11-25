@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -324,6 +325,42 @@ func hasAdmissionBonusKeywords(s string) bool {
 }
 
 func shouldMergeSessions(a, b map[string]interface{}) bool {
+	if !sessionsCompatible(a, b) {
+		return false
+	}
+
+	venueIDA := nestedStringField(a, "venue", "canonical_id")
+	venueIDB := nestedStringField(b, "venue", "canonical_id")
+	liveStartA := nestedStringField(a, "live", "start_time")
+	liveStartB := nestedStringField(b, "live", "start_time")
+
+	// Signal 1: Overlapping normalized titles
+	titleKeyA := normalizeMatchKey(stringField(a, "title"))
+	titleKeyB := normalizeMatchKey(stringField(b, "title"))
+	if keysOverlap(titleKeyA, titleKeyB) {
+		return true
+	}
+	if a, ok := parseHHMM(liveStartA); ok {
+		if b, ok := parseHHMM(liveStartB); ok && a == b {
+			return true
+		}
+	}
+	if shareSourceIdentity(a, b) {
+		return true
+	}
+	sameVenue := venueIDA != "" && venueIDA != "venue:未定" && venueIDA == venueIDB
+	if !sameVenue {
+		return false
+	}
+	_, okA := parseHHMM(liveStartA)
+	_, okB := parseHHMM(liveStartB)
+	if okA && okB && liveStartA == liveStartB {
+		return true
+	}
+	return isPlaceholderTitle(stringField(a, "title")) || isPlaceholderTitle(stringField(b, "title"))
+}
+
+func sessionsCompatible(a, b map[string]interface{}) bool {
 	dateA := stringField(a, "date")
 	dateB := stringField(b, "date")
 	if dateA == "" || dateA != dateB {
@@ -345,6 +382,13 @@ func shouldMergeSessions(a, b map[string]interface{}) bool {
 	if venueIDA != "" && venueIDB != "" && venueIDA != "venue:未定" && venueIDB != "venue:未定" && venueIDA != venueIDB {
 		return false
 	}
+	nameA, nameB := nestedStringField(a, "venue", "name"), nestedStringField(b, "venue", "name")
+	if (venueIDA == "" || venueIDB == "") && concreteVenue(nameA) && concreteVenue(nameB) {
+		a, b := normalizeMatchKey(nameA), normalizeMatchKey(nameB)
+		if a != b && !keysOverlap(a, b) {
+			return false
+		}
+	}
 
 	// Guard 3: Concrete different live start times (>15 min apart) never merge
 	liveStartA := nestedStringField(a, "live", "start_time")
@@ -361,38 +405,17 @@ func shouldMergeSessions(a, b map[string]interface{}) bool {
 		}
 	}
 
-	// Signal 1: Overlapping normalized titles
-	titleKeyA := normalizeMatchKey(stringField(a, "title"))
-	titleKeyB := normalizeMatchKey(stringField(b, "title"))
-	if keysOverlap(titleKeyA, titleKeyB) {
-		return true
-	}
+	return true
+}
 
-	// Signal 2: Same X post or shared source_ref when venue/time guards do not conflict
-	if shareSourceIdentity(a, b) {
-		return true
-	}
-
-	// Signal 3: Same known canonical venue AND compatible time or placeholder title
-	sameVenue := venueIDA != "" && venueIDA != "venue:未定" && venueIDA == venueIDB
-	if !sameVenue {
-		return false
-	}
-
-	_, okA := parseHHMM(liveStartA)
-	_, okB := parseHHMM(liveStartB)
-	if okA && okB && liveStartA == liveStartB {
-		return true
-	}
-
-	if isPlaceholderTitle(stringField(a, "title")) || isPlaceholderTitle(stringField(b, "title")) {
-		return true
-	}
-
-	return false
+func concreteVenue(s string) bool {
+	s = strings.TrimSpace(s)
+	return s != "" && s != "未定" && s != "告知待ち"
 }
 
 func mergeReconciledSessions(dst, src map[string]interface{}, resolver *resolve.Resolver) {
+	recordSourceScore(src, sourcePriority(src))
+	selectSource(dst, src, nil)
 	// Title: prefer non-placeholder, longer/clean title
 	dstTitle := stringField(dst, "title")
 	srcTitle := stringField(src, "title")
@@ -514,9 +537,6 @@ func mergeReconciledSessions(dst, src map[string]interface{}, resolver *resolve.
 		dedupeImages(dst)
 	}
 
-	if stringField(dst, "source_tweet_url") == "" && stringField(src, "source_tweet_url") != "" {
-		dst["source_tweet_url"] = src["source_tweet_url"]
-	}
 	if srcRefs, ok := src["source_refs"].([]interface{}); ok {
 		for _, r := range srcRefs {
 			if rm, ok := r.(map[string]interface{}); ok {
@@ -668,12 +688,33 @@ func dedupeSourceRefs(sMap map[string]interface{}) bool {
 	return changed
 }
 
+func imageKey(raw string) (string, int) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return raw, 0
+	}
+	u.Host = strings.ToLower(u.Host)
+	if u.Host == "pbs.twimg.com" && strings.HasPrefix(u.Path, "/media/") {
+		id := strings.TrimPrefix(strings.TrimSuffix(u.Path, "/"), "/media/")
+		if i := strings.LastIndex(id, "."); i >= 0 {
+			id = id[:i]
+		}
+		quality := map[string]int{"small": 1, "medium": 2, "large": 3, "orig": 4}[u.Query().Get("name")]
+		return "twimg:" + id, quality
+	}
+	u.Scheme = "https"
+	u.Path = strings.TrimSuffix(u.Path, "/")
+	u.Fragment = ""
+	u.RawQuery = u.Query().Encode()
+	return u.String(), 0
+}
+
 func dedupeImages(sMap map[string]interface{}) bool {
 	imgs, _ := sMap["images"].([]interface{})
 	if len(imgs) <= 1 {
 		return false
 	}
-	seen := make(map[string]bool)
+	seen := make(map[string]int)
 	out := make([]interface{}, 0, len(imgs))
 	changed := false
 	for _, img := range imgs {
@@ -683,12 +724,18 @@ func dedupeImages(sMap map[string]interface{}) bool {
 			continue
 		}
 		u := stringField(im, "url")
-		if u != "" && seen[u] {
-			changed = true
-			continue
-		}
 		if u != "" {
-			seen[u] = true
+			key, quality := imageKey(u)
+			if idx, exists := seen[key]; exists {
+				old, _ := out[idx].(map[string]interface{})
+				_, oldQuality := imageKey(stringField(old, "url"))
+				if quality > oldQuality {
+					out[idx] = im
+				}
+				changed = true
+				continue
+			}
+			seen[key] = len(out)
 		}
 		out = append(out, im)
 	}

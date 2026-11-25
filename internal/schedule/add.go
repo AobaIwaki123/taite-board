@@ -2,13 +2,17 @@ package schedule
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 )
 
+var ErrAmbiguousSession = errors.New("ambiguous sessions; specify target session")
+
 type AddSessionOptions struct {
+	TargetSessionID  string
 	Date             string
 	Title            string
 	SessionName      string
@@ -68,8 +72,8 @@ func AddSession(opts AddSessionOptions) (string, error) {
 // ApplyAddSession appends a new session to schedule JSON bytes, sorts chronologically,
 // updates generated_at, and returns the updated JSON bytes and derived session ID.
 func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error) {
-	if opts.Date == "" || opts.Title == "" || opts.VenueName == "" {
-		return nil, "", fmt.Errorf("date, title, and venue name are required")
+	if opts.Date == "" {
+		return nil, "", fmt.Errorf("date is required")
 	}
 	if opts.PhotoSongNumber < 0 {
 		return nil, "", fmt.Errorf("photo_song_number must be an integer >= 1")
@@ -123,7 +127,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 
 	// Build Venue object
 	venueID := strings.TrimSpace(opts.VenueCanonicalID)
-	if venueID == "" {
+	if venueID == "" && opts.VenueName != "" {
 		venueID = fmt.Sprintf("venue:%s", strings.ToLower(strings.ReplaceAll(opts.VenueName, " ", "-")))
 	}
 	venue := map[string]interface{}{
@@ -155,12 +159,17 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		sourceRefs = append(sourceRefs, ref)
 		if isX {
 			officialTweetURL = strings.TrimSpace(opts.SourceTweetURL)
+			ref["information_score"] = sourceScore(sessionFromAddOptions(opts))
 		}
 	}
 
 	// Dedupe / Upsert: if an existing session on the same date matches by normalized title or canonical venue (especially placeholder --:-- sessions), merge into it instead of duplicating.
-	targetTitleKey := normalizeMatchKey(opts.Title)
-	targetVenueKey := normalizeMatchKey(opts.VenueName)
+	candidate := map[string]interface{}{"date": opts.Date, "title": opts.Title, "session_name": opts.SessionName, "venue": map[string]interface{}{"canonical_id": opts.VenueCanonicalID, "name": opts.VenueName}, "live": map[string]interface{}{"start_time": opts.LiveStartTime}}
+	type sessionMatch struct {
+		index int
+		data  map[string]interface{}
+	}
+	var sameDate, matches []sessionMatch
 	for i, sRaw := range doc.Sessions {
 		var sMap map[string]interface{}
 		if err := json.Unmarshal(sRaw, &sMap); err != nil {
@@ -170,35 +179,56 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 			continue
 		}
 
-		existingID, _ := sMap["id"].(string)
-		existingTitle, _ := sMap["title"].(string)
-		existingVenueMap, _ := sMap["venue"].(map[string]interface{})
-		existingVenueID, _ := existingVenueMap["canonical_id"].(string)
-		existingVenueName, _ := existingVenueMap["name"].(string)
-		existingLiveMap, _ := sMap["live"].(map[string]interface{})
-		existingLiveStart, _ := existingLiveMap["start_time"].(string)
-
-		titleMatched := keysOverlap(normalizeMatchKey(existingTitle), targetTitleKey)
-		venueMatched := (venueID != "" && existingVenueID == venueID) || keysOverlap(normalizeMatchKey(existingVenueName), targetVenueKey)
-		isPlaceholderOrSameTime := existingLiveStart == "" || existingLiveStart == "--:--" || existingLiveStart == opts.LiveStartTime
-
-		if titleMatched || (venueMatched && isPlaceholderOrSameTime) {
-			mergeSessionFields(sMap, opts, venue, ticketPlatform, officialTweetURL, sourceRefs)
-			mergedBytes, mErr := json.Marshal(sMap)
-			if mErr != nil {
-				return nil, "", fmt.Errorf("marshaling merged session %s: %w", existingID, mErr)
+		sameDate = append(sameDate, sessionMatch{i, sMap})
+		if opts.TargetSessionID != "" {
+			if stringField(sMap, "id") == opts.TargetSessionID {
+				matches = append(matches, sessionMatch{i, sMap})
 			}
-			doc.Sessions[i] = json.RawMessage(mergedBytes)
-			updatedRaw, mErr := json.Marshal(doc)
-			if mErr != nil {
-				return nil, "", fmt.Errorf("marshaling merged doc: %w", mErr)
-			}
-			sortedRaw, _, mErr := ApplySortSchedule(updatedRaw)
-			if mErr != nil {
-				return nil, "", fmt.Errorf("sorting after merge: %w", mErr)
-			}
-			return sortedRaw, existingID, nil
+		} else if shouldMergeSessions(sMap, candidate) {
+			matches = append(matches, sessionMatch{i, sMap})
 		}
+	}
+	if opts.TargetSessionID != "" && len(matches) == 0 {
+		return nil, "", fmt.Errorf("target session not found on date")
+	}
+	if len(matches) == 0 && len(sameDate) == 1 && sessionsCompatible(sameDate[0].data, candidate) {
+		matches = sameDate
+	}
+	if len(matches) > 1 {
+		return nil, "", fmt.Errorf("%w on %s", ErrAmbiguousSession, opts.Date)
+	}
+	if len(matches) == 0 && len(sameDate) > 1 {
+		compatible := 0
+		for _, s := range sameDate {
+			if sessionsCompatible(s.data, candidate) {
+				compatible++
+			}
+		}
+		if compatible > 0 {
+			return nil, "", fmt.Errorf("%w on %s", ErrAmbiguousSession, opts.Date)
+		}
+	}
+	if len(matches) == 1 {
+		i, sMap := matches[0].index, matches[0].data
+		existingID := stringField(sMap, "id")
+		mergeSessionFields(sMap, opts, venue, ticketPlatform, officialTweetURL, sourceRefs)
+		mergedBytes, mErr := json.Marshal(sMap)
+		if mErr != nil {
+			return nil, "", fmt.Errorf("marshaling merged session %s: %w", existingID, mErr)
+		}
+		doc.Sessions[i] = json.RawMessage(mergedBytes)
+		updatedRaw, mErr := json.Marshal(doc)
+		if mErr != nil {
+			return nil, "", fmt.Errorf("marshaling merged doc: %w", mErr)
+		}
+		sortedRaw, _, mErr := ApplySortSchedule(updatedRaw)
+		if mErr != nil {
+			return nil, "", fmt.Errorf("sorting after merge: %w", mErr)
+		}
+		return sortedRaw, existingID, nil
+	}
+	if opts.Title == "" || opts.VenueName == "" {
+		return nil, "", fmt.Errorf("title and venue name are required for a new session")
 	}
 
 	// Build Live object
@@ -317,6 +347,15 @@ func keysOverlap(a, b string) bool {
 }
 
 func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, newVenue map[string]interface{}, ticketPlatform, officialTweetURL string, newRefs []map[string]interface{}) {
+	// Compare each source's own information before combining session fields.
+	incoming := sessionFromAddOptions(opts)
+	selectSource(sMap, incoming, newRefs)
+	if isPlaceholderTitle(stringField(sMap, "title")) && !isPlaceholderTitle(opts.Title) {
+		sMap["title"] = opts.Title
+	}
+	if stringField(sMap, "session_name") == "" && opts.SessionName != "" {
+		sMap["session_name"] = opts.SessionName
+	}
 	// Venue: prefer resolved canonical venue or replace placeholder
 	if vMap, ok := sMap["venue"].(map[string]interface{}); ok {
 		exName, _ := vMap["name"].(string)
@@ -397,6 +436,8 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		exNotes, _ := sMap["special_notes"].(string)
 		if exNotes == "" {
 			sMap["special_notes"] = opts.SpecialNotes
+		} else if !strings.Contains(exNotes, opts.SpecialNotes) {
+			sMap["special_notes"] = exNotes + " / " + opts.SpecialNotes
 		}
 	}
 
@@ -405,6 +446,11 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		if sMap["photo"] == nil {
 			sMap["photo"] = buildPhotoMapFromAdd(opts)
 		} else if existingPhoto, ok := sMap["photo"].(map[string]interface{}); ok {
+			for key, value := range buildPhotoMapFromAdd(opts) {
+				if old, exists := existingPhoto[key]; !exists || old == nil || old == "" {
+					existingPhoto[key] = value
+				}
+			}
 			if opts.PhotoSongNumber > 0 {
 				if _, hasNum := existingPhoto["song_number"]; !hasNum {
 					existingPhoto["song_number"] = opts.PhotoSongNumber
@@ -423,23 +469,14 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		if exImg, _ := sMap["image_url"].(string); exImg == "" {
 			sMap["image_url"] = opts.ImageURL
 		}
-		if imgs, _ := sMap["images"].([]interface{}); len(imgs) == 0 {
-			sMap["images"] = []interface{}{
-				map[string]interface{}{
-					"type":  "flyer",
-					"label": "告知画像",
-					"url":   opts.ImageURL,
-				},
-			}
-		}
+		imgs, _ := sMap["images"].([]interface{})
+		sMap["images"] = append(imgs, map[string]interface{}{
+			"type": "flyer", "label": "告知画像", "url": opts.ImageURL,
+		})
+		dedupeImages(sMap)
 	}
 
-	// Source tweet URL & source_refs merge
-	if officialTweetURL != "" {
-		if exTweet, _ := sMap["source_tweet_url"].(string); exTweet == "" {
-			sMap["source_tweet_url"] = officialTweetURL
-		}
-	}
+	// Source refs merge
 	if len(newRefs) > 0 {
 		refsRaw, _ := sMap["source_refs"].([]interface{})
 		for _, nr := range newRefs {

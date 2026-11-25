@@ -310,20 +310,22 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 
 	// 6. Intake Promote API (Commit candidate to GCS or local schedule.json)
 	type promoteRequest struct {
-		Group          string `json:"group"`
-		SourceID       string `json:"source_id"`
-		SourceURL      string `json:"source_url"`
-		Author         string `json:"author"`
-		Title          string `json:"title"`
-		Date           string `json:"date"`
-		Venue          string `json:"venue"`
-		LiveStart      string `json:"live_start"`
-		LiveEnd        string `json:"live_end"`
-		BenefitStart   string `json:"benefit_start"`
-		BenefitEnd     string `json:"benefit_end"`
-		Booth          string `json:"booth"`
-		TicketURL      string `json:"ticket_url"`
-		ImageURL       string `json:"image_url"`
+		TargetSessionID string `json:"target_session_id"`
+		SessionName     string `json:"session_name"`
+		Group           string `json:"group"`
+		SourceID        string `json:"source_id"`
+		SourceURL       string `json:"source_url"`
+		Author          string `json:"author"`
+		Title           string `json:"title"`
+		Date            string `json:"date"`
+		Venue           string `json:"venue"`
+		LiveStart       string `json:"live_start"`
+		LiveEnd         string `json:"live_end"`
+		BenefitStart    string `json:"benefit_start"`
+		BenefitEnd      string `json:"benefit_end"`
+		Booth           string `json:"booth"`
+		TicketURL       string `json:"ticket_url"`
+		ImageURL        string `json:"image_url"`
 		AdmissionBonus  string `json:"admission_bonus"`
 		SpecialNotes    string `json:"special_notes"`
 		PhotoSong       string `json:"photo_song"`
@@ -378,6 +380,8 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		}
 
 		updatedBytes, sessionID, err := schedule.ApplyAddSession(currentBytes, schedule.AddSessionOptions{
+			TargetSessionID:  strings.TrimSpace(req.TargetSessionID),
+			SessionName:      strings.TrimSpace(req.SessionName),
 			Date:             strings.TrimSpace(req.Date),
 			Title:            title,
 			VenueName:        venue,
@@ -400,8 +404,28 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to add session: %v", err)
 			recordAndNotifyFailure(collector, cfg, "promote_error", group, strings.TrimSpace(req.Date), title, venue, strings.TrimSpace(req.SourceURL), errMsg)
-			writeJSONError(w, http.StatusUnprocessableEntity, errMsg)
+			status := http.StatusUnprocessableEntity
+			if errors.Is(err, schedule.ErrAmbiguousSession) {
+				status = http.StatusConflict
+			}
+			writeJSONError(w, status, errMsg)
 			return
+		}
+		var previous struct {
+			Sessions []struct {
+				ID string `json:"id"`
+			} `json:"sessions"`
+		}
+		if err := json.Unmarshal(currentBytes, &previous); err != nil {
+			writeJSONError(w, http.StatusInternalServerError, "invalid existing schedule")
+			return
+		}
+		action := "created"
+		for _, session := range previous.Sessions {
+			if session.ID == sessionID {
+				action = "merged"
+				break
+			}
 		}
 
 		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
@@ -463,6 +487,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":     "success",
+			"action":     action,
 			"session_id": sessionID,
 			"group":      group,
 			"domain":     domain,
@@ -529,11 +554,20 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		sessionID := strings.TrimSpace(req.SessionID)
 		if sessionID == "" {
 			if req.Date != "" {
+				matches := 0
 				for _, s := range schedDoc.Sessions {
 					if s.Date == req.Date {
 						sessionID = s.ID
-						break
+						matches++
 					}
+				}
+				if matches > 1 {
+					writeJSONError(w, http.StatusConflict, "ambiguous sessions; specify session_id")
+					return
+				}
+				if matches == 0 {
+					writeJSONError(w, http.StatusNotFound, "target session not found on date")
+					return
 				}
 			}
 			if sessionID == "" && schedDoc.CurrentNextID != "" {

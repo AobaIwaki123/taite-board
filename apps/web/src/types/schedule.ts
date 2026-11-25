@@ -87,6 +87,7 @@ export interface SessionImage {
 }
 
 export interface SourceRef {
+  information_score?: number;
   type: string;
   source_id?: string;
   url: string;
