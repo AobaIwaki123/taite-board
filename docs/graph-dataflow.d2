@@ -2,224 +2,343 @@
 direction: right
 
 actors: "Data Readers & Writers (L1 - L3)" {
-  style.fill: "#18181b"
+  style.fill: "#0f172a"
   style.stroke: "#f59e0b"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#fbbf24"
   style.border-radius: 12
-  web_spa: "Web SPA (Preact)\napps/web/src/config/group.ts" {
+  web_spa: "Web SPA (Preact)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#fb7185"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  nginx_proxy: "Nginx Reverse Proxy (:80)\n[pod_ribonclock]\ndeploy/nginx.conf" {
+  nginx_proxy: "Nginx Reverse Proxy (:80)\n[pod_ribonclock]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#fb7185"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  monitor_api: "Monitor / Admin API (:8082)\n[monitor_process]\ninternal/monitor/server.go" {
+  monitor_api: "Monitor / Admin API (:8082)\n[monitor_process]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#f59e0b"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  sync_api: "Sync & RBAC API (:8083)\n[monitor_process]\ninternal/syncapi/handler.go" {
+  sync_api: "Sync & RBAC API (:8083)\n[monitor_process]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#f59e0b"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  log_tailer: "Access Log Tailer & Collector\n[monitor_process]\ninternal/monitor/collector.go" {
+  log_tailer: "Access Log Tailer & Collector\n[monitor_process]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#f59e0b"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  timetree_sync: "TimeTree Auto Sync (CronJob, 128Mi)\ncmd/timetree-sync/main.go" {
+  timetree_sync: "TimeTree Auto Sync (CronJob, 128Mi)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_reconcile: "Reconcile Batch (Cloud Run Job)\ncmd/reconcile/main.go" {
+  taite_reconcile: "Reconcile Batch (Cloud Run Job)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_resync_x: "taite resync-x (CLI / Isolated Job) [MANUAL]\ninternal/xsync/xsync.go" {
+  taite_resync_x: "taite resync-x (CLI / Isolated Job) [MANUAL]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_gcs_cli: "taite gcs push|pull (CLI) [MANUAL]\ncmd/taite/gcs.go" {
+  taite_gcs_cli: "taite gcs push|pull (CLI) [MANUAL]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  crawler_cron: "Playwright Crawler (CronJob, suspend) [SUSPENDED]\ncrawler/index.mjs" {
+  crawler_cron: "Playwright Crawler (CronJob, suspend) [SUSPENDED]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#1c1917"
-    style.stroke: "#78716c"
-    style.font-color: "#a8a29e"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#111827"
+    style.stroke: "#64748b"
+    style.font-color: "#94a3b8"
     style.stroke-dash: 4
   }
 }
 
 stores: "Data & State Stores (L4)" {
-  style.fill: "#141917"
+  style.fill: "#0f172a"
   style.stroke: "#34d399"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#34d399"
   style.border-radius: 12
-  gcs_data_groups: "GCS Data: Group Schedules\ndata/groups.json" {
+  gcs_data_groups: "GCS Data: Group Schedules" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_data_mirrors: "GCS Data: Legacy Root Mirrors [LEGACY MIRROR]\ndeploy/nginx.conf" {
+  gcs_data_mirrors: "GCS Data: Legacy Root Mirrors [MIRROR]" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#1c1917"
-    style.stroke: "#78716c"
-    style.font-color: "#a8a29e"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#111827"
+    style.stroke: "#64748b"
+    style.font-color: "#94a3b8"
   }
-  gcs_data_events: "GCS Data: Events & Groups Meta\ndeploy/nginx.conf" {
+  gcs_data_events: "GCS Data: Events & Groups Meta" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_state_monitor: "GCS State: Monitor & Scrape\ninternal/monitor/collector.go" {
+  gcs_state_monitor: "GCS State: Monitor & Scrape" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_state_auth: "GCS State: Auth & User Sync\ninternal/syncapi/handler.go" {
+  gcs_state_auth: "GCS State: Auth & User Sync" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  local_pvc: "Local PVC (/var/log/ribonclock)\nk8s/manifests/base/rollout.yaml" {
+  local_pvc: "Local PVC (/var/log/ribonclock)" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  nginx_bundled_fallback: "Nginx Bundled Fallback JSON\ndeploy/nginx.conf" {
+  nginx_bundled_fallback: "Nginx Bundled Fallback JSON" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  browser_local_storage: "Browser localStorage\napps/web/src/config/group.ts" {
+  browser_local_storage: "Browser localStorage" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
 }
 
 # Store Access Edges (Actor -> Store)
-actors.web_spa -> stores.browser_local_storage: "RW: LocalStorage\n<group>_schedule_cache, <group>_attendance_records" {
-  style.stroke: "#a8a29e"
+actors.web_spa -> stores.browser_local_storage: "RW: LocalStorage\n<group>_schedule_cache (+1)" {
+  style.stroke: "#cbd5e1"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#e2e8f0"
 }
-actors.nginx_proxy -> stores.gcs_data_groups: "READ: Read\ndata/groups/<id>/schedule.json" {
+actors.nginx_proxy -> stores.gcs_data_groups: "READ\ndata/groups/<id>/schedule.json" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-actors.nginx_proxy -> stores.gcs_data_mirrors: "READ: Read\nschedule.json, mock_schedule.json" {
+actors.nginx_proxy -> stores.gcs_data_mirrors: "READ\nschedule.json (+1)" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-actors.nginx_proxy -> stores.gcs_data_events: "READ: Read\ndata/groups.json, data/events/*.json" {
+actors.nginx_proxy -> stores.gcs_data_events: "READ\ndata/groups.json (+1)" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-actors.nginx_proxy -> stores.nginx_bundled_fallback: "READ: Read\n@local_fallback" {
+actors.nginx_proxy -> stores.nginx_bundled_fallback: "READ\n@local_fallback" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 actors.nginx_proxy -> stores.local_pvc: "WRITE: PVC FS\n/var/log/ribonclock/access.log" {
-  style.stroke: "#f59e0b"
+  style.stroke: "#fbbf24"
+  style.stroke-width: 3
+  style.font-size: 16
+  style.font-color: "#fde68a"
 }
-actors.log_tailer -> stores.local_pvc: "READ: Read\n/var/log/ribonclock/access.log" {
+actors.log_tailer -> stores.local_pvc: "READ\n/var/log/ribonclock/access.log" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 actors.log_tailer -> stores.gcs_state_monitor: "RW: PUT (No Lock)\nintakes.json (+2)" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
-actors.monitor_api -> stores.gcs_data_groups: "READ: Read\ndata/groups/<group>/schedule.json" {
+actors.monitor_api -> stores.gcs_data_groups: "READ\ndata/groups/<group>/schedule.json" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 actors.monitor_api -> stores.gcs_data_groups: "WRITE: PUT (No Lock) [MULTI]\ndata/groups/<group>/schedule.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
-actors.monitor_api -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json, mock_schedule.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+actors.monitor_api -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json (+1)" {
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
 actors.monitor_api -> stores.gcs_state_monitor: "RW: PUT (No Lock)\nscrape/state.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
 actors.sync_api -> stores.gcs_state_auth: "RW: PUT (No Lock)\nauth/roles.json (+2)" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
 actors.timetree_sync -> stores.gcs_data_groups: "RW: IfGen (Locked) [MULTI]\ndata/groups/<group>/schedule.json" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 16
+  style.font-color: "#a7f3d0"
 }
-actors.timetree_sync -> stores.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]\nschedule.json, mock_schedule.json" {
+actors.timetree_sync -> stores.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]\nschedule.json (+1)" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 16
+  style.font-color: "#a7f3d0"
 }
 actors.taite_reconcile -> stores.gcs_data_groups: "RW: PUT (No Lock) [MULTI]\ndata/groups/<group>/schedule.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
-actors.taite_reconcile -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json, mock_schedule.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+actors.taite_reconcile -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json (+1)" {
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
 actors.taite_resync_x -> stores.gcs_data_groups: "RW: IfGen (Locked) [MULTI]\ndata/groups/<group>/schedule.json" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 16
+  style.font-color: "#a7f3d0"
 }
-actors.taite_resync_x -> stores.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]\nschedule.json, mock_schedule.json" {
+actors.taite_resync_x -> stores.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]\nschedule.json (+1)" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 16
+  style.font-color: "#a7f3d0"
 }
 actors.taite_gcs_cli -> stores.gcs_data_groups: "RW: PUT (No Lock) [MULTI]\ndata/groups/<group>/schedule.json (+2)" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
-actors.taite_gcs_cli -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json, mock_schedule.json" {
-  style.stroke: "#f43f5e"
-  style.stroke-width: 2
+actors.taite_gcs_cli -> stores.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]\nschedule.json (+1)" {
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 16
+  style.font-color: "#fecdd3"
 }
-actors.crawler_cron -> stores.local_pvc: "data (suspended)\n/var/log/ribonclock/runs/*.json, /var/log/ribonclock/checkpoint.json" {
-  style.stroke: "#78716c"
+actors.crawler_cron -> stores.local_pvc: "data (suspended)\n/var/log/ribonclock/runs/*.json (+1)" {
+  style.stroke: "#64748b"
+  style.stroke-width: 2
+  style.font-size: 16
+  style.font-color: "#94a3b8"
   style.stroke-dash: 5
 }
