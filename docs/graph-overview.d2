@@ -2,368 +2,594 @@
 direction: right
 
 edge: "L1: Edge / Client" {
-  style.fill: "#1c1917"
+  style.fill: "#0f172a"
   style.stroke: "#fb7185"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#fb7185"
   style.border-radius: 12
-  web_spa: "Web SPA (Preact)\napps/web/src/config/group.ts" {
+  web_spa: "Web SPA (Preact)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#fb7185"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  cloudflare_ingress: "Cloudflare Tunnel Ingress\nk8s/manifests/ingress.yaml" {
+  cloudflare_ingress: "Cloudflare Tunnel Ingress" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#fb7185"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  nginx_proxy: "Nginx Reverse Proxy (:80)\n[pod_ribonclock]\ndeploy/nginx.conf" {
+  nginx_proxy: "Nginx Reverse Proxy (:80)\n[pod_ribonclock]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#fb7185"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
 }
 
 service: "L2: Runtime Service" {
-  style.fill: "#18181b"
+  style.fill: "#0f172a"
   style.stroke: "#f59e0b"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#f59e0b"
   style.border-radius: 12
   monitor_process: "Go Binary: monitor (64Mi limit)" {
-    style.fill: "#0c0a09"
+    style.fill: "#020617"
     style.stroke: "#fbbf24"
+    style.font-color: "#fde68a"
+    style.font-size: 18
     style.stroke-dash: 4
     style.border-radius: 10
-    monitor_api: "Monitor / Admin API (:8082)\n[monitor_process]\ninternal/monitor/server.go" {
+    monitor_api: "Monitor / Admin API (:8082)" {
       shape: rectangle
-      style.border-radius: 8
-      style.fill: "#292524"
+      style.border-radius: 10
+      style.stroke-width: 2
+      style.font-size: 20
+      style.bold: true
+      style.fill: "#1e293b"
       style.stroke: "#f59e0b"
-      style.font-color: "#fafaf9"
+      style.font-color: "#f8fafc"
     }
-    sync_api: "Sync & RBAC API (:8083)\n[monitor_process]\ninternal/syncapi/handler.go" {
+    sync_api: "Sync & RBAC API (:8083)" {
       shape: rectangle
-      style.border-radius: 8
-      style.fill: "#292524"
+      style.border-radius: 10
+      style.stroke-width: 2
+      style.font-size: 20
+      style.bold: true
+      style.fill: "#1e293b"
       style.stroke: "#f59e0b"
-      style.font-color: "#fafaf9"
+      style.font-color: "#f8fafc"
     }
-    log_tailer: "Access Log Tailer & Collector\n[monitor_process]\ninternal/monitor/collector.go" {
+    log_tailer: "Access Log Tailer & Collector" {
       shape: rectangle
-      style.border-radius: 8
-      style.fill: "#292524"
+      style.border-radius: 10
+      style.stroke-width: 2
+      style.font-size: 20
+      style.bold: true
+      style.fill: "#1e293b"
       style.stroke: "#f59e0b"
-      style.font-color: "#fafaf9"
+      style.font-color: "#f8fafc"
     }
-    metrics_endpoint: "Prometheus Metrics (:9090)\n[monitor_process]\ncmd/monitor/main.go" {
+    metrics_endpoint: "Prometheus Metrics (:9090)" {
       shape: rectangle
-      style.border-radius: 8
-      style.fill: "#292524"
+      style.border-radius: 10
+      style.stroke-width: 2
+      style.font-size: 20
+      style.bold: true
+      style.fill: "#1e293b"
       style.stroke: "#f59e0b"
-      style.font-color: "#fafaf9"
+      style.font-color: "#f8fafc"
     }
   }
 }
 
 worker: "L3: Async / Batch / CLI" {
-  style.fill: "#171717"
+  style.fill: "#0f172a"
   style.stroke: "#38bdf8"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#38bdf8"
   style.border-radius: 12
-  timetree_sync: "TimeTree Auto Sync (CronJob, 128Mi)\ncmd/timetree-sync/main.go" {
+  timetree_sync: "TimeTree Auto Sync (CronJob, 128Mi)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_parser: "AI Timetable Parser (Cloud Run)\ncmd/parser/main.go" {
+  taite_parser: "AI Timetable Parser (Cloud Run)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_reconcile: "Reconcile Batch (Cloud Run Job)\ncmd/reconcile/main.go" {
+  taite_reconcile: "Reconcile Batch (Cloud Run Job)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_resync_x: "taite resync-x (CLI / Isolated Job) [MANUAL]\ninternal/xsync/xsync.go" {
+  taite_resync_x: "taite resync-x (CLI / Isolated Job) [MANUAL]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  taite_gcs_cli: "taite gcs push|pull (CLI) [MANUAL]\ncmd/taite/gcs.go" {
+  taite_gcs_cli: "taite gcs push|pull (CLI) [MANUAL]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#38bdf8"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  crawler_cron: "Playwright Crawler (CronJob, suspend) [SUSPENDED]\ncrawler/index.mjs" {
+  crawler_cron: "Playwright Crawler (CronJob, suspend) [SUSPENDED]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#1c1917"
-    style.stroke: "#78716c"
-    style.font-color: "#a8a29e"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#111827"
+    style.stroke: "#64748b"
+    style.font-color: "#94a3b8"
     style.stroke-dash: 4
   }
-  access_report_cron: "Access Report (CronJob, suspend) [SUSPENDED]\nk8s/manifests/access-report-cronjob.yaml" {
+  access_report_cron: "Access Report (CronJob, suspend) [SUSPENDED]" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#1c1917"
-    style.stroke: "#78716c"
-    style.font-color: "#a8a29e"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#111827"
+    style.stroke: "#64748b"
+    style.font-color: "#94a3b8"
     style.stroke-dash: 4
   }
 }
 
 store: "L4: Data & State Stores" {
-  style.fill: "#141917"
+  style.fill: "#0f172a"
   style.stroke: "#34d399"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#34d399"
   style.border-radius: 12
-  gcs_data_groups: "GCS Data: Group Schedules\ndata/groups.json" {
+  gcs_data_groups: "GCS Data: Group Schedules" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_data_mirrors: "GCS Data: Legacy Root Mirrors [LEGACY MIRROR]\ndeploy/nginx.conf" {
+  gcs_data_mirrors: "GCS Data: Legacy Root Mirrors [MIRROR]" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#1c1917"
-    style.stroke: "#78716c"
-    style.font-color: "#a8a29e"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#111827"
+    style.stroke: "#64748b"
+    style.font-color: "#94a3b8"
   }
-  gcs_data_events: "GCS Data: Events & Groups Meta\ndeploy/nginx.conf" {
+  gcs_data_events: "GCS Data: Events & Groups Meta" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_state_monitor: "GCS State: Monitor & Scrape\ninternal/monitor/collector.go" {
+  gcs_state_monitor: "GCS State: Monitor & Scrape" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  gcs_state_auth: "GCS State: Auth & User Sync\ninternal/syncapi/handler.go" {
+  gcs_state_auth: "GCS State: Auth & User Sync" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  local_pvc: "Local PVC (/var/log/ribonclock)\nk8s/manifests/base/rollout.yaml" {
+  local_pvc: "Local PVC (/var/log/ribonclock)" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  nginx_bundled_fallback: "Nginx Bundled Fallback JSON\ndeploy/nginx.conf" {
+  nginx_bundled_fallback: "Nginx Bundled Fallback JSON" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
-  browser_local_storage: "Browser localStorage\napps/web/src/config/group.ts" {
+  browser_local_storage: "Browser localStorage" {
     shape: cylinder
-    style.border-radius: 8
-    style.fill: "#292524"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
     style.stroke: "#34d399"
-    style.font-color: "#fafaf9"
+    style.font-color: "#f8fafc"
   }
 }
 
 external: "L5: External Systems" {
-  style.fill: "#171520"
-  style.stroke: "#a78bfa"
+  style.fill: "#0f172a"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 22
+  style.bold: true
+  style.font-color: "#c084fc"
   style.border-radius: 12
-  x_apis: "X APIs & Media CDN\ninternal/scrape/source.go" {
+  x_apis: "X APIs & Media CDN" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
-  lumitree_api: "Lumitree (TimeTree Proxy)\ninternal/source/timetree/timetree.go" {
+  lumitree_api: "Lumitree (TimeTree Proxy)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
-  vertex_ai: "Vertex AI / Gemini API\ninternal/parser/gemini.go" {
+  vertex_ai: "Vertex AI / Gemini API" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
-  identity_platform: "Google Identity Platform\ninternal/syncapi/handler.go" {
+  identity_platform: "Google Identity Platform" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
-  discord_webhook: "Discord Webhook\ninternal/monitor/notify.go" {
+  discord_webhook: "Discord Webhook" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
-  prometheus_scraper: "Prometheus (ServiceMonitor)\nk8s/manifests/servicemonitor.yaml" {
+  prometheus_scraper: "Prometheus (ServiceMonitor)" {
     shape: rectangle
-    style.border-radius: 8
-    style.fill: "#292524"
-    style.stroke: "#a78bfa"
-    style.font-color: "#fafaf9"
+    style.border-radius: 10
+    style.stroke-width: 2
+    style.font-size: 20
+    style.bold: true
+    style.fill: "#1e293b"
+    style.stroke: "#c084fc"
+    style.font-color: "#f8fafc"
   }
 }
 
 # Directed Edges
-edge.web_spa -> edge.cloudflare_ingress: "HTTP (https)" {
+edge.web_spa -> edge.cloudflare_ingress: "HTTP" {
   style.stroke: "#38bdf8"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#bae6fd"
 }
-edge.cloudflare_ingress -> edge.nginx_proxy: "HTTP (http_proxy)" {
+edge.cloudflare_ingress -> edge.nginx_proxy: "HTTP" {
   style.stroke: "#38bdf8"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#bae6fd"
 }
-edge.nginx_proxy -> service.monitor_process.sync_api: "HTTP (http_proxy)" {
+edge.nginx_proxy -> service.monitor_process.sync_api: "HTTP" {
   style.stroke: "#38bdf8"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#bae6fd"
 }
-service.monitor_process.sync_api -> service.monitor_process.monitor_api: "HTTP (http_proxy)" {
+service.monitor_process.sync_api -> service.monitor_process.monitor_api: "HTTP" {
   style.stroke: "#38bdf8"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#bae6fd"
 }
 edge.web_spa -> store.browser_local_storage: "RW: LocalStorage" {
-  style.stroke: "#a8a29e"
+  style.stroke: "#cbd5e1"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e2e8f0"
 }
-edge.nginx_proxy -> store.gcs_data_groups: "READ: Read" {
+edge.nginx_proxy -> store.gcs_data_groups: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-edge.nginx_proxy -> store.gcs_data_mirrors: "READ: Read" {
+edge.nginx_proxy -> store.gcs_data_mirrors: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-edge.nginx_proxy -> store.gcs_data_events: "READ: Read" {
+edge.nginx_proxy -> store.gcs_data_events: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
-edge.nginx_proxy -> store.nginx_bundled_fallback: "READ: Read" {
+edge.nginx_proxy -> store.nginx_bundled_fallback: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 edge.nginx_proxy -> store.local_pvc: "WRITE: PVC FS" {
-  style.stroke: "#f59e0b"
+  style.stroke: "#fbbf24"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#fde68a"
 }
-service.monitor_process.log_tailer -> store.local_pvc: "READ: Read" {
+service.monitor_process.log_tailer -> store.local_pvc: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 service.monitor_process.log_tailer -> store.gcs_state_monitor: "RW: PUT (No Lock)" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
-service.monitor_process.monitor_api -> store.gcs_data_groups: "READ: Read" {
+service.monitor_process.monitor_api -> store.gcs_data_groups: "READ" {
   style.stroke: "#94a3b8"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#cbd5e1"
   style.stroke-dash: 4
 }
 service.monitor_process.monitor_api -> store.gcs_data_groups: "WRITE: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 service.monitor_process.monitor_api -> store.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 service.monitor_process.monitor_api -> store.gcs_state_monitor: "RW: PUT (No Lock)" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 service.monitor_process.sync_api -> store.gcs_state_auth: "RW: PUT (No Lock)" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 worker.timetree_sync -> store.gcs_data_groups: "RW: IfGen (Locked) [MULTI]" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#a7f3d0"
 }
 worker.timetree_sync -> store.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#a7f3d0"
 }
 worker.taite_reconcile -> store.gcs_data_groups: "RW: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 worker.taite_reconcile -> store.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 worker.taite_resync_x -> store.gcs_data_groups: "RW: IfGen (Locked) [MULTI]" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#a7f3d0"
 }
 worker.taite_resync_x -> store.gcs_data_mirrors: "WRITE: IfGen (Locked) [MULTI]" {
   style.stroke: "#34d399"
+  style.stroke-width: 3
+  style.font-size: 15
+  style.font-color: "#a7f3d0"
 }
 worker.taite_gcs_cli -> store.gcs_data_groups: "RW: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 worker.taite_gcs_cli -> store.gcs_data_mirrors: "WRITE: PUT (No Lock) [MULTI]" {
-  style.stroke: "#f43f5e"
+  style.stroke: "#fb7185"
+  style.stroke-width: 4
+  style.font-size: 15
+  style.font-color: "#fecdd3"
 }
 worker.crawler_cron -> store.local_pvc: "data (suspended)" {
-  style.stroke: "#78716c"
+  style.stroke: "#64748b"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#94a3b8"
   style.stroke-dash: 5
 }
 service.monitor_process.monitor_api -> worker.taite_parser: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 service.monitor_process.monitor_api -> worker.taite_reconcile: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 service.monitor_process.monitor_api -> external.x_apis: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 service.monitor_process.monitor_api -> external.discord_webhook: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 service.monitor_process.sync_api -> external.identity_platform: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 worker.taite_parser -> external.vertex_ai: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 worker.timetree_sync -> external.lumitree_api: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 worker.timetree_sync -> external.discord_webhook: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 worker.taite_reconcile -> external.discord_webhook: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }
 worker.taite_resync_x -> external.x_apis: "invoke (manual)" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
   style.stroke-dash: 3
 }
 worker.taite_resync_x -> worker.taite_parser: "invoke (manual)" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
   style.stroke-dash: 3
 }
 worker.access_report_cron -> edge.nginx_proxy: "invoke (suspended)" {
-  style.stroke: "#78716c"
+  style.stroke: "#64748b"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#94a3b8"
   style.stroke-dash: 5
 }
 worker.access_report_cron -> external.discord_webhook: "invoke (suspended)" {
-  style.stroke: "#78716c"
+  style.stroke: "#64748b"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#94a3b8"
   style.stroke-dash: 5
 }
 external.prometheus_scraper -> service.monitor_process.metrics_endpoint: "invoke" {
-  style.stroke: "#a78bfa"
+  style.stroke: "#c084fc"
+  style.stroke-width: 2
+  style.font-size: 15
+  style.font-color: "#e9d5ff"
 }

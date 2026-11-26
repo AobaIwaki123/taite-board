@@ -26,26 +26,26 @@ const DATAFLOW_SVG_PATH = resolve(ROOT_DIR, 'docs/graph-dataflow.svg');
 const MARKDOWN_PATH = resolve(ROOT_DIR, 'docs/system-graph.md');
 
 const LAYER_META = {
-  edge: { title: 'L1: Edge / Client', fill: '#1c1917', stroke: '#fb7185' },
-  service: { title: 'L2: Runtime Service', fill: '#18181b', stroke: '#f59e0b' },
-  worker: { title: 'L3: Async / Batch / CLI', fill: '#171717', stroke: '#38bdf8' },
-  store: { title: 'L4: Data & State Stores', fill: '#141917', stroke: '#34d399' },
-  external: { title: 'L5: External Systems', fill: '#171520', stroke: '#a78bfa' },
+  edge: { title: 'L1: Edge / Client', fill: '#0f172a', stroke: '#fb7185' },
+  service: { title: 'L2: Runtime Service', fill: '#0f172a', stroke: '#f59e0b' },
+  worker: { title: 'L3: Async / Batch / CLI', fill: '#0f172a', stroke: '#38bdf8' },
+  store: { title: 'L4: Data & State Stores', fill: '#0f172a', stroke: '#34d399' },
+  external: { title: 'L5: External Systems', fill: '#0f172a', stroke: '#c084fc' },
 };
 
 const STATUS_BADGE = {
   active: '',
   suspended: ' [SUSPENDED]',
-  legacy_mirror: ' [LEGACY MIRROR]',
+  legacy_mirror: ' [MIRROR]',
   manual: ' [MANUAL]',
 };
 
 const CONCURRENCY_STYLE = {
-  none_put: { stroke: '#f43f5e', label: 'PUT (No Lock)', dash: 0 },
-  generation_lock: { stroke: '#34d399', label: 'IfGen (Locked)', dash: 0 },
-  shared_pvc_single: { stroke: '#f59e0b', label: 'PVC FS', dash: 0 },
-  client_local: { stroke: '#a8a29e', label: 'LocalStorage', dash: 0 },
-  read_only: { stroke: '#94a3b8', label: 'Read', dash: 4 },
+  none_put: { stroke: '#fb7185', fontColor: '#fecdd3', label: 'PUT (No Lock)', dash: 0, width: 4 },
+  generation_lock: { stroke: '#34d399', fontColor: '#a7f3d0', label: 'IfGen (Locked)', dash: 0, width: 3 },
+  shared_pvc_single: { stroke: '#fbbf24', fontColor: '#fde68a', label: 'PVC FS', dash: 0, width: 3 },
+  client_local: { stroke: '#cbd5e1', fontColor: '#e2e8f0', label: 'LocalStorage', dash: 0, width: 2 },
+  read_only: { stroke: '#94a3b8', fontColor: '#cbd5e1', label: 'READ', dash: 4, width: 2 },
 };
 
 function d2Str(value) {
@@ -120,18 +120,21 @@ export function validateSystemGraph(graph, rootDir = ROOT_DIR) {
   return graph;
 }
 
-function renderNodeBlock(lines, node, strokeColor, indent = '  ') {
+function renderNodeBlock(lines, node, strokeColor, indent = '  ', showHostBadge = false) {
   const nid = safeId(node.id);
   const badge = STATUS_BADGE[node.status] || '';
-  const hostNote = node.host_group ? `\n[${node.host_group}]` : '';
-  const text = `${node.label}${badge}${hostNote}\n${entryFilePath(node.entry)}`;
+  const hostNote = showHostBadge && node.host_group ? `\n[${node.host_group}]` : '';
+  const text = `${node.label}${badge}${hostNote}`;
   const isMuted = node.status === 'suspended' || node.status === 'legacy_mirror';
   lines.push(`${indent}${nid}: ${d2Str(text)} {`);
   lines.push(`${indent}  shape: ${node.layer === 'store' ? 'cylinder' : 'rectangle'}`);
-  lines.push(`${indent}  style.border-radius: 8`);
-  lines.push(`${indent}  style.fill: ${isMuted ? '"#1c1917"' : '"#292524"'}`);
-  lines.push(`${indent}  style.stroke: ${d2Str(isMuted ? '#78716c' : strokeColor)}`);
-  lines.push(`${indent}  style.font-color: ${isMuted ? '"#a8a29e"' : '"#fafaf9"'}`);
+  lines.push(`${indent}  style.border-radius: 10`);
+  lines.push(`${indent}  style.stroke-width: 2`);
+  lines.push(`${indent}  style.font-size: 20`);
+  lines.push(`${indent}  style.bold: true`);
+  lines.push(`${indent}  style.fill: ${isMuted ? '"#111827"' : '"#1e293b"'}`);
+  lines.push(`${indent}  style.stroke: ${d2Str(isMuted ? '#64748b' : strokeColor)}`);
+  lines.push(`${indent}  style.font-color: ${isMuted ? '"#94a3b8"' : '"#f8fafc"'}`);
   if (node.status === 'suspended') {
     lines.push(`${indent}  style.stroke-dash: 4`);
   }
@@ -140,7 +143,7 @@ function renderNodeBlock(lines, node, strokeColor, indent = '  ') {
 
 function edgeStyle(edge) {
   if (edge.status === 'suspended') {
-    return { stroke: '#78716c', dash: 5, label: `${edge.kind} (suspended)` };
+    return { stroke: '#64748b', fontColor: '#94a3b8', dash: 5, width: 2, label: `${edge.kind} (suspended)` };
   }
   if (edge.kind === 'data') {
     const base = CONCURRENCY_STYLE[edge.concurrency] || CONCURRENCY_STYLE.read_only;
@@ -148,17 +151,21 @@ function edgeStyle(edge) {
     const multiTag = edge.multi_target ? ' [MULTI]' : '';
     return {
       stroke: base.stroke,
+      fontColor: base.fontColor,
       dash: base.dash,
-      label: `${opTag}: ${base.label}${multiTag}`,
+      width: base.width,
+      label: edge.concurrency === 'read_only' ? 'READ' : `${opTag}: ${base.label}${multiTag}`,
     };
   }
   if (edge.kind === 'request') {
-    return { stroke: '#38bdf8', dash: 0, label: `HTTP (${edge.transport})` };
+    return { stroke: '#38bdf8', fontColor: '#bae6fd', dash: 0, width: 3, label: 'HTTP' };
   }
   return {
-    stroke: '#a78bfa',
+    stroke: '#c084fc',
+    fontColor: '#e9d5ff',
     dash: edge.status === 'manual' ? 3 : 0,
-    label: `invoke${edge.status === 'manual' ? ' (manual)' : ''}`,
+    width: 2,
+    label: edge.status === 'manual' ? 'invoke (manual)' : 'invoke',
   };
 }
 
@@ -184,6 +191,10 @@ export function buildOverviewD2(graph) {
     lines.push(`${layerKey}: ${d2Str(meta.title)} {`);
     lines.push(`  style.fill: ${d2Str(meta.fill)}`);
     lines.push(`  style.stroke: ${d2Str(meta.stroke)}`);
+    lines.push('  style.stroke-width: 2');
+    lines.push('  style.font-size: 22');
+    lines.push('  style.bold: true');
+    lines.push(`  style.font-color: ${d2Str(meta.stroke)}`);
     lines.push('  style.border-radius: 12');
 
     if (layerKey === 'service') {
@@ -192,23 +203,25 @@ export function buildOverviewD2(graph) {
       if (inProcess.length > 0) {
         const hg = graph.host_groups.find((h) => h.id === 'monitor_process');
         lines.push(`  monitor_process: ${d2Str(hg ? hg.label : 'monitor_process')} {`);
-        lines.push('    style.fill: "#0c0a09"');
+        lines.push('    style.fill: "#020617"');
         lines.push('    style.stroke: "#fbbf24"');
+        lines.push('    style.font-color: "#fde68a"');
+        lines.push('    style.font-size: 18');
         lines.push('    style.stroke-dash: 4');
         lines.push('    style.border-radius: 10');
         for (const node of inProcess) {
-          renderNodeBlock(lines, node, meta.stroke, '    ');
+          renderNodeBlock(lines, node, meta.stroke, '    ', false);
           d2Path.set(node.id, `${layerKey}.monitor_process.${safeId(node.id)}`);
         }
         lines.push('  }');
       }
       for (const node of outside) {
-        renderNodeBlock(lines, node, meta.stroke, '  ');
+        renderNodeBlock(lines, node, meta.stroke, '  ', false);
         d2Path.set(node.id, `${layerKey}.${safeId(node.id)}`);
       }
     } else {
       for (const node of nodes) {
-        renderNodeBlock(lines, node, meta.stroke, '  ');
+        renderNodeBlock(lines, node, meta.stroke, '  ', node.id === 'nginx_proxy');
         d2Path.set(node.id, `${layerKey}.${safeId(node.id)}`);
       }
     }
@@ -224,6 +237,9 @@ export function buildOverviewD2(graph) {
     const st = edgeStyle(edge);
     lines.push(`${src} -> ${dst}: ${d2Str(st.label)} {`);
     lines.push(`  style.stroke: ${d2Str(st.stroke)}`);
+    lines.push(`  style.stroke-width: ${st.width}`);
+    lines.push('  style.font-size: 15');
+    lines.push(`  style.font-color: ${d2Str(st.fontColor)}`);
     if (st.dash > 0) {
       lines.push(`  style.stroke-dash: ${st.dash}`);
     }
@@ -250,21 +266,29 @@ export function buildDataflowD2(graph) {
   const stores = graph.nodes.filter((n) => storeIds.has(n.id));
 
   lines.push('actors: "Data Readers & Writers (L1 - L3)" {');
-  lines.push('  style.fill: "#18181b"');
+  lines.push('  style.fill: "#0f172a"');
   lines.push('  style.stroke: "#f59e0b"');
+  lines.push('  style.stroke-width: 2');
+  lines.push('  style.font-size: 22');
+  lines.push('  style.bold: true');
+  lines.push('  style.font-color: "#fbbf24"');
   lines.push('  style.border-radius: 12');
   for (const node of actors) {
-    renderNodeBlock(lines, node, LAYER_META[node.layer].stroke, '  ');
+    renderNodeBlock(lines, node, LAYER_META[node.layer].stroke, '  ', true);
   }
   lines.push('}');
   lines.push('');
 
   lines.push('stores: "Data & State Stores (L4)" {');
-  lines.push('  style.fill: "#141917"');
+  lines.push('  style.fill: "#0f172a"');
   lines.push('  style.stroke: "#34d399"');
+  lines.push('  style.stroke-width: 2');
+  lines.push('  style.font-size: 22');
+  lines.push('  style.bold: true');
+  lines.push('  style.font-color: "#34d399"');
   lines.push('  style.border-radius: 12');
   for (const node of stores) {
-    renderNodeBlock(lines, node, LAYER_META.store.stroke, '  ');
+    renderNodeBlock(lines, node, LAYER_META.store.stroke, '  ', false);
   }
   lines.push('}');
   lines.push('');
@@ -272,15 +296,15 @@ export function buildDataflowD2(graph) {
   lines.push('# Store Access Edges (Actor -> Store)');
   for (const edge of dataEdges) {
     const st = edgeStyle(edge);
-    const targetsLabel = edge.targets.length <= 2 ? edge.targets.join(', ') : `${edge.targets[0]} (+${edge.targets.length - 1})`;
+    const targetsLabel = edge.targets.length <= 1 ? edge.targets[0] : `${edge.targets[0]} (+${edge.targets.length - 1})`;
     const label = `${st.label}\n${targetsLabel}`;
     lines.push(`actors.${safeId(edge.from)} -> stores.${safeId(edge.to)}: ${d2Str(label)} {`);
     lines.push(`  style.stroke: ${d2Str(st.stroke)}`);
+    lines.push(`  style.stroke-width: ${st.width}`);
+    lines.push('  style.font-size: 16');
+    lines.push(`  style.font-color: ${d2Str(st.fontColor)}`);
     if (st.dash > 0) {
       lines.push(`  style.stroke-dash: ${st.dash}`);
-    }
-    if (edge.concurrency === 'none_put') {
-      lines.push('  style.stroke-width: 2');
     }
     lines.push('}');
   }
@@ -373,8 +397,8 @@ function main() {
   console.log('Generated docs/graph-overview.d2, docs/graph-dataflow.d2, and docs/system-graph.md');
 
   if (args.has('--render')) {
-    execFileSync('d2', ['--theme=200', '--pad=28', OVERVIEW_D2_PATH, OVERVIEW_SVG_PATH], { stdio: 'inherit' });
-    execFileSync('d2', ['--theme=200', '--pad=28', DATAFLOW_D2_PATH, DATAFLOW_SVG_PATH], { stdio: 'inherit' });
+    execFileSync('d2', ['--layout=tala', '--theme=201', '--pad=24', OVERVIEW_D2_PATH, OVERVIEW_SVG_PATH], { stdio: 'inherit' });
+    execFileSync('d2', ['--layout=tala', '--theme=201', '--pad=24', DATAFLOW_D2_PATH, DATAFLOW_SVG_PATH], { stdio: 'inherit' });
     chmodSync(OVERVIEW_SVG_PATH, 0o644);
     chmodSync(DATAFLOW_SVG_PATH, 0o644);
     console.log('Rendered docs/graph-overview.svg and docs/graph-dataflow.svg');

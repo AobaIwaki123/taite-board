@@ -8,7 +8,7 @@ export type ConcurrencyMode =
   | 'shared_pvc_single'
   | 'client_local'
   | 'read_only';
-export type GraphViewMode = 'overview' | 'dataflow';
+export type GraphViewMode = 'board' | 'overview' | 'dataflow';
 export type ConcurrencyFilter = 'all' | 'writes_only' | 'none_put' | 'generation_lock';
 export type HiddenRenderMode = 'hide' | 'dim';
 
