@@ -12,6 +12,7 @@ import (
 
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/monitor"
+	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/source/timetree"
 	"github.com/AobaIwaki123/taite-board/internal/timetreesync"
 )
@@ -54,7 +55,16 @@ func main() {
 	now := time.Now().In(time.FixedZone("JST", 9*60*60))
 	from := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	until := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, *months, 0)
-	summary, runErr := timetreesync.Run(ctx, timetreesync.Options{Source: timetree.NewClient(20 * time.Second), Store: store, Bucket: *bucket, Targets: targets, From: from, Until: until, DryRun: *dryRun})
+	summary, runErr := timetreesync.Run(ctx, timetreesync.Options{
+		Source:             timetree.NewClient(20 * time.Second),
+		Store:              store,
+		Bucket:             *bucket,
+		Targets:            targets,
+		From:               from,
+		Until:              until,
+		DryRun:             *dryRun,
+		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(10 * time.Second),
+	})
 	_ = json.NewEncoder(os.Stdout).Encode(summary)
 	if !*dryRun {
 		notify(webhook, formatSummary(summary, runErr))

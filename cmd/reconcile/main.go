@@ -14,6 +14,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/monitor"
 	"github.com/AobaIwaki123/taite-board/internal/reconcile"
+	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/version"
 )
 
@@ -58,11 +59,12 @@ func main() {
 	}
 
 	summary, runErr := reconcile.Run(ctx, reconcile.RunOptions{
-		Store:         store,
-		Bucket:        bucket,
-		Group:         group,
-		DryRun:        dryRun,
-		TriggerSource: triggerSource,
+		Store:              store,
+		Bucket:             bucket,
+		Group:              group,
+		DryRun:             dryRun,
+		TriggerSource:      triggerSource,
+		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(10 * time.Second),
 	})
 
 	outBytes, _ := json.MarshalIndent(summary, "", "  ")

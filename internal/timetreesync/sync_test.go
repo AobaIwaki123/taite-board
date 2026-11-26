@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/AobaIwaki123/taite-board/internal/gcs"
+	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/source/timetree"
 )
 
@@ -183,5 +184,52 @@ func TestMirrorDriftStopsBeforePrimaryWrite(t *testing.T) {
 	_, err := Run(context.Background(), Options{Source: source, Store: store, Bucket: "test", Targets: []Target{{"ribonclock", "cal"}}, From: from, Until: from.AddDate(0, 1, 0)})
 	if err == nil || store.writes != 0 {
 		t.Fatalf("expected mismatch without writes: %v writes=%d", err, store.writes)
+	}
+}
+
+type stubImageFP struct {
+	sigs map[string]schedule.ImageSignature
+}
+
+func (s *stubImageFP) Fingerprint(_ context.Context, url string) (schedule.ImageSignature, error) {
+	if sig, ok := s.sigs[url]; ok {
+		return sig, nil
+	}
+	return schedule.ImageSignature{}, errors.New("not found")
+}
+
+func TestVisualDedupePreventsDuplicateFlyerAcrossTimeTreeAndX(t *testing.T) {
+	initial := []byte(`{"schema_version":1,"generated_at":"2026-11-01T00:00:00Z","timezone":"Asia/Tokyo","target_group":{"name":"group"},"sessions":[{"id":"20261129-1","date":"2026-11-29","title":"公演A","venue":{"name":"Hall"},"live":{"start_time":"12:00"},"benefit":{"type":"並行","start_time":"12:30"},"ticket":{"prices":[]},"image_url":"https://pbs.twimg.com/media/Xflyer.jpg?name=large","images":[{"type":"flyer","label":"告知画像","url":"https://pbs.twimg.com/media/Xflyer.jpg?name=large"}],"source_refs":[{"type":"timetree_event","source_id":"ev1","url":"https://timetr.ee/p/cal/ev1"}]}]}`)
+	store := &fakeStore{objects: map[string]fakeObject{"data/groups/dollykiss/schedule.json": {initial, 1}}}
+	source := &fakeSource{events: map[string][]timetree.Event{"cal": {{
+		ID:        "ev1",
+		Title:     "公演A",
+		StartAt:   "2026-11-29T09:00:00+09:00",
+		ImageUrls: []string{"https://attachments.timetreeapp.com/dup-flyer.jpg", "https://attachments.timetreeapp.com/timetable.jpg"},
+	}}}}
+	fp := &stubImageFP{sigs: map[string]schedule.ImageSignature{
+		"https://pbs.twimg.com/media/Xflyer.jpg?name=large":  {Hash: 0xad0ca323bfcb4f1f, AspectRatio: 0.748, Valid: true},
+		"https://attachments.timetreeapp.com/dup-flyer.jpg":  {Hash: 0x2d0ca3a2bbcbd71f, AspectRatio: 0.748, Valid: true},
+		"https://attachments.timetreeapp.com/timetable.jpg":  {Hash: 0xa5eaeaeaebcb5d1f, AspectRatio: 0.748, Valid: true},
+	}}
+	from := time.Date(2026, 11, 25, 0, 0, 0, 0, time.UTC)
+	opts := Options{Source: source, Store: store, Bucket: "test", Targets: []Target{{"dollykiss", "cal"}}, From: from, Until: from.AddDate(0, 1, 0), ImageFingerprinter: fp}
+	summary, err := Run(context.Background(), opts)
+	if err != nil || store.writes != 1 || summary.Results[0].Changed == 0 {
+		t.Fatalf("unexpected first run: %+v err=%v writes=%d", summary, err, store.writes)
+	}
+	var doc struct {
+		Sessions []struct {
+			Images []struct{ URL string `json:"url"` } `json:"images"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(store.objects["data/groups/dollykiss/schedule.json"].data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Sessions[0].Images) != 2 {
+		t.Fatalf("expected X flyer + TimeTree timetable (2 images), got %d: %+v", len(doc.Sessions[0].Images), doc.Sessions[0].Images)
+	}
+	if summary2, err := Run(context.Background(), opts); err != nil || store.writes != 1 || summary2.Results[0].Changed != 0 {
+		t.Fatalf("expected idempotent second run without write, got %+v err=%v writes=%d", summary2, err, store.writes)
 	}
 }
