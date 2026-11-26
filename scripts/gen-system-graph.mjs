@@ -336,6 +336,13 @@ export function buildSystemGraphMarkdown(graph) {
 
 function main() {
   const args = new Set(process.argv.slice(2));
+  if (args.has('--validate-stdin')) {
+    const stdinText = readFileSync(0, 'utf8');
+    validateSystemGraph(parse(stdinText), ROOT_DIR);
+    console.log('OK');
+    return;
+  }
+
   const rawYaml = readFileSync(GRAPH_YAML_PATH, 'utf8');
   const graph = validateSystemGraph(parse(rawYaml), ROOT_DIR);
 
