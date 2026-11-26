@@ -29,6 +29,7 @@ type AddSessionOptions struct {
 	TicketPlatform          string
 	TicketURL               string
 	ImageURL                string
+	ImageURLs               []string
 	SourceTweetURL          string
 	SpecialNotes            string
 	AdmissionBonus          string
@@ -271,12 +272,17 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		"booth":      opts.Booth,
 	}
 
+	optionImgs := collectOptionImageURLs(opts)
+	primaryImageURL := ""
 	images := []interface{}{}
-	if opts.ImageURL != "" {
+	for i, imgURL := range optionImgs {
+		if i == 0 {
+			primaryImageURL = imgURL
+		}
 		images = append(images, map[string]interface{}{
 			"type":  "flyer",
 			"label": "告知画像",
-			"url":   opts.ImageURL,
+			"url":   imgURL,
 		})
 	}
 
@@ -298,7 +304,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		"special_notes":    opts.SpecialNotes,
 		"admission_bonus":  opts.AdmissionBonus,
 		"ticket":           ticket,
-		"image_url":        opts.ImageURL,
+		"image_url":        primaryImageURL,
 		"source_tweet_url": officialTweetURL,
 		"images":           images,
 		"source_refs":      sourceRefs,
@@ -487,15 +493,18 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 		}
 	}
 
-	// Image: populate if empty
-	if opts.ImageURL != "" {
+	// Image: populate if empty and append distinct URLs
+	if optionImgs := collectOptionImageURLs(opts); len(optionImgs) > 0 {
 		if exImg, _ := sMap["image_url"].(string); exImg == "" {
-			sMap["image_url"] = opts.ImageURL
+			sMap["image_url"] = optionImgs[0]
 		}
 		imgs, _ := sMap["images"].([]interface{})
-		sMap["images"] = append(imgs, map[string]interface{}{
-			"type": "flyer", "label": "告知画像", "url": opts.ImageURL,
-		})
+		for _, imgURL := range optionImgs {
+			imgs = append(imgs, map[string]interface{}{
+				"type": "flyer", "label": "告知画像", "url": imgURL,
+			})
+		}
+		sMap["images"] = imgs
 		dedupeImages(sMap)
 	}
 
@@ -562,6 +571,28 @@ func buildPhotoObject(availablePtr *bool, rule, rawText, song, device string, so
 		photoMap["device"] = dev
 	}
 	return photoMap
+}
+
+func collectOptionImageURLs(opts AddSessionOptions) []string {
+	seen := make(map[string]bool)
+	var out []string
+	add := func(raw string) {
+		u := strings.TrimSpace(raw)
+		if u == "" {
+			return
+		}
+		key, _ := imageKey(u)
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		out = append(out, u)
+	}
+	add(opts.ImageURL)
+	for _, u := range opts.ImageURLs {
+		add(u)
+	}
+	return out
 }
 
 func buildPhotoMapFromAdd(opts AddSessionOptions) map[string]interface{} {

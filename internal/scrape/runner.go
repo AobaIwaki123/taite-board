@@ -470,10 +470,6 @@ func mergeAICandidate(base, ai candidate.EventCandidate) candidate.EventCandidat
 }
 
 func applyUpsertFromCandidate(schedBytes []byte, cand candidate.EventCandidate, post *raw.Post) ([]byte, string, error) {
-	imgURL := ""
-	if len(post.Images) > 0 {
-		imgURL = post.Images[0]
-	}
 	photoRule := cand.PhotoNotes
 	if photoRule == "" && cand.PhotoSong != "" {
 		if cand.PhotoSongNumber > 0 {
@@ -493,7 +489,7 @@ func applyUpsertFromCandidate(schedBytes []byte, cand candidate.EventCandidate, 
 		BenefitEndTime:   cand.BenefitEndRaw,
 		Booth:            cand.BenefitBoothRaw,
 		TicketURL:        cand.TicketURL,
-		ImageURL:         imgURL,
+		ImageURLs:        post.Images,
 		SourceTweetURL:   post.URL,
 		AdmissionBonus:   cand.AdmissionBonus,
 		PhotoRule:        photoRule,

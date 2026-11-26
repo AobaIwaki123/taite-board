@@ -51,3 +51,33 @@ func TestMergeSessionFieldsAccumulatesImages(t *testing.T) {
 		t.Fatalf("expected both images: %#v", imgs)
 	}
 }
+
+func TestApplyAddSession_MultipleImageURLs(t *testing.T) {
+	initial := []byte(`{"schema_version":1,"timezone":"Asia/Tokyo","sessions":[]}`)
+	updated, id, err := ApplyAddSession(initial, AddSessionOptions{
+		Date:      "2026-11-25",
+		Title:     "POLAROID",
+		VenueName: "原宿RUIDO",
+		ImageURLs: []string{
+			"https://pbs.twimg.com/media/A.jpg?name=large",
+			"https://pbs.twimg.com/media/B.jpg?name=large",
+		},
+	})
+	if err != nil || id == "" {
+		t.Fatalf("add multi-image failed: id=%s err=%v", id, err)
+	}
+	var doc struct {
+		Sessions []struct {
+			ImageURL string `json:"image_url"`
+			Images   []struct {
+				URL string `json:"url"`
+			} `json:"images"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(updated, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if got := doc.Sessions[0]; got.ImageURL == "" || len(got.Images) != 2 {
+		t.Fatalf("expected 2 images, got %+v", got)
+	}
+}

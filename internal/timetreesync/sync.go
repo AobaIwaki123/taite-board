@@ -110,18 +110,8 @@ func syncGroup(ctx context.Context, opts Options, target Target, events []timetr
 				continue
 			}
 			add.TargetSessionID = id
-			if len(event.ImageUrls) > 0 {
-				add.ImageURL = event.ImageUrls[0]
-			}
+			add.ImageURLs = event.ImageUrls
 			candidate, id, err := schedule.ApplyAddSession(updated, add)
-			if err == nil && len(event.ImageUrls) > 1 {
-				for _, imageURL := range event.ImageUrls[1:] {
-					candidate, _, err = schedule.ApplyAddSession(candidate, schedule.AddSessionOptions{Date: add.Date, TargetSessionID: id, PreserveExisting: true, ImageURL: imageURL})
-					if err != nil {
-						break
-					}
-				}
-			}
 			if err == nil {
 				candidate, err = preserveRootFields(updated, candidate)
 			}

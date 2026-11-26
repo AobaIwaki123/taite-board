@@ -14,13 +14,18 @@ import (
 
 	"github.com/AobaIwaki123/taite-board/internal/fetch"
 	"github.com/AobaIwaki123/taite-board/internal/filter"
+	"github.com/AobaIwaki123/taite-board/internal/gcs"
 	"github.com/AobaIwaki123/taite-board/internal/promote"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
+	"github.com/AobaIwaki123/taite-board/internal/reconcile"
+	"github.com/AobaIwaki123/taite-board/internal/resolve"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
 	"github.com/AobaIwaki123/taite-board/internal/scrape"
+	"github.com/AobaIwaki123/taite-board/internal/source/x"
 	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 	"github.com/AobaIwaki123/taite-board/internal/version"
+	"github.com/AobaIwaki123/taite-board/internal/xsync"
 )
 
 func main() {
@@ -36,6 +41,8 @@ func main() {
 		runFetch(os.Args[2:])
 	case "scrape":
 		runScrape(os.Args[2:])
+	case "resync-x":
+		runResyncX(os.Args[2:])
 	case "filter":
 		runFilter(os.Args[2:])
 	case "promote":
@@ -84,6 +91,7 @@ Usage:
 The commands are:
   fetch           Fetch raw post snapshots from external URLs (ADR-0002)
   scrape          Poll timeline/URLs, run filter + resolver, stage or auto-upsert candidates
+  resync-x        Re-sync images/details from existing X links across sessions with cost guards
   filter          Evaluate raw posts with multi-stage local pre-filter (ADR-0018)
   promote         Promote candidate JSON to schedule.json with validation & sync (ADR-0018)
   validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
@@ -676,5 +684,124 @@ func runScrape(args []string) {
 		report.FetchedCount, report.PassedCount, report.SkippedCount, report.StagedCount, report.AutoUpsertedCount, report.AmbiguousCount, report.NewestSinceID)
 	for _, out := range report.Outcomes {
 		fmt.Printf("  %-13s [%s] %s %s\n", strings.ToUpper(out.Status), out.SourceID, out.SessionID, out.Reason)
+	}
+}
+
+func runResyncX(args []string) {
+	fs := flag.NewFlagSet("resync-x", flag.ExitOnError)
+	useGCS := fs.Bool("gcs", false, "Read/write group schedule.json files directly on GCS")
+	defaultBucket := os.Getenv("GCS_DATA_BUCKET")
+	if defaultBucket == "" {
+		defaultBucket = "taite-board-data"
+	}
+	bucket := fs.String("bucket", defaultBucket, "GCS data bucket when --gcs is enabled")
+	groupID := fs.String("group", "all", "Group ID (ribonclock, dollykiss, or all with --gcs)")
+	filePath := fs.String("file", "", "Optional local schedule JSON path (non-GCS mode)")
+	entitiesFile := fs.String("entities", "data/curated/entities.json", "Path to curated entities dictionary")
+	minImagesSkip := fs.Int("min-images-skip", 2, "Skip fetching X links when session already has >= N images (0 disables)")
+	includePast := fs.Bool("include-past", true, "Include past sessions when backfilling X images")
+	withAI := fs.Bool("with-ai", false, "Enable AI fallback (AI_PARSER_URL) only when cost guards allow")
+	delayMs := fs.Int("delay-ms", 350, "Polite delay in milliseconds between live X post fetches")
+	dryRun := fs.Bool("dry-run", false, "Preview updates without writing back")
+	jsonOut := fs.Bool("json", false, "Output report as JSON")
+	_ = fs.Parse(args)
+
+	res, err := resolve.NewResolver(*entitiesFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error initializing resolver: %v\n", err)
+		os.Exit(1)
+	}
+
+	var aiClient scrape.AIParserClient
+	if *withAI {
+		if parserURL := strings.TrimSpace(os.Getenv("AI_PARSER_URL")); parserURL != "" {
+			aiClient = &scrape.HTTPAIParserClient{
+				BaseURL: parserURL,
+				Token:   strings.TrimSpace(os.Getenv("AI_PARSER_TOKEN")),
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	opts := xsync.Options{
+		Fetcher:            x.NewClient(10 * time.Second),
+		Resolver:           res,
+		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(10 * time.Second),
+		AIParser:           aiClient,
+		WithAI:             *withAI,
+		MinImagesToSkip:    *minImagesSkip,
+		IncludePast:        *includePast,
+		RequestDelay:       time.Duration(*delayMs) * time.Millisecond,
+	}
+
+	var reports []*xsync.Report
+	if *useGCS {
+		store, err := gcs.NewClientFromEnvOrMetadata(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "GCS init failed: %v\n", err)
+			os.Exit(1)
+		}
+		groups, err := reconcile.DiscoverGroups(ctx, store, *bucket, *groupID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "DiscoverGroups failed: %v\n", err)
+			os.Exit(1)
+		}
+		for _, g := range groups {
+			rep, err := xsync.RunGCSGroup(ctx, store, *bucket, g, *dryRun, opts)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "resync-x failed for %s: %v\n", g, err)
+				os.Exit(1)
+			}
+			reports = append(reports, rep)
+		}
+	} else {
+		group := strings.TrimSpace(strings.ToLower(*groupID))
+		if group == "" || group == "all" || group == "rincent" {
+			group = "ribonclock"
+		}
+		target := strings.TrimSpace(*filePath)
+		if target == "" {
+			if group == "ribonclock" {
+				target = "data/generated/schedule.json"
+			} else {
+				target = filepath.Join("data", "groups", group, "schedule.json")
+			}
+		}
+		rawBytes, err := os.ReadFile(target)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Read %s failed: %v\n", target, err)
+			os.Exit(1)
+		}
+		updated, rep, err := xsync.ReSyncScheduleBytes(ctx, group, rawBytes, opts)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "resync-x failed: %v\n", err)
+			os.Exit(1)
+		}
+		if !*dryRun && rep.Changed {
+			if err := os.WriteFile(target, updated, 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "Write %s failed: %v\n", target, err)
+				os.Exit(1)
+			}
+			rep.Written = true
+		}
+		reports = append(reports, rep)
+	}
+
+	if *jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(reports)
+		return
+	}
+	for _, rep := range reports {
+		fmt.Printf("=== X Re-Sync (%s | updated=%d skipped=%d fetch_err=%d ai_calls=%d written=%v) ===\n",
+			rep.Group, rep.Updated, rep.Skipped, rep.FetchErrors, rep.AICalls, rep.Written)
+		for _, o := range rep.Outcomes {
+			if o.Status != "skipped" {
+				fmt.Printf("  %-11s [%s] %s (%d -> %d imgs) %s\n", strings.ToUpper(o.Status), o.SessionID, o.Date, o.ImagesBefore, o.ImagesAfter, o.Reason)
+			}
+		}
 	}
 }
