@@ -40,6 +40,36 @@ function isArchMode(): boolean {
   return url.searchParams.get('view') === 'arch' || url.pathname === '/arch';
 }
 
+function isDevGraphMode(): boolean {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+  const url = new URL(window.location.href);
+  return url.searchParams.get('view') === 'graph' || url.pathname === '/graph';
+}
+
+function LazyDevGraphView() {
+  const [ViewComponent, setViewComponent] = useState<ComponentType | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    import('./components/DevGraphView').then((mod) => {
+      if (active) setViewComponent(() => mod.DevGraphView);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!ViewComponent) {
+    return (
+      <div class="h-[100dvh] flex items-center justify-center bg-stone-950 text-stone-300 text-meta">
+        System Graph Viewer 読み込み中...
+      </div>
+    );
+  }
+
+  return <ViewComponent />;
+}
+
 function LazyArchView() {
   const [ViewComponent, setViewComponent] = useState<ComponentType | null>(null);
 
@@ -84,6 +114,10 @@ function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
 }
 
 export function App() {
+  if (isDevGraphMode()) {
+    return <LazyDevGraphView />;
+  }
+
   if (isArchMode()) {
     return <LazyArchView />;
   }
