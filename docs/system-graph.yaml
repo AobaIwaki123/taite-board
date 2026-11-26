@@ -1,0 +1,685 @@
+# taite-board 現行システム構成・読み書き経路グラフ
+# 記述規約: docs/system-graph-rules.md
+# 方針: 手動保守を正本とし、コードからの自動同期は行わない。
+
+schema_version: 1
+
+host_groups:
+  - id: pod_ribonclock
+    label: "K8s Rollout Pod (ribonclock)"
+    entry: "k8s/manifests/base/rollout.yaml"
+    notes: "web (Nginx) と monitor の 2 コンテナが同一 Pod・同一 Ingress 配下で同居する"
+
+  - id: monitor_process
+    label: "Go Binary: monitor (64Mi limit)"
+    parent: pod_ribonclock
+    entry: "cmd/monitor/main.go"
+    notes: ":8082 (monitor_api), :8083 (sync_api), :9090 (metrics), log_tailer を 1 プロセス・64Mi 上限内で共有"
+
+nodes:
+  # === L1: Edge / Client ===
+  - id: web_spa
+    layer: edge
+    kind: spa
+    label: "Web SPA (Preact)"
+    status: active
+    entry: "apps/web/src/config/group.ts"
+    notes: "ホスト名または ?group= でテナント解決し、グループ別データと管理 UI (/admin) を描画する"
+
+  - id: cloudflare_ingress
+    layer: edge
+    kind: ingress
+    label: "Cloudflare Tunnel Ingress"
+    status: active
+    entry: "k8s/manifests/ingress.yaml"
+    notes: "taite / ribonclock / rincent / dollykiss.iorin.net を単一 Service ribonclock:http へ転送する"
+
+  - id: nginx_proxy
+    layer: edge
+    kind: proxy
+    label: "Nginx Reverse Proxy (:80)"
+    status: active
+    host_group: pod_ribonclock
+    entry: "deploy/nginx.conf"
+    notes: "静的配信、GCS 公開 JSON プロキシ（障害時フォールバック）、/api/admin/*・/api/sync/* 転送を担当"
+
+  # === L2: Runtime Service ===
+  - id: monitor_api
+    layer: service
+    kind: http_server
+    label: "Monitor / Admin API (:8082)"
+    status: active
+    host_group: monitor_process
+    entry: "internal/monitor/server.go"
+    notes: "/api/intake*, /api/sessions, /api/reconcile, /api/scrape*, /api/notify* を提供（sync_api の RBAC 経由で公開）"
+
+  - id: sync_api
+    layer: service
+    kind: http_server
+    label: "Sync & RBAC API (:8083)"
+    status: active
+    host_group: monitor_process
+    entry: "internal/syncapi/handler.go"
+    notes: "/api/sync/* の認証・ユーザー同期処理と /api/admin/* の RBAC 検証＋monitor_api への委譲を担当"
+
+  - id: log_tailer
+    layer: service
+    kind: loop
+    label: "Access Log Tailer & Collector"
+    status: active
+    host_group: monitor_process
+    entry: "internal/monitor/collector.go"
+    notes: "Nginx アクセスログを監視し、統計・インテーク履歴・活動履歴をローカルおよび GCS state へ保存する"
+
+  - id: metrics_endpoint
+    layer: service
+    kind: http_server
+    label: "Prometheus Metrics (:9090)"
+    status: active
+    host_group: monitor_process
+    entry: "cmd/monitor/main.go"
+    notes: "/metrics と /healthz を公開する"
+
+  # === L3: Async / Batch / CLI ===
+  - id: timetree_sync
+    layer: worker
+    kind: cronjob
+    label: "TimeTree Auto Sync (CronJob, 128Mi)"
+    status: active
+    entry: "cmd/timetree-sync/main.go"
+    notes: "12:00 / 22:00 JST に起動し、公開カレンダー取得結果から GCS schedule.json を世代ロック付きで更新する"
+
+  - id: taite_parser
+    layer: worker
+    kind: cloud_run
+    label: "AI Timetable Parser (Cloud Run)"
+    status: active
+    entry: "cmd/parser/main.go"
+    notes: "AI_PARSER_URL で待受し、告知テキストとタイムテーブル画像から日程候補を構造化する"
+
+  - id: taite_reconcile
+    layer: worker
+    kind: cloud_run
+    label: "Reconcile Batch (Cloud Run Job)"
+    status: active
+    entry: "cmd/reconcile/main.go"
+    notes: "CLOUD_RUN_RECONCILE_JOB として起動し、全グループまたは指定グループの重複統合・名寄せを行う"
+
+  - id: taite_resync_x
+    layer: worker
+    kind: job
+    label: "taite resync-x (CLI / Isolated Job)"
+    status: manual
+    entry: "internal/xsync/xsync.go"
+    notes: "既存 X リンクの再取得・画像復旧を一括実行。画像デコード負荷があるため 512Mi 分離 Job 実行を推奨（64Mi monitor 内では OOM）"
+
+  - id: taite_gcs_cli
+    layer: worker
+    kind: cli
+    label: "taite gcs push|pull (CLI)"
+    status: manual
+    entry: "cmd/taite/gcs.go"
+    notes: "ローカル data/ と GCS data バケットを手動で同期する管理用 CLI"
+
+  - id: crawler_cron
+    layer: worker
+    kind: cronjob
+    label: "Playwright Crawler (CronJob, suspend)"
+    status: suspended
+    entry: "crawler/index.mjs"
+    notes: "k8s/manifests/crawler-cronjob.yaml は現在 suspend: true。有効時は PVC へ raw JSON を書き出す"
+
+  - id: access_report_cron
+    layer: worker
+    kind: cronjob
+    label: "Access Report (CronJob, suspend)"
+    status: suspended
+    entry: "k8s/manifests/access-report-cronjob.yaml"
+    notes: "現在 suspend: true。K8s Pod ログ集計を想定したバッチ"
+
+  # === L4: Data & State Stores ===
+  - id: gcs_data_groups
+    layer: store
+    kind: gcs
+    label: "GCS Data: Group Schedules"
+    status: active
+    entry: "data/groups.json"
+    notes: "gs://taite-board-data/data/groups/<id>/schedule.json (ASIA-NORTHEAST1, Always Free 対象外)"
+
+  - id: gcs_data_mirrors
+    layer: store
+    kind: gcs
+    label: "GCS Data: Legacy Root Mirrors"
+    status: legacy_mirror
+    entry: "deploy/nginx.conf"
+    notes: "gs://taite-board-data/schedule.json, mock_schedule.json (ribonclock 用互換ミラー)"
+
+  - id: gcs_data_events
+    layer: store
+    kind: gcs
+    label: "GCS Data: Events & Groups Meta"
+    status: active
+    entry: "deploy/nginx.conf"
+    notes: "gs://taite-board-data/data/events/*.json, data/groups.json"
+
+  - id: gcs_state_monitor
+    layer: store
+    kind: gcs
+    label: "GCS State: Monitor & Scrape"
+    status: active
+    entry: "internal/monitor/collector.go"
+    notes: "gs://taite-board-state intakes.json, pipeline_state.json, activities.json, scrape/state.json"
+
+  - id: gcs_state_auth
+    layer: store
+    kind: gcs
+    label: "GCS State: Auth & User Sync"
+    status: active
+    entry: "internal/syncapi/handler.go"
+    notes: "gs://taite-board-state auth/roles.json, auth/cookie_secret.json, users/<sha256(uid)>/sync.json"
+
+  - id: local_pvc
+    layer: store
+    kind: pvc
+    label: "Local PVC (/var/log/ribonclock)"
+    status: active
+    entry: "k8s/manifests/base/rollout.yaml"
+    notes: "Nginx アクセスログ、Crawler runs、Monitor のローカルフォールバック state を保存"
+
+  - id: nginx_bundled_fallback
+    layer: store
+    kind: image_fs
+    label: "Nginx Bundled Fallback JSON"
+    status: active
+    entry: "deploy/nginx.conf"
+    notes: "Web コンテナイメージ同梱の schedule.json 群（GCS エラー時の @local_fallback 用）"
+
+  - id: browser_local_storage
+    layer: store
+    kind: browser_storage
+    label: "Browser localStorage"
+    status: active
+    entry: "apps/web/src/config/group.ts"
+    notes: "<group>_ プレフィックス付きのスケジュールキャッシュおよび家計簿・参戦状態"
+
+  # === L5: External Dependencies ===
+  - id: x_apis
+    layer: external
+    kind: external_api
+    label: "X APIs & Media CDN"
+    status: active
+    entry: "internal/scrape/source.go"
+    notes: "X API v2 / FxTwitter / Syndication / pbs.twimg.com"
+
+  - id: lumitree_api
+    layer: external
+    kind: external_api
+    label: "Lumitree (TimeTree Proxy)"
+    status: active
+    entry: "internal/source/timetree/timetree.go"
+    notes: "https://lumitree.aooba.net 公開カレンダー API"
+
+  - id: vertex_ai
+    layer: external
+    kind: external_api
+    label: "Vertex AI / Gemini API"
+    status: active
+    entry: "internal/parser/gemini.go"
+    notes: "gemini-2.5-flash によるテキスト・画像構造化解析"
+
+  - id: identity_platform
+    layer: external
+    kind: external_api
+    label: "Google Identity Platform"
+    status: active
+    entry: "internal/syncapi/handler.go"
+    notes: "identitytoolkit.googleapis.com / securetoken.googleapis.com / RS256 公開鍵"
+
+  - id: discord_webhook
+    layer: external
+    kind: external_api
+    label: "Discord Webhook"
+    status: active
+    entry: "internal/monitor/discord.go"
+    notes: "管理投入・名寄せ・TimeTree 同期の開始/完了/エラー通知"
+
+edges:
+  # === Online HTTP Request Paths (L1 -> L2) ===
+  - id: req_browser_to_ingress
+    from: web_spa
+    to: cloudflare_ingress
+    kind: request
+    transport: https
+    status: active
+    entry: "k8s/manifests/ingress.yaml"
+    notes: "SPA アセット・公開 JSON・/api/sync/*・/api/admin/* への全リクエスト入口"
+
+  - id: req_ingress_to_nginx
+    from: cloudflare_ingress
+    to: nginx_proxy
+    kind: request
+    transport: http_proxy
+    status: active
+    entry: "k8s/manifests/ingress.yaml"
+    notes: "ホスト別ルートは共通で単一 Service:80 へ到達"
+
+  - id: req_nginx_to_sync_api
+    from: nginx_proxy
+    to: sync_api
+    kind: request
+    transport: http_proxy
+    status: active
+    entry: "deploy/nginx.conf"
+    notes: "/api/sync/*, /api/admin/*, /admin/dashboard -> 127.0.0.1:8083"
+
+  - id: req_sync_to_monitor_admin
+    from: sync_api
+    to: monitor_api
+    kind: request
+    transport: http_proxy
+    status: active
+    entry: "internal/syncapi/handler.go"
+    notes: "Admin RBAC 認可通過後の /api/admin/* を同一プロセス内の :8082 ハンドラへ委譲"
+
+  # === Data Store Access Paths (L1..L3 -> L4, strictly Actor -> Store) ===
+  - id: data_browser_cache_rw
+    from: web_spa
+    to: browser_local_storage
+    kind: data
+    op: rw
+    transport: fs
+    concurrency: client_local
+    status: active
+    targets:
+      - "<group>_schedule_cache"
+      - "<group>_attendance_records"
+    entry: "apps/web/src/config/group.ts"
+    notes: "オフラインキャッシュと未ログイン時の参戦・家計簿状態を保持"
+
+  - id: data_nginx_read_group_schedule
+    from: nginx_proxy
+    to: gcs_data_groups
+    kind: data
+    op: read
+    transport: https
+    concurrency: read_only
+    status: active
+    targets:
+      - "data/groups/<id>/schedule.json"
+    entry: "deploy/nginx.conf"
+    notes: "/data/groups/ への GET を GCS へ透過プロキシ (Cache-Control: no-cache)"
+
+  - id: data_nginx_read_root_mirrors
+    from: nginx_proxy
+    to: gcs_data_mirrors
+    kind: data
+    op: read
+    transport: https
+    concurrency: read_only
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "deploy/nginx.conf"
+    notes: "/schedule.json と /mock_schedule.json が個別オブジェクトを向いているため書込側がミラー維持を強いられている"
+
+  - id: data_nginx_read_events_meta
+    from: nginx_proxy
+    to: gcs_data_events
+    kind: data
+    op: read
+    transport: https
+    concurrency: read_only
+    status: active
+    targets:
+      - "data/groups.json"
+      - "data/events/*.json"
+    entry: "deploy/nginx.conf"
+    notes: "グループ定義およびイベント単位 JSON を配信"
+
+  - id: data_nginx_read_bundled_fallback
+    from: nginx_proxy
+    to: nginx_bundled_fallback
+    kind: data
+    op: read
+    transport: fs
+    concurrency: read_only
+    status: active
+    targets:
+      - "@local_fallback"
+    entry: "deploy/nginx.conf"
+    notes: "GCS が 404/5xx のときのみコンテナ同梱 JSON を返す"
+
+  - id: data_nginx_write_access_log
+    from: nginx_proxy
+    to: local_pvc
+    kind: data
+    op: write
+    transport: fs
+    concurrency: shared_pvc_single
+    status: active
+    targets:
+      - "/var/log/ribonclock/access.log"
+    entry: "deploy/nginx.conf"
+    notes: "匿名化されたアクセスログを共有 PVC へ追記"
+
+  - id: data_tailer_read_access_log
+    from: log_tailer
+    to: local_pvc
+    kind: data
+    op: read
+    transport: fs
+    concurrency: read_only
+    status: active
+    targets:
+      - "/var/log/ribonclock/access.log"
+    entry: "internal/monitor/collector.go"
+    notes: "アクセスログの末尾を継続的に読み取り集計する"
+
+  - id: data_tailer_write_monitor_state
+    from: log_tailer
+    to: gcs_state_monitor
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: none_put
+    status: active
+    targets:
+      - "intakes.json"
+      - "pipeline_state.json"
+      - "activities.json"
+    entry: "internal/monitor/collector.go#persistIntakesLocked"
+    notes: "ローカルファイルと GCS state 双方へ通常 PutObject で保存"
+
+  - id: data_monitor_read_schedule
+    from: monitor_api
+    to: gcs_data_groups
+    kind: data
+    op: read
+    transport: gcs_json_api
+    concurrency: read_only
+    status: active
+    targets:
+      - "data/groups/<group>/schedule.json"
+    entry: "internal/monitor/server.go#readGroupSchedule"
+    notes: "Promote / Patch / Sessions / Scrape 実行前の現在値読込（GCS 不在時はローカルへフォールバック）"
+
+  - id: data_monitor_write_schedule_groups
+    from: monitor_api
+    to: gcs_data_groups
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: active
+    targets:
+      - "data/groups/<group>/schedule.json"
+    entry: "internal/monitor/server.go#writeGroupSchedule"
+    notes: "Promote / Patch / Sessions / Scrape(AutoUpsert) からの書き込み。世代番号チェックなしの通常 PutObject"
+
+  - id: data_monitor_write_schedule_mirrors
+    from: monitor_api
+    to: gcs_data_mirrors
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "internal/monitor/server.go#writeGroupSchedule"
+    notes: "ribonclock 更新時に上記 2 ミラーへ通常 PutObject で順次書き込み（部分失敗・順序ずれの要因）"
+
+  - id: data_monitor_rw_scrape_state
+    from: monitor_api
+    to: gcs_state_monitor
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: none_put
+    status: active
+    targets:
+      - "scrape/state.json"
+    entry: "internal/monitor/server.go#scrapeStateStore"
+    notes: "/api/scrape/run や /api/intake/promote 後の since_id / processed_ids 更新"
+
+  - id: data_sync_api_rw_user_auth
+    from: sync_api
+    to: gcs_state_auth
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: none_put
+    status: active
+    targets:
+      - "auth/roles.json"
+      - "auth/cookie_secret.json"
+      - "users/<sha256(uid)>/sync.json"
+    entry: "internal/syncapi/handler.go#handleSyncData"
+    notes: "ユーザーごとの参戦・家計簿同期データおよび認証関連ファイルを通常 PutObject で保存"
+
+  - id: data_timetree_rw_schedule_groups
+    from: timetree_sync
+    to: gcs_data_groups
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: generation_lock
+    multi_target: true
+    status: active
+    targets:
+      - "data/groups/<group>/schedule.json"
+    entry: "internal/timetreesync/sync.go#Run"
+    notes: "GetObjectVersion + PutObjectIfGeneration（最大 3 回リトライ）で競合上書きを防ぐ"
+
+  - id: data_timetree_rw_schedule_mirrors
+    from: timetree_sync
+    to: gcs_data_mirrors
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: generation_lock
+    multi_target: true
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "internal/timetreesync/sync.go#readMirrors"
+    notes: "ミラー側も事前に世代番号を取得して条件付き更新する"
+
+  - id: data_reconcile_rw_schedule_groups
+    from: taite_reconcile
+    to: gcs_data_groups
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: active
+    targets:
+      - "data/groups/<group>/schedule.json"
+    entry: "internal/reconcile/runner.go#Run"
+    notes: "通常 PutObject で書き戻すため、他ライターとの並行実行時は競合しうる"
+
+  - id: data_reconcile_write_schedule_mirrors
+    from: taite_reconcile
+    to: gcs_data_mirrors
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "internal/reconcile/runner.go#Run"
+    notes: "ribonclock 実行時にミラーへ通常 PutObject で順次書き込み"
+
+  - id: data_resync_x_rw_schedule_groups
+    from: taite_resync_x
+    to: gcs_data_groups
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: generation_lock
+    multi_target: true
+    status: manual
+    targets:
+      - "data/groups/<group>/schedule.json"
+    entry: "internal/xsync/xsync.go#RunGCSGroup"
+    notes: "GetObjectVersion + PutObjectIfGeneration（3 回リトライ）で X 画像・時間情報を再同期する"
+
+  - id: data_resync_x_rw_schedule_mirrors
+    from: taite_resync_x
+    to: gcs_data_mirrors
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: generation_lock
+    multi_target: true
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "internal/xsync/xsync.go#RunGCSGroup"
+    notes: "ribonclock ミラーも世代ロック付きで更新"
+
+  - id: data_cli_push_all_gcs
+    from: taite_gcs_cli
+    to: gcs_data_groups
+    kind: data
+    op: rw
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: manual
+    targets:
+      - "data/groups/<group>/schedule.json"
+      - "data/groups.json"
+      - "data/events/*.json"
+    entry: "cmd/taite/gcs.go#gcsPush"
+    notes: "push 時はロックなし一括 PutObject で上書きするため本番運用時は要注意"
+
+  - id: data_cli_push_mirrors
+    from: taite_gcs_cli
+    to: gcs_data_mirrors
+    kind: data
+    op: write
+    transport: gcs_json_api
+    concurrency: none_put
+    multi_target: true
+    status: legacy_mirror
+    targets:
+      - "schedule.json"
+      - "mock_schedule.json"
+    entry: "cmd/taite/gcs.go#gcsPush"
+    notes: "data/generated/schedule.json からルートミラーを一括上書き"
+
+  - id: data_crawler_rw_pvc
+    from: crawler_cron
+    to: local_pvc
+    kind: data
+    op: rw
+    transport: fs
+    concurrency: shared_pvc_single
+    status: suspended
+    targets:
+      - "/var/log/ribonclock/runs/*.json"
+      - "/var/log/ribonclock/checkpoint.json"
+    entry: "crawler/index.mjs"
+    notes: "CronJob 有効時に raw JSON と checkpoint を保存"
+
+  # === Job Triggers & External API Calls (invoke) ===
+  - id: inv_monitor_to_parser
+    from: monitor_api
+    to: taite_parser
+    kind: invoke
+    transport: https
+    status: active
+    entry: "internal/monitor/server.go"
+    notes: "/api/intake/ai-parse および /api/scrape/run 実行時に Cloud Run AI パーサーを呼び出す"
+
+  - id: inv_monitor_to_reconcile
+    from: monitor_api
+    to: taite_reconcile
+    kind: invoke
+    transport: k8s_run
+    status: active
+    entry: "internal/monitor/server.go#defaultTriggerCloudRunJob"
+    notes: "管理画面からの名寄せ実行時に Cloud Run Job 実行 API を起動する"
+
+  - id: inv_monitor_to_x
+    from: monitor_api
+    to: x_apis
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "internal/monitor/server.go"
+    notes: "URL 投入・スクレイプ実行時にポスト本文と画像（および画像ハッシュ用バイト列）を取得"
+
+  - id: inv_monitor_to_discord
+    from: monitor_api
+    to: discord_webhook
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "internal/monitor/server.go#SendDiscordWebhook"
+    notes: "投入・訂正・起動・テスト通知を送信"
+
+  - id: inv_sync_to_identity
+    from: sync_api
+    to: identity_platform
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "internal/syncapi/handler.go#VerifyIDToken"
+    notes: "ユーザー登録・ログイン・トークン更新・JWT 検証"
+
+  - id: inv_parser_to_vertex
+    from: taite_parser
+    to: vertex_ai
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "internal/parser/gemini.go"
+    notes: "Gemini 2.5 Flash へプロンプト・画像を送信"
+
+  - id: inv_timetree_to_lumitree
+    from: timetree_sync
+    to: lumitree_api
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "internal/source/timetree/timetree.go"
+    notes: "各グループの TimeTree 公開カレンダーイベントとタイムテーブルを取得（画像ハッシュ比較用画像も取得）"
+
+  - id: inv_timetree_to_discord
+    from: timetree_sync
+    to: discord_webhook
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "cmd/timetree-sync/main.go#notify"
+    notes: "TimeTree 同期の開始・変更サマリー・失敗を通知"
+
+  - id: inv_reconcile_to_discord
+    from: taite_reconcile
+    to: discord_webhook
+    kind: invoke
+    transport: external_https
+    status: active
+    entry: "cmd/reconcile/main.go"
+    notes: "名寄せ結果サマリー・失敗を通知"
+
+  - id: inv_resync_x_to_x
+    from: taite_resync_x
+    to: x_apis
+    kind: invoke
+    transport: external_https
+    status: manual
+    entry: "internal/xsync/xsync.go"
+    notes: "X 投稿・複数画像取得および dHash 重複判定用ダウンロードを実行（--with-ai 指定時は AI パーサーも呼出可）"
