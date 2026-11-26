@@ -12,6 +12,7 @@ resources:
   - tailscale-service.yaml
   - access-report-cronjob.yaml
   - crawler-cronjob.yaml
+  - timetree-sync-cronjob.yaml
 
 images:
   - name: ghcr.io/aobaiwaki123/taite-board

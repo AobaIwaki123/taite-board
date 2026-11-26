@@ -9,6 +9,31 @@ import (
 	"time"
 )
 
+func TestListEventsSequentialPagesAndMissingEvents(t *testing.T) {
+	var pages []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pages = append(pages, r.URL.Query().Get("page"))
+		if r.URL.Query().Get("page") == "1" {
+			_, _ = w.Write([]byte(`{"events":[{"id":"1"}],"pagination":{"currentPage":1,"totalPages":2}}`))
+		} else {
+			_, _ = w.Write([]byte(`{"events":[{"id":"2"}],"pagination":{"currentPage":2,"totalPages":2}}`))
+		}
+	}))
+	defer server.Close()
+	client := NewClient(time.Second)
+	client.LumitreeBaseURL = server.URL
+	events, err := client.ListEvents(context.Background(), "cal")
+	if err != nil || len(events) != 2 || strings.Join(pages, ",") != "1,2" {
+		t.Fatalf("events=%v pages=%v err=%v", events, pages, err)
+	}
+	bad := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`{"error":"not available"}`)) }))
+	defer bad.Close()
+	client.LumitreeBaseURL = bad.URL
+	if _, err := client.ListEvents(context.Background(), "cal"); err == nil {
+		t.Fatal("missing events should fail")
+	}
+}
+
 func TestExtractCalendarAndEventID(t *testing.T) {
 	cases := []struct {
 		url      string

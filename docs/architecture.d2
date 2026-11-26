@@ -66,6 +66,20 @@ pipeline: "Ingestion & Batch Pipelines" {
     style.stroke: "#38bdf8"
     style.font-color: "#fafaf9"
   }
+  timetree_sync: "TimeTree Auto Sync\ncmd/timetree-sync" {
+    shape: rectangle
+    style.border-radius: 8
+    style.fill: "#292524"
+    style.stroke: "#38bdf8"
+    style.font-color: "#fafaf9"
+  }
+  lumitree_client: "Lumitree Client\ninternal/source/timetree" {
+    shape: rectangle
+    style.border-radius: 8
+    style.fill: "#292524"
+    style.stroke: "#38bdf8"
+    style.font-color: "#fafaf9"
+  }
   taite_parser: "AI Timetable Parser\ncmd/parser" {
     shape: rectangle
     style.border-radius: 8
@@ -124,6 +138,8 @@ app.monitor -> pipeline.taite_parser
 app.monitor -> pipeline.taite_reconcile
 pipeline.scrape -> storage.monitor_state
 pipeline.taite_promote -> storage.schedule_gcs
+pipeline.timetree_sync -> pipeline.lumitree_client
+pipeline.timetree_sync -> storage.schedule_gcs
 pipeline.taite_reconcile -> storage.schedule_gcs
 
 boundaries: "Tenant Isolation Boundaries" {

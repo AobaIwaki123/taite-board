@@ -34,6 +34,9 @@ const (
 // ErrObjectNotFound is returned when the requested object does not exist in GCS.
 var ErrObjectNotFound = errors.New("gcs object not found")
 
+// ErrGenerationMismatch indicates that another writer changed the object.
+var ErrGenerationMismatch = errors.New("gcs object generation changed")
+
 // ObjectStore abstracts GCS object operations for production and testability.
 type ObjectStore interface {
 	GetObject(ctx context.Context, bucket, object string) ([]byte, error)
@@ -169,6 +172,46 @@ func parseRSAPrivateKey(pemStr string) (*rsa.PrivateKey, error) {
 
 // GetObject downloads an object from the specified GCS bucket.
 func (c *Client) GetObject(ctx context.Context, bucket, object string) ([]byte, error) {
+	return c.getObject(ctx, bucket, object, "")
+}
+
+// GetObjectVersion reads a consistent object generation and its contents.
+func (c *Client) GetObjectVersion(ctx context.Context, bucket, object string) ([]byte, string, error) {
+	token, err := c.accessToken(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	endpoint := fmt.Sprintf("%s/storage/v1/b/%s/o/%s?fields=generation", strings.TrimRight(c.apiBaseURL, "/"), url.PathEscape(bucket), url.PathEscape(object))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, "", ErrObjectNotFound
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("gcs metadata %s/%s failed (%d)", bucket, object, resp.StatusCode)
+	}
+	var metadata struct {
+		Generation string `json:"generation"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&metadata); err != nil {
+		return nil, "", err
+	}
+	if metadata.Generation == "" {
+		return nil, "", fmt.Errorf("missing generation for %s/%s", bucket, object)
+	}
+	data, err := c.getObject(ctx, bucket, object, metadata.Generation)
+	return data, metadata.Generation, err
+}
+
+func (c *Client) getObject(ctx context.Context, bucket, object, generation string) ([]byte, error) {
 	if bucket == "" || object == "" {
 		return nil, fmt.Errorf("bucket and object are required")
 	}
@@ -182,6 +225,9 @@ func (c *Client) GetObject(ctx context.Context, bucket, object string) ([]byte, 
 		url.PathEscape(bucket),
 		url.PathEscape(object),
 	)
+	if generation != "" {
+		endpoint += "&generation=" + url.QueryEscape(generation)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating get request: %w", err)
@@ -209,6 +255,18 @@ func (c *Client) GetObject(ctx context.Context, bucket, object string) ([]byte, 
 
 // PutObject uploads data and metadata (Content-Type, Cache-Control) via GCS multipart upload.
 func (c *Client) PutObject(ctx context.Context, bucket, object, contentType, cacheControl string, data []byte) error {
+	return c.putObject(ctx, bucket, object, contentType, cacheControl, data, "")
+}
+
+// PutObjectIfGeneration prevents overwriting concurrent changes.
+func (c *Client) PutObjectIfGeneration(ctx context.Context, bucket, object, contentType, cacheControl string, data []byte, generation string) error {
+	if generation == "" {
+		return fmt.Errorf("generation is required")
+	}
+	return c.putObject(ctx, bucket, object, contentType, cacheControl, data, generation)
+}
+
+func (c *Client) putObject(ctx context.Context, bucket, object, contentType, cacheControl string, data []byte, generation string) error {
 	if bucket == "" || object == "" {
 		return fmt.Errorf("bucket and object are required")
 	}
@@ -262,6 +320,9 @@ func (c *Client) PutObject(ctx context.Context, bucket, object, contentType, cac
 		strings.TrimRight(c.apiBaseURL, "/"),
 		url.PathEscape(bucket),
 	)
+	if generation != "" {
+		endpoint += "&ifGenerationMatch=" + url.QueryEscape(generation)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, &bodyBuf)
 	if err != nil {
 		return fmt.Errorf("creating put request: %w", err)
@@ -276,6 +337,9 @@ func (c *Client) PutObject(ctx context.Context, bucket, object, contentType, cac
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusPreconditionFailed {
+		return ErrGenerationMismatch
+	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("gcs put %s/%s failed (%d): %s", bucket, object, resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}

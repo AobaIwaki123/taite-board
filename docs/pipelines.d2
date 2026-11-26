@@ -102,3 +102,23 @@ reconcile_sync: "Reconcile 名寄せ & 静的配信 [RECONCILE]" {
   }
   reconcile_job -> nginx_delivery
 }
+
+timetree_auto_sync: "TimeTree 定期自動同期 (CronJob) [CRON]" {
+  direction: right
+  style.fill: "#1c1917"
+  style.stroke: "#38bdf8"
+  style.border-radius: 12
+  fetch_timetree: "1. lumitree 公開予定取得\n[lumitree-client] internal/source/timetree/timetree.go\nGuard: AI 不使用 (公開カレンダーのみ)\nGuard: 20s Timeout" {
+    style.border-radius: 8
+    style.fill: "#292524"
+    style.stroke: "#38bdf8"
+    style.font-color: "#fafaf9"
+  }
+  sync_schedule_gcs: "2. GCS 世代ロック同期 & 通知\n[timetree-sync] cmd/timetree-sync/main.go\nGuard: GCS 世代ロック (IfGeneration)\nGuard: 曖昧・日付変更は保留\nStore: data/groups/<id>/schedule.json" {
+    style.border-radius: 8
+    style.fill: "#292524"
+    style.stroke: "#38bdf8"
+    style.font-color: "#fafaf9"
+  }
+  fetch_timetree -> sync_schedule_gcs
+}

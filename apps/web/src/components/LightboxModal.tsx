@@ -241,21 +241,13 @@ export function LightboxModal({
       {/* 複数画像切替ピル（中央配置・スワイプにリアルタイム追従） */}
       {images.length > 1 && (
         <div
-          class="flex items-center justify-center pt-2 pb-1 shrink-0 z-10"
+          class="flex items-center justify-center max-w-full pt-2 pb-1 shrink-0 z-10"
           onClick={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
         >
-          <div class="relative flex items-center p-1 rounded-full bg-stone-900/90 border border-white/10 backdrop-blur shadow-lg">
-            {/* スライディング・ピルインジケーター */}
-            <div
-              class="absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full bg-rose-500 shadow pointer-events-none"
-              style={{
-                transform: `translateX(${currentDragProgress * 100}%)`,
-                transition: isDragging ? 'none' : 'transform 200ms ease-out',
-              }}
-            />
+          <div class="flex max-w-full items-center overflow-x-auto p-1 rounded-full bg-stone-900/90 border border-white/10 backdrop-blur shadow-lg">
             {images.map((img, idx) => {
               const isActive = Math.abs(currentDragProgress - idx) < 0.5;
               const isTimetable = img.type === 'timetable';
@@ -266,12 +258,12 @@ export function LightboxModal({
                     e.stopPropagation();
                     onSelectIndex(idx);
                   }}
-                  class={`relative z-10 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors duration-150 cursor-pointer ${
-                    isActive ? 'text-stone-950' : 'text-stone-300 hover:text-white'
+                  class={`flex shrink-0 items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+                    isActive ? 'bg-rose-500 text-stone-950' : 'text-stone-300 hover:text-white'
                   }`}
                 >
                   <Icon icon={isTimetable ? CalendarDays : ImageIcon} class="w-3.5 h-3.5" />
-                  <span>{isTimetable ? 'タイテ表' : 'フライヤー'}</span>
+                  <span>{images.length > 2 || img.label === '告知画像' ? `画像 ${idx + 1}` : isTimetable ? 'タイテ表' : 'フライヤー'}</span>
                 </button>
               );
             })}

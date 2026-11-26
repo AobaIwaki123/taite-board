@@ -75,7 +75,11 @@ type lumitreeResponse struct {
 		AliasCode string `json:"aliasCode"`
 		Title     string `json:"title"`
 	} `json:"calendar"`
-	Events []lumitreeEvent `json:"events"`
+	Events     []lumitreeEvent `json:"events"`
+	Pagination struct {
+		CurrentPage int `json:"currentPage"`
+		TotalPages  int `json:"totalPages"`
+	} `json:"pagination"`
 }
 
 type lumitreeEvent struct {
@@ -88,6 +92,41 @@ type lumitreeEvent struct {
 	Location    string   `json:"location"`
 	URL         string   `json:"url"`
 	ImageUrls   []string `json:"imageUrls"`
+}
+
+// Event is the normalized public calendar data returned by lumitree.
+type Event = lumitreeEvent
+
+// ListEvents fetches the public calendar sequentially, including reported pages.
+// Date filtering belongs to the caller: the deployed API can return multiple
+// months even when month parameters are provided.
+func (c *Client) ListEvents(ctx context.Context, calendarID string) ([]Event, error) {
+	if strings.TrimSpace(calendarID) == "" {
+		return nil, fmt.Errorf("calendar ID is required")
+	}
+	base := strings.TrimRight(c.LumitreeBaseURL, "/")
+	if base == "" {
+		base = defaultLumitreeBaseURL
+	}
+	var events []Event
+	for page := 1; ; page++ {
+		endpoint := fmt.Sprintf("%s/api/v1/calendars/%s/events?page=%d", base, url.PathEscape(calendarID), page)
+		response, err := c.fetchLumitreeEndpoint(ctx, endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("calendar %s page %d: %w", calendarID, page, err)
+		}
+		if response.Events == nil {
+			return nil, fmt.Errorf("calendar %s page %d: missing events array", calendarID, page)
+		}
+		events = append(events, response.Events...)
+		if response.Pagination.TotalPages <= page {
+			break
+		}
+		if page >= 100 {
+			return nil, fmt.Errorf("calendar %s: pagination limit exceeded", calendarID)
+		}
+	}
+	return events, nil
 }
 
 // FetchPost retrieves an event from TimeTree (via lumitree API first, then HTML OGP fallback).

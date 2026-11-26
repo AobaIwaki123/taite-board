@@ -7,6 +7,8 @@
     {"id": "scrape", "label": "X Scrape Foundation", "layer": "pipeline", "path": "internal/scrape", "dependsOn": ["monitor_state"]},
     {"id": "taite-promote", "label": "Promote CLI", "layer": "pipeline", "path": "internal/promote", "dependsOn": ["schedule_gcs"]},
     {"id": "crawler", "label": "Playwright Crawler", "layer": "pipeline", "path": "crawler", "dependsOn": []},
+    {"id": "timetree-sync", "label": "TimeTree Auto Sync", "layer": "pipeline", "path": "cmd/timetree-sync", "dependsOn": ["lumitree-client", "schedule_gcs"]},
+    {"id": "lumitree-client", "label": "Lumitree Client", "layer": "pipeline", "path": "internal/source/timetree", "dependsOn": []},
     {"id": "taite-parser", "label": "AI Timetable Parser", "layer": "pipeline", "path": "cmd/parser", "dependsOn": []},
     {"id": "taite-reconcile", "label": "Reconcile Batch Job", "layer": "pipeline", "path": "cmd/reconcile", "dependsOn": ["schedule_gcs"]},
     {"id": "schedule_gcs", "label": "Schedule JSON (GCS)", "layer": "storage", "path": "data/groups.json", "dependsOn": []},
@@ -153,6 +155,31 @@
           "summary": "ホストに対応するスケジュール JSON を GCS から配信し、障害時のみ同一グループの同梱データへ切り替える。",
           "guards": ["Path Isolated (グループ分離)", "Client Storage Prefix 分離"],
           "stores": ["apps/web/public/data/groups/<id>/schedule.json"]
+        }
+      ]
+    },
+    {
+      "id": "timetree-auto-sync",
+      "name": "TimeTree 定期自動同期 (CronJob)",
+      "mode": "cron",
+      "description": "1日2回 (12:00/22:00 JST) K8s CronJob が lumitree API から公開予定を取得し、既存確定情報と出典IDを保ちながら GCS 正本を更新する。",
+      "steps": [
+        {
+          "id": "fetch-timetree",
+          "label": "lumitree 公開予定取得",
+          "component": "lumitree-client",
+          "entryPath": "internal/source/timetree/timetree.go",
+          "summary": "groups.json に登録された timetree_id ごとに公開カレンダー予定とタイムテーブル・複数画像 URL を取得する。",
+          "guards": ["AI 不使用 (公開カレンダーのみ)", "20s Timeout"]
+        },
+        {
+          "id": "sync-schedule-gcs",
+          "label": "GCS 世代ロック同期 & 通知",
+          "component": "timetree-sync",
+          "entryPath": "cmd/timetree-sync/main.go",
+          "summary": "出典 ID 照合で確定情報を維持しつつ schedule.json を書き戻し、曖昧予定や日付変更を保留して Discord へ開始・結果を通知する。",
+          "guards": ["GCS 世代ロック (IfGeneration)", "曖昧・日付変更は保留"],
+          "stores": ["data/groups/<id>/schedule.json"]
         }
       ]
     }

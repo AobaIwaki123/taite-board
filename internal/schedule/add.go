@@ -12,31 +12,33 @@ import (
 var ErrAmbiguousSession = errors.New("ambiguous sessions; specify target session")
 
 type AddSessionOptions struct {
-	TargetSessionID  string
-	Date             string
-	Title            string
-	SessionName      string
-	VenueName        string
-	VenueCanonicalID string
-	LiveStartTime    string
-	LiveEndTime      string
-	BenefitType      string
-	BenefitStartTime string
-	BenefitEndTime   string
-	Booth            string
-	TicketPlatform   string
-	TicketURL        string
-	ImageURL         string
-	SourceTweetURL   string
-	SpecialNotes     string
-	AdmissionBonus   string
-	PhotoRule        string
-	PhotoSong        string
-	PhotoSongNumber  int
-	PhotoDevice      string
-	PhotoAvailable   *bool
-	FilePath         string
-	SyncTargets      []string
+	TargetSessionID         string
+	PreserveExisting        bool
+	RequireMatchForFallback bool
+	Date                    string
+	Title                   string
+	SessionName             string
+	VenueName               string
+	VenueCanonicalID        string
+	LiveStartTime           string
+	LiveEndTime             string
+	BenefitType             string
+	BenefitStartTime        string
+	BenefitEndTime          string
+	Booth                   string
+	TicketPlatform          string
+	TicketURL               string
+	ImageURL                string
+	SourceTweetURL          string
+	SpecialNotes            string
+	AdmissionBonus          string
+	PhotoRule               string
+	PhotoSong               string
+	PhotoSongNumber         int
+	PhotoDevice             string
+	PhotoAvailable          *bool
+	FilePath                string
+	SyncTargets             []string
 }
 
 // AddSession appends a new session with an auto-derived ID (YYYYMMDD-N),
@@ -164,7 +166,11 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 	}
 
 	// Dedupe / Upsert: if an existing session on the same date matches by normalized title or canonical venue (especially placeholder --:-- sessions), merge into it instead of duplicating.
-	candidate := map[string]interface{}{"date": opts.Date, "title": opts.Title, "session_name": opts.SessionName, "venue": map[string]interface{}{"canonical_id": opts.VenueCanonicalID, "name": opts.VenueName}, "live": map[string]interface{}{"start_time": opts.LiveStartTime}}
+	matchTitle := opts.Title
+	if opts.RequireMatchForFallback && (strings.HasPrefix(matchTitle, "ライブ") || strings.HasPrefix(matchTitle, "公演予定")) {
+		matchTitle = ""
+	}
+	candidate := map[string]interface{}{"date": opts.Date, "title": matchTitle, "session_name": opts.SessionName, "venue": map[string]interface{}{"canonical_id": opts.VenueCanonicalID, "name": opts.VenueName}, "live": map[string]interface{}{"start_time": opts.LiveStartTime}}
 	type sessionMatch struct {
 		index int
 		data  map[string]interface{}
@@ -185,6 +191,14 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 				matches = append(matches, sessionMatch{i, sMap})
 			}
 		} else if shouldMergeSessions(sMap, candidate) {
+			if opts.RequireMatchForFallback {
+				titleMatches := matchTitle != "" && keysOverlap(normalizeMatchKey(stringField(sMap, "title")), normalizeMatchKey(matchTitle))
+				existingTime, existingOK := parseHHMM(nestedStringField(sMap, "live", "start_time"))
+				incomingTime, incomingOK := parseHHMM(opts.LiveStartTime)
+				if !titleMatches && !(existingOK && incomingOK && existingTime == incomingTime) {
+					continue
+				}
+			}
 			matches = append(matches, sessionMatch{i, sMap})
 		}
 	}
@@ -192,6 +206,9 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 		return nil, "", fmt.Errorf("target session not found on date")
 	}
 	if len(matches) == 0 && len(sameDate) == 1 && sessionsCompatible(sameDate[0].data, candidate) {
+		if opts.RequireMatchForFallback {
+			return nil, "", fmt.Errorf("%w on %s", ErrAmbiguousSession, opts.Date)
+		}
 		matches = sameDate
 	}
 	if len(matches) > 1 {
@@ -359,7 +376,7 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 	// Venue: prefer resolved canonical venue or replace placeholder
 	if vMap, ok := sMap["venue"].(map[string]interface{}); ok {
 		exName, _ := vMap["name"].(string)
-		if exName == "" || exName == "未定" || exName == "告知待ち" || strings.HasPrefix(opts.VenueCanonicalID, "venue:") {
+		if exName == "" || exName == "未定" || exName == "告知待ち" || (!opts.PreserveExisting && strings.HasPrefix(opts.VenueCanonicalID, "venue:")) {
 			if opts.VenueName != "" && opts.VenueName != "未定" {
 				sMap["venue"] = newVenue
 			}
@@ -373,11 +390,13 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 	if liveMap == nil {
 		liveMap = map[string]interface{}{"stage": nil}
 	}
-	if opts.LiveStartTime != "" && opts.LiveStartTime != "--:--" {
+	if opts.LiveStartTime != "" && opts.LiveStartTime != "--:--" && (!opts.PreserveExisting || stringField(liveMap, "start_time") == "" || stringField(liveMap, "start_time") == "--:--") {
 		liveMap["start_time"] = opts.LiveStartTime
-		if opts.LiveEndTime != "" {
+		if opts.LiveEndTime != "" && (!opts.PreserveExisting || stringField(liveMap, "end_time") == "" || stringField(liveMap, "end_time") == "--:--") {
 			liveMap["end_time"] = opts.LiveEndTime
 		}
+	} else if opts.PreserveExisting && opts.LiveEndTime != "" && opts.LiveEndTime != "--:--" && (stringField(liveMap, "end_time") == "" || stringField(liveMap, "end_time") == "--:--") && stringField(liveMap, "start_time") == opts.LiveStartTime {
+		liveMap["end_time"] = opts.LiveEndTime
 	}
 	sMap["live"] = liveMap
 
@@ -386,11 +405,15 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 	if benMap == nil {
 		benMap = map[string]interface{}{}
 	}
-	if opts.BenefitStartTime != "" && opts.BenefitStartTime != "--:--" {
+	if opts.BenefitStartTime != "" && opts.BenefitStartTime != "--:--" && (!opts.PreserveExisting || stringField(benMap, "start_time") == "" || stringField(benMap, "start_time") == "--:--") {
 		benMap["start_time"] = opts.BenefitStartTime
-		if opts.BenefitEndTime != "" {
+		if opts.BenefitEndTime != "" && (!opts.PreserveExisting || stringField(benMap, "end_time") == "" || stringField(benMap, "end_time") == "--:--") {
 			benMap["end_time"] = opts.BenefitEndTime
 		}
+	} else if opts.PreserveExisting && opts.BenefitEndTime != "" && opts.BenefitEndTime != "--:--" && (stringField(benMap, "end_time") == "" || stringField(benMap, "end_time") == "--:--") && stringField(benMap, "start_time") == opts.BenefitStartTime {
+		benMap["end_time"] = opts.BenefitEndTime
+	}
+	if opts.BenefitStartTime != "" && opts.BenefitStartTime != "--:--" && stringField(benMap, "start_time") == opts.BenefitStartTime {
 		if exType, _ := benMap["type"].(string); exType == "" || exType == "未定" {
 			if opts.BenefitType != "" {
 				benMap["type"] = opts.BenefitType

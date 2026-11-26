@@ -8,6 +8,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X github.com/AobaIwaki123/taite-board/internal/version.BuildVersion=${APP_VERSION}" -o /bin/monitor ./cmd/monitor
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s -X github.com/AobaIwaki123/taite-board/internal/version.BuildVersion=${APP_VERSION}" -o /bin/timetree-sync ./cmd/timetree-sync
 
 FROM alpine:3.20
 
@@ -22,6 +23,7 @@ RUN apk add --no-cache tzdata ca-certificates
 
 WORKDIR /app
 COPY --from=builder /bin/monitor /bin/monitor
+COPY --from=builder /bin/timetree-sync /bin/timetree-sync
 COPY data ./data
 
 USER 65532:65532
