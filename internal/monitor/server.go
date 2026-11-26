@@ -328,9 +328,10 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		BenefitStart    string `json:"benefit_start"`
 		BenefitEnd      string `json:"benefit_end"`
 		Booth           string `json:"booth"`
-		TicketURL       string `json:"ticket_url"`
-		ImageURL        string `json:"image_url"`
-		AdmissionBonus  string `json:"admission_bonus"`
+		TicketURL       string   `json:"ticket_url"`
+		ImageURL        string   `json:"image_url"`
+		Images          []string `json:"images"`
+		AdmissionBonus  string   `json:"admission_bonus"`
 		SpecialNotes    string `json:"special_notes"`
 		PhotoSong       string `json:"photo_song"`
 		PhotoSongNumber int    `json:"photo_song_number"`
@@ -397,6 +398,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			Booth:            strings.TrimSpace(req.Booth),
 			TicketURL:        strings.TrimSpace(req.TicketURL),
 			ImageURL:         strings.TrimSpace(req.ImageURL),
+			ImageURLs:        req.Images,
 			SourceTweetURL:   strings.TrimSpace(req.SourceURL),
 			SpecialNotes:     strings.TrimSpace(req.SpecialNotes),
 			AdmissionBonus:   strings.TrimSpace(req.AdmissionBonus),

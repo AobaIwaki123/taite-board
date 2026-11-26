@@ -560,6 +560,7 @@ export function AdminView() {
           booth: f.booth.trim(),
           ticket_url: f.ticketUrl.trim(),
           image_url: entry.item?.images?.[0] || '',
+          images: entry.item?.images || [],
           admission_bonus: f.bonus.trim(),
           photo_song: f.photoSong.trim(),
           photo_song_number: songNum,
