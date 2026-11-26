@@ -17,6 +17,7 @@ import (
 	"github.com/AobaIwaki123/taite-board/internal/promote"
 	"github.com/AobaIwaki123/taite-board/internal/raw"
 	"github.com/AobaIwaki123/taite-board/internal/schedule"
+	"github.com/AobaIwaki123/taite-board/internal/scrape"
 	"github.com/AobaIwaki123/taite-board/internal/telemetry"
 	"github.com/AobaIwaki123/taite-board/internal/validate"
 	"github.com/AobaIwaki123/taite-board/internal/version"
@@ -33,6 +34,8 @@ func main() {
 	switch subcommand {
 	case "fetch":
 		runFetch(os.Args[2:])
+	case "scrape":
+		runScrape(os.Args[2:])
 	case "filter":
 		runFilter(os.Args[2:])
 	case "promote":
@@ -80,6 +83,7 @@ Usage:
 
 The commands are:
   fetch           Fetch raw post snapshots from external URLs (ADR-0002)
+  scrape          Poll timeline/URLs, run filter + resolver, stage or auto-upsert candidates
   filter          Evaluate raw posts with multi-stage local pre-filter (ADR-0018)
   promote         Promote candidate JSON to schedule.json with validation & sync (ADR-0018)
   validate        Validate a schedule JSON file against ADR-0001 schema and source integrity rules
@@ -556,4 +560,121 @@ func runStats(args []string) {
 	}
 
 	fmt.Print(telemetry.FormatASCIIFunnel(stats))
+}
+
+func runScrape(args []string) {
+	fs := flag.NewFlagSet("scrape", flag.ExitOnError)
+	groupID := fs.String("group", strings.TrimSpace(os.Getenv("GROUP")), "Target group ID defined in data/groups.json (default ribonclock)")
+	urlsFile := fs.String("urls-file", "", "Path to newline-delimited X post URLs for mock/seed polling")
+	fixtureFile := fs.String("fixture", "", "Path to recorded raw.Post JSON fixture file")
+	useXAPI := fs.Bool("use-x-api", false, "Poll official X API v2 GET /2/users/:id/tweets (requires X_BEARER_TOKEN)")
+	xUserID := fs.String("x-user-id", "", "Override numeric X user ID when polling official X API")
+	sinceID := fs.String("since-id", "", "Override starting since_id cursor")
+	ignoreCheckpoint := fs.Bool("ignore-checkpoint", false, "Ignore stored checkpoint cursor and processed IDs")
+	maxResults := fs.Int("max-results", 20, "Maximum posts to fetch per run")
+	requireMedia := fs.Bool("media", true, "Require at least one attached image in pre-filter")
+	maxAge := fs.Int("age", 168, "Maximum allowed post age in hours (0 disables age limit)")
+	stateFile := fs.String("state-file", "data/scrape_state.json", "Path to scrape checkpoints and staged pending queue JSON")
+	schedFile := fs.String("schedule", "", "Target schedule.json file (defaults per group)")
+	groupsFile := fs.String("groups-file", "data/groups.json", "Path to groups.json configuration")
+	entitiesFile := fs.String("entities", "data/curated/entities.json", "Path to curated entities dictionary")
+	autoUpsert := fs.Bool("auto-upsert", false, "Automatically apply unambiguous candidates to schedule.json")
+	dryRun := fs.Bool("dry-run", false, "Evaluate without persisting state or schedule changes")
+	jsonOut := fs.Bool("json", false, "Print run report as JSON")
+
+	_ = fs.Parse(args)
+
+	group := strings.TrimSpace(strings.ToLower(*groupID))
+	if group == "" || group == "rincent" {
+		group = "ribonclock"
+	}
+
+	targetSchedule := strings.TrimSpace(*schedFile)
+	if targetSchedule == "" {
+		if group == "ribonclock" {
+			targetSchedule = "data/generated/schedule.json"
+		} else {
+			targetSchedule = filepath.Join("data", "groups", group, "schedule.json")
+		}
+	}
+
+	var src scrape.TimelineSource
+	switch {
+	case *useXAPI:
+		token := strings.TrimSpace(os.Getenv("X_BEARER_TOKEN"))
+		src = scrape.NewXAPISource(token, 15*time.Second)
+	case *fixtureFile != "":
+		src = &scrape.FixtureSource{Path: *fixtureFile}
+	default:
+		var urls []string
+		if *urlsFile != "" {
+			loaded, err := scrape.LoadURLsFromFile(*urlsFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error loading urls file: %v\n", err)
+				os.Exit(1)
+			}
+			urls = append(urls, loaded...)
+		}
+		urls = append(urls, fs.Args()...)
+		if len(urls) == 0 {
+			fmt.Fprintln(os.Stderr, "Error: specify --urls-file, --fixture, --use-x-api, or URL arguments")
+			os.Exit(1)
+		}
+		src = &scrape.URLListSource{URLs: urls, Timeout: 12 * time.Second, Workers: 4}
+	}
+
+	runner, err := scrape.NewRunner(*entitiesFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error initializing scrape runner: %v\n", err)
+		os.Exit(1)
+	}
+
+	var aiClient scrape.AIParserClient
+	if parserURL := strings.TrimSpace(os.Getenv("AI_PARSER_URL")); parserURL != "" {
+		aiClient = &scrape.HTTPAIParserClient{
+			BaseURL: parserURL,
+			Token:   strings.TrimSpace(os.Getenv("AI_PARSER_TOKEN")),
+		}
+	}
+
+	maxAgeOpt := *maxAge
+	if maxAgeOpt == 0 {
+		maxAgeOpt = -1
+	}
+
+	report, err := runner.Run(context.Background(), scrape.RunOptions{
+		Group:            group,
+		UserID:           *xUserID,
+		SinceID:          *sinceID,
+		IgnoreCheckpoint: *ignoreCheckpoint,
+		MaxResults:       *maxResults,
+		RequireMedia:     requireMedia,
+		MaxAgeHours:      maxAgeOpt,
+		AutoUpsert:       *autoUpsert,
+		DryRun:           *dryRun,
+		GroupsJSONPath:   *groupsFile,
+		EntitiesPath:     *entitiesFile,
+		Source:           src,
+		State:            &scrape.FileStateStore{Path: *stateFile},
+		Schedule:         &scrape.FileScheduleAccessor{Path: targetSchedule},
+		AIParser:         aiClient,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Scrape run failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	if *jsonOut {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(report)
+		return
+	}
+
+	fmt.Printf("=== Scrape Pipeline Report (%s | source=%s) ===\n", report.Group, report.SourceType)
+	fmt.Printf("Fetched=%d Passed=%d Skipped=%d Staged=%d AutoUpserted=%d Ambiguous=%d NewestSinceID=%s\n",
+		report.FetchedCount, report.PassedCount, report.SkippedCount, report.StagedCount, report.AutoUpsertedCount, report.AmbiguousCount, report.NewestSinceID)
+	for _, out := range report.Outcomes {
+		fmt.Printf("  %-13s [%s] %s %s\n", strings.ToUpper(out.Status), out.SourceID, out.SessionID, out.Reason)
+	}
 }

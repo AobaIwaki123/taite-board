@@ -19,21 +19,18 @@
 
 `tailscale-service.yaml` は現在も Kustomize に含まれ、monitor の 8082 ポートを Tailscale 用 Service として公開する。利用の有無は別途運用確認が必要であり、ここでは削除しない。
 
-```mermaid
-flowchart LR
-  web["Web"] --> nginx["Nginx"]
-  nginx --> schedules["GCS: グループ別スケジュール"]
-  web --> sync["同期 API"]
-  sync --> auth["GCS: 認証とユーザー状態"]
-  sync --> monitor["Monitor"]
-  monitor --> state["GCS: 共有運用状態"]
-  monitor --> parser["Cloud Run: parser"]
-  monitor --> reconcile["Cloud Run Job: reconcile"]
-  reconcile --> schedules
-  crawler["Crawler: 定期取得"]
-  calendar["CronJob: TimeTree 同期"] --> lumitree["lumitree API"]
-  calendar --> schedules
-```
+### 視覚レビュー（D2 SVG + 3D インタラクティブビューア）
+
+[architecture.manifest.json](architecture.manifest.json) を単一の情報源として、静的図解（D2）とブラウザ上の 3D パイプラインビューア（`?view=arch`）の双方を駆動する。
+
+- **システム構成 & テナント境界（D2 生成）**: [architecture.d2](architecture.d2) / [architecture.svg](architecture.svg)
+- **データ投入・昇格・整合パイプライン（D2 生成）**: [pipelines.d2](pipelines.d2) / [pipelines.svg](pipelines.svg)
+- **再生成コマンド**: `node scripts/gen-d2.mjs --render`
+- **ブラウザ 3D レビュー画面**: Web アプリ上で `/?view=arch`（または `/arch`）を開くと、Three.js + CSS2DRenderer でレイヤー構成とパイプライン安全ガードを立体確認できる。
+
+![System Architecture](architecture.svg)
+
+![Pipelines Overview](pipelines.svg)
 
 ## 1. この文書の位置づけ
 

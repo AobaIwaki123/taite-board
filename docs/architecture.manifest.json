@@ -1,17 +1,19 @@
 {
   "components": [
-    {"id": "web", "path": "apps/web", "dependsOn": ["nginx", "schedule_gcs", "syncapi"]},
-    {"id": "nginx", "path": "deploy/nginx.conf", "dependsOn": ["schedule_gcs", "syncapi"]},
-    {"id": "monitor", "path": "internal/monitor", "dependsOn": ["schedule_gcs", "monitor_state", "taite-parser", "taite-reconcile"]},
-    {"id": "syncapi", "path": "internal/syncapi", "dependsOn": ["auth_state", "monitor"]},
-    {"id": "crawler", "path": "crawler", "dependsOn": []},
-    {"id": "timetree-sync", "path": "cmd/timetree-sync", "dependsOn": ["lumitree-client", "schedule_gcs"]},
-    {"id": "lumitree-client", "path": "internal/source/timetree", "dependsOn": []},
-    {"id": "taite-reconcile", "path": "cmd/reconcile", "dependsOn": ["schedule_gcs"]},
-    {"id": "taite-parser", "path": "cmd/parser", "dependsOn": []},
-    {"id": "schedule_gcs", "path": "data/groups.json", "dependsOn": []},
-    {"id": "monitor_state", "path": "internal/monitor/collector.go", "dependsOn": []},
-    {"id": "auth_state", "path": "internal/syncapi/handler.go", "dependsOn": []}
+    {"id": "web", "label": "Web SPA (Preact)", "layer": "edge", "path": "apps/web", "dependsOn": ["nginx", "schedule_gcs", "syncapi"]},
+    {"id": "nginx", "label": "Nginx Proxy", "layer": "edge", "path": "deploy/nginx.conf", "dependsOn": ["schedule_gcs", "syncapi"]},
+    {"id": "syncapi", "label": "Sync & RBAC API", "layer": "app", "path": "internal/syncapi", "dependsOn": ["auth_state", "monitor"]},
+    {"id": "monitor", "label": "Monitor & Admin Server", "layer": "app", "path": "internal/monitor", "dependsOn": ["schedule_gcs", "monitor_state", "scrape", "taite-parser", "taite-reconcile"]},
+    {"id": "scrape", "label": "X Scrape Foundation", "layer": "pipeline", "path": "internal/scrape", "dependsOn": ["monitor_state"]},
+    {"id": "taite-promote", "label": "Promote CLI", "layer": "pipeline", "path": "internal/promote", "dependsOn": ["schedule_gcs"]},
+    {"id": "crawler", "label": "Playwright Crawler", "layer": "pipeline", "path": "crawler", "dependsOn": []},
+    {"id": "timetree-sync", "label": "TimeTree Auto Sync", "layer": "pipeline", "path": "cmd/timetree-sync", "dependsOn": ["lumitree-client", "schedule_gcs"]},
+    {"id": "lumitree-client", "label": "Lumitree Client", "layer": "pipeline", "path": "internal/source/timetree", "dependsOn": []},
+    {"id": "taite-parser", "label": "AI Timetable Parser", "layer": "pipeline", "path": "cmd/parser", "dependsOn": []},
+    {"id": "taite-reconcile", "label": "Reconcile Batch Job", "layer": "pipeline", "path": "cmd/reconcile", "dependsOn": ["schedule_gcs"]},
+    {"id": "schedule_gcs", "label": "Schedule JSON (GCS)", "layer": "storage", "path": "data/groups.json", "dependsOn": []},
+    {"id": "monitor_state", "label": "Monitor & Pending State", "layer": "storage", "path": "internal/monitor/collector.go", "dependsOn": []},
+    {"id": "auth_state", "label": "Auth & User Sync State", "layer": "storage", "path": "internal/syncapi/handler.go", "dependsOn": []}
   ],
   "boundaries": [
     {"layer": "namespace", "level": "shared", "details": "単一 namespace ribonclock", "path": "k8s/manifests/namespace.yaml"},
@@ -26,5 +28,160 @@
   "tenants": [
     {"id": "ribonclock", "hosts": ["ribonclock.iorin.net", "rincent.iorin.net"], "dataUrl": "data/groups/ribonclock/schedule.json", "fallbackDataUrl": "schedule.json", "storagePrefix": "ribonclock_"},
     {"id": "dollykiss", "hosts": ["dollykiss.iorin.net"], "dataUrl": "data/groups/dollykiss/schedule.json", "fallbackDataUrl": "data/groups/dollykiss/schedule.json", "storagePrefix": "dollykiss_"}
+  ],
+  "pipelines": [
+    {
+      "id": "x-scrape-intake",
+      "name": "X タイムライン巡回 & 承認パイプライン",
+      "mode": "pull",
+      "description": "URLリスト / Fixture JSON / X API ($0.005/post) からタイムラインを取得し、即公開せず PendingQueue で人の確認を経て schedule.json へ反映する。",
+      "steps": [
+        {
+          "id": "fetch-source",
+          "label": "ソース取得 (URL / Fixture / X API)",
+          "component": "scrape",
+          "entryPath": "internal/scrape/source.go",
+          "summary": "URLList・Fixture・X API v2 を統一インターフェースで読み出し、$0 テストと本番巡回を同じ基盤で扱う。",
+          "guards": ["Dry-Run ($0) 優先", "URLList / Fixture / XAPI 切替"]
+        },
+        {
+          "id": "dedupe-filter",
+          "label": "SinceID / 重複・経過時間フィルタ",
+          "component": "scrape",
+          "entryPath": "internal/scrape/runner.go",
+          "summary": "state.json の since_id と processed_ids、投稿経過時間・キーワードで既出・無関係ポストを除外する。",
+          "guards": ["SinceID 単調増加", "MaxAge 上限", "ProcessedIDs 排除"],
+          "stores": ["scrape/state/<group>.json"]
+        },
+        {
+          "id": "stage-pending",
+          "label": "PendingQueue ステージング",
+          "component": "monitor",
+          "entryPath": "internal/monitor/server.go",
+          "summary": "抽出候補を即公開せず /api/scrape/pending に保持し、管理画面の巡回候補バナーへ提示する。",
+          "guards": ["即公開禁止 (Staging)", "Ambiguous Session 検知"],
+          "stores": ["monitor PendingQueue"]
+        },
+        {
+          "id": "admin-promote",
+          "label": "/admin 1タップ昇格",
+          "component": "web",
+          "entryPath": "apps/web/src/components/AdminView.tsx",
+          "summary": "管理者が内容を確認して昇格を実行すると schedule.json 更新と PendingQueue 消込が同期完了する。",
+          "guards": ["RBAC 管理者認可", "Promote 後に自動消込"],
+          "stores": ["data/groups/<id>/schedule.json"]
+        }
+      ]
+    },
+    {
+      "id": "manual-intake-ai",
+      "name": "管理画面 直接投入 / AI パース",
+      "mode": "manual",
+      "description": "Admin UI から投入された告知テキストやタイムテーブル画像を Cloud Run AI Parser で構造化し、決定論的 Upsert で保存する。",
+      "steps": [
+        {
+          "id": "admin-submit",
+          "label": "Admin フォーム / パッチ投入",
+          "component": "web",
+          "entryPath": "apps/web/src/components/AdminView.tsx",
+          "summary": "認証済み管理者が告知テキスト・フライヤー画像・既存公演の訂正パッチを送信する。",
+          "guards": ["RBAC セッション検証", "テナント Group 明示選択"]
+        },
+        {
+          "id": "ai-parse",
+          "label": "Cloud Run Gemini 解析",
+          "component": "taite-parser",
+          "entryPath": "cmd/parser/main.go",
+          "summary": "画像 OCR とテキスト構造化を行い、イベント名・会場・出演時間候補を返す。",
+          "guards": ["Bearer Token 認証", "30s Timeout 制御"]
+        },
+        {
+          "id": "deterministic-upsert",
+          "label": "決定的 Upsert & 画像重複排除",
+          "component": "monitor",
+          "entryPath": "internal/monitor/server.go",
+          "summary": "既存公演と決定的キーで照合してマージし、画像ハッシュ重複排除とリンクスコアリングを適用する。",
+          "guards": ["Deterministic Upsert", "Image ID Dedupe", "Source Link Scoring"],
+          "stores": ["data/groups/<id>/schedule.json"]
+        }
+      ]
+    },
+    {
+      "id": "crawler-batch",
+      "name": "Playwright クローラー巡回 & CLI 昇格",
+      "mode": "cron",
+      "description": "定期 CronJob がヘッドレスブラウザで公式投稿を保存し、CLI フィルタ・対話的昇格コマンドで公開データへ取り込む。",
+      "steps": [
+        {
+          "id": "playwright-crawl",
+          "label": "ヘッドレスブラウザ定期取得",
+          "component": "crawler",
+          "entryPath": "crawler/index.mjs",
+          "summary": "checkpoint.json の latest_since_id に到達するまで X 投稿を取得し raw JSON を出力する。",
+          "guards": ["Checkpoint since_id 停止", "MAX_POSTS 上限"],
+          "stores": ["data/groups/<id>/runs/"]
+        },
+        {
+          "id": "promote-merge",
+          "label": "フィルタ & CLI 昇格マージ",
+          "component": "taite-promote",
+          "entryPath": "internal/promote/promote.go",
+          "summary": "指紋重複排除と人間への差分確認を経て schedule.json へ安全にマージする。",
+          "guards": ["指紋重複排除", "対話的昇格確認"],
+          "stores": ["data/groups/<id>/schedule.json"]
+        }
+      ]
+    },
+    {
+      "id": "reconcile-sync",
+      "name": "Reconcile 名寄せ & 静的配信",
+      "mode": "reconcile",
+      "description": "スケジュール全体の順序・整合・名寄せを定期ジョブで補正し、Nginx と GCS パス分離を通じてクライアントへ届ける。",
+      "steps": [
+        {
+          "id": "reconcile-job",
+          "label": "Cloud Run Reconcile 実行",
+          "component": "taite-reconcile",
+          "entryPath": "cmd/reconcile/main.go",
+          "summary": "全グループまたは指定グループの schedule.json を検証・名寄せし、結果を Discord へ通知する。",
+          "guards": ["Dry-Run プレビュー", "Group 指定実行"],
+          "stores": ["data/groups/<id>/schedule.json"]
+        },
+        {
+          "id": "nginx-delivery",
+          "label": "グループ別パス配信 & Fallback",
+          "component": "nginx",
+          "entryPath": "deploy/nginx.conf",
+          "summary": "ホストに対応するスケジュール JSON を GCS から配信し、障害時のみ同一グループの同梱データへ切り替える。",
+          "guards": ["Path Isolated (グループ分離)", "Client Storage Prefix 分離"],
+          "stores": ["apps/web/public/data/groups/<id>/schedule.json"]
+        }
+      ]
+    },
+    {
+      "id": "timetree-auto-sync",
+      "name": "TimeTree 定期自動同期 (CronJob)",
+      "mode": "cron",
+      "description": "1日2回 (12:00/22:00 JST) K8s CronJob が lumitree API から公開予定を取得し、既存確定情報と出典IDを保ちながら GCS 正本を更新する。",
+      "steps": [
+        {
+          "id": "fetch-timetree",
+          "label": "lumitree 公開予定取得",
+          "component": "lumitree-client",
+          "entryPath": "internal/source/timetree/timetree.go",
+          "summary": "groups.json に登録された timetree_id ごとに公開カレンダー予定とタイムテーブル・複数画像 URL を取得する。",
+          "guards": ["AI 不使用 (公開カレンダーのみ)", "20s Timeout"]
+        },
+        {
+          "id": "sync-schedule-gcs",
+          "label": "GCS 世代ロック同期 & 通知",
+          "component": "timetree-sync",
+          "entryPath": "cmd/timetree-sync/main.go",
+          "summary": "出典 ID 照合で確定情報を維持しつつ schedule.json を書き戻し、曖昧予定や日付変更を保留して Discord へ開始・結果を通知する。",
+          "guards": ["GCS 世代ロック (IfGeneration)", "曖昧・日付変更は保留"],
+          "stores": ["data/groups/<id>/schedule.json"]
+        }
+      ]
+    }
   ]
 }

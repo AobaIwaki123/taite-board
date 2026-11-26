@@ -100,6 +100,16 @@ interface AdminSessionSummary {
   photo_rule?: string;
 }
 
+interface ScrapedPendingItem {
+  id: string;
+  group: string;
+  status: string;
+  needs_ai: boolean;
+  error?: string;
+  post?: IntakeItem;
+  candidate?: IntakeCandidate;
+}
+
 const ROW_INPUT_CLASS =
   'w-full bg-transparent text-body text-white placeholder-stone-600 focus:outline-none';
 
@@ -248,6 +258,7 @@ export function AdminView() {
 
   const [sessions, setSessions] = useState<AdminSessionSummary[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [pendingScraped, setPendingScraped] = useState<ScrapedPendingItem[]>([]);
   const [reconcileMsg, setReconcileMsg] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
@@ -310,8 +321,27 @@ export function AdminView() {
     }
   };
 
+  const loadPendingScraped = async (targetGroup = groupId) => {
+    try {
+      const res = await authorizedAdminFetch(
+        `/scrape/pending?group=${encodeURIComponent(targetGroup)}`,
+      );
+      if (res.ok) {
+        const data = await readJsonSafe<{ items?: ScrapedPendingItem[] }>(res);
+        if (data && Array.isArray(data.items)) {
+          setPendingScraped(data.items);
+          return;
+        }
+      }
+    } catch {
+      // ignore if offline in dev
+    }
+    setPendingScraped([]);
+  };
+
   useEffect(() => {
     void loadSessions(groupId);
+    void loadPendingScraped(groupId);
   }, [groupId]);
 
   const updateEntry = (qid: number, updater: (prev: QueueEntry) => QueueEntry) => {
@@ -555,6 +585,7 @@ export function AdminView() {
         committedAction: data?.action === 'merged' ? 'merged' : 'created',
       }));
       void loadSessions(groupId);
+      void loadPendingScraped(groupId);
     } catch (err) {
       updateEntry(entry.qid, (prev) => ({
         ...prev,
@@ -580,6 +611,48 @@ export function AdminView() {
       setReconcileMsg(err instanceof Error ? err.message : '名寄せに失敗しました');
     } finally {
       setReconciling(false);
+    }
+  };
+
+  const handleLoadPendingScraped = (pending: ScrapedPendingItem) => {
+    const qid = seq;
+    setSeq((n) => n + 1);
+    const mergedItem: IntakeItem = {
+      source: pending.post?.source || 'x',
+      source_id: pending.post?.source_id || '',
+      url: pending.post?.url || '',
+      author: pending.post?.author || '',
+      text: pending.post?.text || '',
+      images: pending.post?.images || [],
+      needs_ai: pending.needs_ai,
+      candidate: pending.candidate,
+    };
+    const derived = deriveFormFromItem(mergedItem);
+    setPendingScraped((prev) => prev.filter((x) => x.id !== pending.id));
+    setQueue((prev) => [
+      ...prev,
+      {
+        qid,
+        url: mergedItem.url || '',
+        status: 'ready',
+        aiRunning: false,
+        error: '',
+        commitError: pending.status === 'ambiguous' ? '同日に複数公演があるため詳細項目から統合先を指定してください。' : '',
+        detailsOpen: pending.status === 'ambiguous' || hasOptionalDetails(derived),
+        item: mergedItem,
+        form: derived,
+      },
+    ]);
+  };
+
+  const handleDismissPendingScraped = async (id: string) => {
+    setPendingScraped((prev) => prev.filter((x) => x.id !== id));
+    try {
+      await authorizedAdminFetch(`/scrape/pending?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+    } catch {
+      // ignore optimistic dismissal error
     }
   };
 
@@ -715,7 +788,51 @@ export function AdminView() {
                 </div>
               </form>
 
-              {queue.length === 0 && (
+              {/* 巡回等で取得済みの承認待ち候補（存在する場合のみ表示） */}
+              {pendingScraped.length > 0 && (
+                <div class="soft-card rounded-2xl p-3.5 space-y-2 border border-sky-500/25">
+                  <span class="block text-xs font-bold text-sky-400">
+                    巡回候補 ({pendingScraped.length}件)
+                  </span>
+                  <div class="space-y-2">
+                    {pendingScraped.map((p) => (
+                      <div
+                        key={p.id}
+                        class="flex items-center justify-between gap-2 rounded-xl bg-stone-950/60 border border-white/10 p-2.5"
+                      >
+                        <div class="min-w-0">
+                          <p class="text-xs font-bold text-white truncate">
+                            {p.candidate?.date ? `${p.candidate.date} ` : ''}
+                            {p.candidate?.title || p.post?.text?.split('\n')[0] || p.id}
+                          </p>
+                          {p.status === 'ambiguous' && (
+                            <p class="text-xs text-amber-300 truncate">統合先の選択が必要</p>
+                          )}
+                        </div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleLoadPendingScraped(p)}
+                            class="px-2.5 py-1.5 rounded-lg bg-sky-500/20 border border-sky-500/35 text-xs font-bold text-sky-300"
+                          >
+                            確認
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDismissPendingScraped(p.id)}
+                            class="p-1.5 rounded-lg text-stone-400 hover:text-white"
+                            aria-label="除外"
+                          >
+                            <Icon icon={X} class="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {queue.length === 0 && pendingScraped.length === 0 && (
                 <div class="soft-card rounded-2xl p-5 text-center space-y-3 bg-gradient-to-b from-stone-900/70 to-stone-950/80">
                   <p class="text-xs text-stone-400 leading-relaxed">
                     X ポストまたは TimeTree の URL を貼り付けると、日時・会場・特典・撮可情報を抽出して編集カードを開きます。
