@@ -113,8 +113,8 @@ edges:
 
 ## 5. トランスパイル方針（YAML からの出口）
 
-[docs/system-graph.yaml](system-graph.yaml) を唯一の手動更新対象とし、用途に応じて以下の変換を行う（初期段階では手動スクリプト実行とし、常駐同期は行わない）。
+[docs/system-graph.yaml](system-graph.yaml) を唯一の手動更新対象とし、[schema/system-graph.schema.json](../schema/system-graph.schema.json) による検証のうえ、`node scripts/gen-system-graph.mjs --render` により以下の出口を生成する（初期段階では手動スクリプト実行とし、常駐同期は行わない）。
 
-1. **D2 / SVG 生成**: 上記「ビュー 1〜3」ごとにノードとエッジを抽出し、`host_groups` をコンテナ枠として `.d2` / `.svg` を生成する。
-2. **Markdown サマリー生成**: `to: <store_id>` かつ `op in [write, rw]` のエッジを逆引き集計し、設計検討（Issue #220 等）向けの Markdown テーブルを生成する。
-3. **JSON エクスポート**: 既存または新規のブラウザ可視化 UI と連携する必要が生じた場合、Node.js（既存の `yaml` パッケージ）で YAML を JSON へ変換して供給する。
+1. **D2 / SVG 生成**: 全体構成図（[graph-overview.d2](graph-overview.d2) / [graph-overview.svg](graph-overview.svg)）およびデータ競合ビュー（[graph-dataflow.d2](graph-dataflow.d2) / [graph-dataflow.svg](graph-dataflow.svg)）を生成する。
+2. **Markdown サマリー生成**: `to: <store_id>` かつ `op in [write, rw]` のエッジを逆引き集計し、[docs/system-graph.md](system-graph.md) へ図解リンク・Store 逆引きテーブル・`host_groups` 一覧を出力する。
+3. **JSON エクスポート**: `node scripts/gen-system-graph.mjs --json` により、検証済みグラフを JSON へ変換して標準出力へ供給する。

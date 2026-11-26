@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Taite Board System Graph Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "host_groups", "nodes", "edges"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "host_groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "entry"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "label": { "type": "string", "minLength": 1 },
+          "parent": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "entry": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "layer", "kind", "label", "status", "entry"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "layer": { "type": "string", "enum": ["edge", "service", "worker", "store", "external"] },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "spa",
+              "ingress",
+              "proxy",
+              "http_server",
+              "loop",
+              "cronjob",
+              "cloud_run",
+              "job",
+              "cli",
+              "gcs",
+              "pvc",
+              "image_fs",
+              "browser_storage",
+              "external_api"
+            ]
+          },
+          "label": { "type": "string", "minLength": 1 },
+          "status": { "type": "string", "enum": ["active", "suspended", "legacy_mirror", "manual"] },
+          "host_group": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "entry": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "from", "to", "kind", "transport", "status", "entry"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "from": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "to": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "kind": { "type": "string", "enum": ["request", "data", "invoke"] },
+          "op": { "type": "string", "enum": ["read", "write", "rw"] },
+          "transport": {
+            "type": "string",
+            "enum": ["https", "http_proxy", "gcs_json_api", "fs", "memory", "k8s_run", "external_https"]
+          },
+          "concurrency": {
+            "type": "string",
+            "enum": ["none_put", "generation_lock", "shared_pvc_single", "client_local", "read_only"]
+          },
+          "multi_target": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["active", "suspended", "legacy_mirror", "manual"] },
+          "targets": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "entry": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string" }
+        },
+        "if": {
+          "properties": { "kind": { "const": "data" } },
+          "required": ["kind"]
+        },
+        "then": {
+          "required": ["op", "concurrency", "targets"]
+        }
+      }
+    }
+  }
+}

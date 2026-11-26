@@ -240,8 +240,16 @@ nodes:
     kind: external_api
     label: "Discord Webhook"
     status: active
-    entry: "internal/monitor/discord.go"
+    entry: "internal/monitor/notify.go"
     notes: "管理投入・名寄せ・TimeTree 同期の開始/完了/エラー通知"
+
+  - id: prometheus_scraper
+    layer: external
+    kind: external_api
+    label: "Prometheus (ServiceMonitor)"
+    status: active
+    entry: "k8s/manifests/servicemonitor.yaml"
+    notes: "kube-prometheus-stack により 15s 間隔で metrics ポートをスクレイプ"
 
 edges:
   # === Online HTTP Request Paths (L1 -> L2) ===
@@ -627,7 +635,7 @@ edges:
     kind: invoke
     transport: external_https
     status: active
-    entry: "internal/monitor/server.go#SendDiscordWebhook"
+    entry: "internal/monitor/notify.go#SendDiscordWebhook"
     notes: "投入・訂正・起動・テスト通知を送信"
 
   - id: inv_sync_to_identity
@@ -682,4 +690,40 @@ edges:
     transport: external_https
     status: manual
     entry: "internal/xsync/xsync.go"
-    notes: "X 投稿・複数画像取得および dHash 重複判定用ダウンロードを実行（--with-ai 指定時は AI パーサーも呼出可）"
+    notes: "X 投稿・複数画像取得および dHash 重複判定用ダウンロードを実行"
+
+  - id: inv_resync_x_to_parser
+    from: taite_resync_x
+    to: taite_parser
+    kind: invoke
+    transport: https
+    status: manual
+    entry: "cmd/taite/main.go#runResyncX"
+    notes: "--with-ai 指定時かつ画像<2枚・開始時刻不足などコストガード通過時のみ AI パーサーを呼び出す"
+
+  - id: inv_access_report_to_nginx_logs
+    from: access_report_cron
+    to: nginx_proxy
+    kind: invoke
+    transport: k8s_run
+    status: suspended
+    entry: "k8s/manifests/access-report-cronjob.yaml"
+    notes: "--kubernetes-api 経由で Pod のアクセスログを取得（現在 CronJob は suspend: true）"
+
+  - id: inv_access_report_to_discord
+    from: access_report_cron
+    to: discord_webhook
+    kind: invoke
+    transport: external_https
+    status: suspended
+    entry: "k8s/manifests/access-report-cronjob.yaml"
+    notes: "アクセス集計結果を Discord へ送信（現在 CronJob は suspend: true）"
+
+  - id: inv_prometheus_to_metrics
+    from: prometheus_scraper
+    to: metrics_endpoint
+    kind: invoke
+    transport: http_proxy
+    status: active
+    entry: "k8s/manifests/servicemonitor.yaml"
+    notes: "ServiceMonitor 設定により :9090/metrics を 15s ごとにスクレイプ"

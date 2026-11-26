@@ -47,6 +47,7 @@ X告知の巡回、ローカル多段前処理フィルター（メディア有�
 ## 設計資料一覧
 
 - [全体アーキテクチャ設計書](architecture.md)
+- [システム構成・データ経路リファレンス (YAML 自動生成)](system-graph.md) / [記述規約](system-graph-rules.md) / [正本 YAML](system-graph.yaml)
 - [X告知自動巡回・多段前処理フィルター・昇格パイプライン詳細設計書](automated-crawler-and-promotion-pipeline.md)
 - [マルチグループ展開・機能再利用および推し活コンパニオンアプリ設計構想](multi-group-hub-and-reusable-architecture.md)
 - [プライバシー配慮型アクセス集計設計](privacy-preserving-access-counting.md)
