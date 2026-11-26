@@ -42,6 +42,7 @@ type HandlerConfig struct {
 	CloudRunAPIBase     string
 	ScrapeStatePath     string
 	TriggerReconcileJob func(ctx context.Context, group string, dryRun bool) (string, error)
+	ImageFingerprinter  schedule.ImageFingerprinter
 }
 
 type validationError struct {
@@ -80,12 +81,13 @@ func NewHandler(collector *Collector) http.Handler {
 		collector.SetDiscordNotifyEnabled(webhookURL != "")
 	}
 	return NewHandlerWithConfig(collector, nil, nil, HandlerConfig{
-		Store:           store,
-		DataBucket:      dataBucket,
-		StateBucket:     stateBucket,
-		WebhookURL:      webhookURL,
-		CloudRunJob:     strings.TrimSpace(os.Getenv("CLOUD_RUN_RECONCILE_JOB")),
-		CloudRunAPIBase: strings.TrimSpace(os.Getenv("CLOUD_RUN_API_BASE")),
+		Store:              store,
+		DataBucket:         dataBucket,
+		StateBucket:        stateBucket,
+		WebhookURL:         webhookURL,
+		CloudRunJob:        strings.TrimSpace(os.Getenv("CLOUD_RUN_RECONCILE_JOB")),
+		CloudRunAPIBase:    strings.TrimSpace(os.Getenv("CLOUD_RUN_API_BASE")),
+		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(6 * time.Second),
 	})
 }
 
@@ -412,6 +414,11 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			}
 			writeJSONError(w, status, errMsg)
 			return
+		}
+		if cfg.ImageFingerprinter != nil {
+			if deduped, _, dedupeErr := schedule.VisualDedupeScheduleBytes(ctx, updatedBytes, cfg.ImageFingerprinter); dedupeErr == nil {
+				updatedBytes = deduped
+			}
 		}
 		var previous struct {
 			Sessions []struct {

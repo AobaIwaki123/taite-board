@@ -38,12 +38,13 @@ type JobSummary struct {
 
 // RunOptions configures a GCS schedule reconciliation job execution.
 type RunOptions struct {
-	Store         gcs.ObjectStore
-	Bucket        string
-	Group         string // "all" or specific group name (e.g. "ribonclock", "dollykiss")
-	DryRun        bool
-	TriggerSource string
-	EntitiesPath  string
+	Store              gcs.ObjectStore
+	Bucket             string
+	Group              string // "all" or specific group name (e.g. "ribonclock", "dollykiss")
+	DryRun             bool
+	TriggerSource      string
+	EntitiesPath       string
+	ImageFingerprinter schedule.ImageFingerprinter
 }
 
 // DiscoverGroups lists target schedule groups inside the GCS data bucket.
@@ -148,6 +149,20 @@ func Run(ctx context.Context, opts RunOptions) (JobSummary, error) {
 			summary.HasErrors = true
 			summary.Results = append(summary.Results, res)
 			continue
+		}
+		if opts.ImageFingerprinter != nil {
+			deduped, removed, dedupeErr := schedule.VisualDedupeScheduleBytes(ctx, reconciled, opts.ImageFingerprinter)
+			if dedupeErr != nil {
+				res.Error = fmt.Sprintf("visual dedupe %s: %v", primary, dedupeErr)
+				summary.HasErrors = true
+				summary.Results = append(summary.Results, res)
+				continue
+			}
+			if removed > 0 {
+				reconciled = deduped
+				report.Changed = true
+				report.Changes = append(report.Changes, fmt.Sprintf("removed %d visually duplicate image(s)", removed))
+			}
 		}
 		res.Report = report
 

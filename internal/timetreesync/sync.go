@@ -24,12 +24,13 @@ type VersionedStore interface {
 }
 type Target struct{ ID, CalendarID string }
 type Options struct {
-	Source      CalendarSource
-	Store       VersionedStore
-	Bucket      string
-	Targets     []Target
-	From, Until time.Time // inclusive start, exclusive end
-	DryRun      bool
+	Source             CalendarSource
+	Store              VersionedStore
+	Bucket             string
+	Targets            []Target
+	From, Until        time.Time // inclusive start, exclusive end
+	DryRun             bool
+	ImageFingerprinter schedule.ImageFingerprinter
 }
 type GroupResult struct {
 	Group     string   `json:"group"`
@@ -123,6 +124,9 @@ func syncGroup(ctx context.Context, opts Options, target Target, events []timetr
 			}
 			if err == nil {
 				candidate, err = preserveRootFields(updated, candidate)
+			}
+			if err == nil && opts.ImageFingerprinter != nil {
+				candidate, _, err = schedule.VisualDedupeScheduleBytes(ctx, candidate, opts.ImageFingerprinter)
 			}
 			if err == nil {
 				report, validateErr := validate.ValidateBytes(candidate)
