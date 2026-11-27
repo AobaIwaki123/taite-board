@@ -3,6 +3,7 @@
  */
 
 export {
+  AlertTriangle,
   Aperture,
   ArrowRight,
   Box,

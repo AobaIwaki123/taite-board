@@ -1,7 +1,8 @@
 import { Session } from '../types/schedule';
 import { isSessionPast } from '../utils/date';
+import { parseSpecialNotes } from '../utils/notes';
 import { Icon } from './Icon';
-import { MapPin } from '../utils/icons';
+import { AlertTriangle, MapPin } from '../utils/icons';
 
 interface ListViewProps {
   sessions: Session[];
@@ -108,6 +109,17 @@ export function ListView({ sessions, attendedSessionIds = [], onSelectSession }:
                 <div class="text-sm font-extrabold text-white leading-snug line-clamp-2">
                   {session.title}
                 </div>
+
+                {(() => {
+                  const notes = parseSpecialNotes(session.special_notes);
+                  if (notes.length === 0) return null;
+                  return (
+                    <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/12 border border-amber-400/35 text-[11px] text-amber-200">
+                      <Icon icon={AlertTriangle} class="w-3 h-3 text-amber-300 shrink-0" />
+                      <span class="truncate font-semibold">{notes.join(' / ')}</span>
+                    </div>
+                  );
+                })()}
 
                 <div class="text-xs flex items-center justify-between pt-1 border-t border-white/5 text-stone-300">
                   <span class="flex items-center gap-1">
