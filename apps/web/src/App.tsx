@@ -23,6 +23,7 @@ import { PortalView } from './components/PortalView';
 import { LiveCrossTrackView } from './components/LiveCrossTrackView';
 import { SyncAccountModal } from './components/SyncAccountModal';
 import { AdminView } from './components/AdminView';
+import { AdminAuthGate } from './components/AdminAuthGate';
 
 function isAdminMode(): boolean {
   if (typeof window === 'undefined') return false;
@@ -37,16 +38,16 @@ function isAdminMode(): boolean {
 function isArchMode(): boolean {
   if (typeof window === 'undefined') return false;
   const url = new URL(window.location.href);
-  return url.searchParams.get('view') === 'arch' || url.pathname === '/arch';
+  return url.searchParams.get('view') === 'arch' || url.pathname === '/arch' || url.pathname === '/arch/';
 }
 
-function isDevGraphMode(): boolean {
-  if (!import.meta.env.DEV || typeof window === 'undefined') return false;
+function isGraphMode(): boolean {
+  if (typeof window === 'undefined') return false;
   const url = new URL(window.location.href);
-  return url.searchParams.get('view') === 'graph' || url.pathname === '/graph';
+  return url.searchParams.get('view') === 'graph' || url.pathname === '/graph' || url.pathname === '/graph/';
 }
 
-function LazyDevGraphView() {
+function LazyGraphView() {
   const [ViewComponent, setViewComponent] = useState<ComponentType | null>(null);
 
   useEffect(() => {
@@ -61,8 +62,8 @@ function LazyDevGraphView() {
 
   if (!ViewComponent) {
     return (
-      <div class="h-[100dvh] flex items-center justify-center bg-stone-950 text-stone-300 text-meta">
-        System Graph Viewer 読み込み中...
+      <div class="h-[100dvh] flex items-center justify-center bg-slate-950 text-slate-300 text-meta">
+        System Graph Explorer 読み込み中...
       </div>
     );
   }
@@ -114,12 +115,20 @@ function isLiveTrackMode(): { isLive: boolean; eventId?: string } {
 }
 
 export function App() {
-  if (isDevGraphMode()) {
-    return <LazyDevGraphView />;
+  if (isGraphMode()) {
+    return (
+      <AdminAuthGate title="System Graph Explorer">
+        <LazyGraphView />
+      </AdminAuthGate>
+    );
   }
 
   if (isArchMode()) {
-    return <LazyArchView />;
+    return (
+      <AdminAuthGate title="Architecture & Pipeline Reviewer">
+        <LazyArchView />
+      </AdminAuthGate>
+    );
   }
 
   if (isAdminMode()) {

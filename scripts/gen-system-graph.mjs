@@ -24,6 +24,7 @@ const DATAFLOW_D2_PATH = resolve(ROOT_DIR, 'docs/graph-dataflow.d2');
 const OVERVIEW_SVG_PATH = resolve(ROOT_DIR, 'docs/graph-overview.svg');
 const DATAFLOW_SVG_PATH = resolve(ROOT_DIR, 'docs/graph-dataflow.svg');
 const MARKDOWN_PATH = resolve(ROOT_DIR, 'docs/system-graph.md');
+const GRAPH_JSON_PATH = resolve(ROOT_DIR, 'docs/system-graph.json');
 
 const LAYER_META = {
   edge: { title: 'L1: Edge / Client', fill: '#0f172a', stroke: '#fb7185' },
@@ -378,23 +379,26 @@ function main() {
   const overviewD2 = buildOverviewD2(graph);
   const dataflowD2 = buildDataflowD2(graph);
   const markdown = buildSystemGraphMarkdown(graph);
+  const graphJson = `${JSON.stringify(graph, null, 2)}\n`;
 
   if (args.has('--check')) {
     const currOverview = existsSync(OVERVIEW_D2_PATH) ? readFileSync(OVERVIEW_D2_PATH, 'utf8') : '';
     const currDataflow = existsSync(DATAFLOW_D2_PATH) ? readFileSync(DATAFLOW_D2_PATH, 'utf8') : '';
     const currMd = existsSync(MARKDOWN_PATH) ? readFileSync(MARKDOWN_PATH, 'utf8') : '';
-    if (currOverview !== overviewD2 || currDataflow !== dataflowD2 || currMd !== markdown) {
+    const currJson = existsSync(GRAPH_JSON_PATH) ? readFileSync(GRAPH_JSON_PATH, 'utf8') : '';
+    if (currOverview !== overviewD2 || currDataflow !== dataflowD2 || currMd !== markdown || currJson !== graphJson) {
       console.error('System graph artifacts are out of date. Run: node scripts/gen-system-graph.mjs --render');
       process.exit(1);
     }
-    console.log('System graph D2/Markdown artifacts match docs/system-graph.yaml.');
+    console.log('System graph D2/Markdown/JSON artifacts match docs/system-graph.yaml.');
     return;
   }
 
   writeFileSync(OVERVIEW_D2_PATH, overviewD2, 'utf8');
   writeFileSync(DATAFLOW_D2_PATH, dataflowD2, 'utf8');
   writeFileSync(MARKDOWN_PATH, markdown, 'utf8');
-  console.log('Generated docs/graph-overview.d2, docs/graph-dataflow.d2, and docs/system-graph.md');
+  writeFileSync(GRAPH_JSON_PATH, graphJson, 'utf8');
+  console.log('Generated docs/graph-overview.d2, docs/graph-dataflow.d2, docs/system-graph.md, and docs/system-graph.json');
 
   if (args.has('--render')) {
     execFileSync('d2', ['--layout=tala', '--theme=201', '--pad=24', OVERVIEW_D2_PATH, OVERVIEW_SVG_PATH], { stdio: 'inherit' });

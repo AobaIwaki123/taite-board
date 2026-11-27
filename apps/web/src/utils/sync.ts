@@ -379,3 +379,55 @@ export async function authorizedAdminFetch(
 
   return res;
 }
+
+export interface AuthUserInfo {
+  user_id: string;
+  uid: string;
+  role: SyncRole;
+}
+
+/**
+ * Checks the caller's authentication and RBAC role via /api/sync/me.
+ * Returns null if not authenticated (401).
+ */
+export async function fetchCurrentAuthUser(): Promise<AuthUserInfo | null> {
+  let current = getSyncSession();
+  if (current) {
+    try {
+      current = await ensureValidSession(current, false);
+    } catch {
+      current = getSyncSession();
+    }
+  }
+
+  const headers: Record<string, string> = {};
+  if (current?.idToken) {
+    headers.Authorization = `Bearer ${current.idToken}`;
+  }
+
+  let res = await fetch('/api/sync/me', {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers,
+  });
+
+  if (res.status === 401 && current) {
+    try {
+      const refreshed = await ensureValidSession(current, true);
+      res = await fetch('/api/sync/me', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Authorization: `Bearer ${refreshed.idToken}` },
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  if (!res.ok) return null;
+  const info = (await res.json()) as AuthUserInfo;
+  if (current && current.role !== info.role) {
+    saveSyncSession({ ...current, role: info.role });
+  }
+  return info;
+}

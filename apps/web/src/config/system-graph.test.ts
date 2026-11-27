@@ -34,6 +34,7 @@ test('generated D2, Markdown, and JSON system graph artifacts stay in sync', () 
   assert.equal(exported.edges.length, graph.edges.length);
   assert.ok(existsSync(resolve(root, 'docs/graph-overview.svg')), 'missing docs/graph-overview.svg');
   assert.ok(existsSync(resolve(root, 'docs/graph-dataflow.svg')), 'missing docs/graph-dataflow.svg');
+  assert.ok(existsSync(resolve(root, 'docs/system-graph.json')), 'missing docs/system-graph.json');
 });
 
 test('a reversed Store -> Actor data edge is rejected', () => {
