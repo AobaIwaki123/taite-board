@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { authorizedAdminFetch } from '../utils/sync';
 import {
   buildSvgEdgeLookup,
   computeVisibility,
@@ -114,20 +115,26 @@ export function DevGraphView() {
 
   const loadGraphData = useCallback(async (mode: GraphViewMode) => {
     try {
-      const yamlPromise = fetch('/__dev/system-graph.json', { cache: 'no-store' });
+      const fetchDoc = (devPath: string, prodAdminSubpath: string) =>
+        import.meta.env.DEV
+          ? fetch(devPath, { cache: 'no-store' })
+          : authorizedAdminFetch(prodAdminSubpath, { cache: 'no-store' });
+
+      const yamlPromise = fetchDoc('/__dev/system-graph.json', '/system-graph');
       if (mode === 'board') {
         const yamlRes = await yamlPromise;
-        if (!yamlRes.ok) throw new Error(`system-graph.json HTTP ${yamlRes.status}`);
+        if (!yamlRes.ok) throw new Error(`system-graph HTTP ${yamlRes.status}`);
         setGraph((await yamlRes.json()) as SystemGraphData);
         setSvgMarkup('');
         setErrorMsg(null);
         return;
       }
 
-      const svgPath = mode === 'overview' ? '/__dev/graph-overview.svg' : '/__dev/graph-dataflow.svg';
-      const [yamlRes, svgRes] = await Promise.all([yamlPromise, fetch(svgPath, { cache: 'no-store' })]);
-      if (!yamlRes.ok) throw new Error(`system-graph.json HTTP ${yamlRes.status}`);
-      if (!svgRes.ok) throw new Error(`${svgPath} HTTP ${svgRes.status}`);
+      const devSvgPath = mode === 'overview' ? '/__dev/graph-overview.svg' : '/__dev/graph-dataflow.svg';
+      const prodSvgPath = mode === 'overview' ? '/graph-overview.svg' : '/graph-dataflow.svg';
+      const [yamlRes, svgRes] = await Promise.all([yamlPromise, fetchDoc(devSvgPath, prodSvgPath)]);
+      if (!yamlRes.ok) throw new Error(`system-graph HTTP ${yamlRes.status}`);
+      if (!svgRes.ok) throw new Error(`SVG HTTP ${svgRes.status}`);
       setGraph((await yamlRes.json()) as SystemGraphData);
       setSvgMarkup(await svgRes.text());
       setErrorMsg(null);
@@ -531,19 +538,33 @@ export function DevGraphView() {
       <header class="shrink-0 px-3 py-2 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <a
-            href="./?view=arch"
+            href="/"
+            class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white"
+          >
+            Schedule
+          </a>
+          <a
+            href="/admin"
+            class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white"
+          >
+            Admin
+          </a>
+          <a
+            href="/?view=arch"
             class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white"
           >
             3D Arch
           </a>
           <a
-            href="./"
+            href="/admin/dashboard"
             class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 hover:text-white"
           >
-            Schedule
+            Monitor
           </a>
           <div class="min-w-0 pl-1">
-            <h1 class="text-sm font-bold text-slate-100 truncate">System Graph Explorer (Dev)</h1>
+            <h1 class="text-sm font-bold text-slate-100 truncate">
+              System Graph Explorer{import.meta.env.DEV ? ' (Dev)' : ''}
+            </h1>
             <p class="text-[11px] text-slate-400 truncate">
               docs/system-graph.yaml ({graph?.nodes.length ?? 0} nodes / {graph?.edges.length ?? 0} edges)
             </p>
@@ -622,16 +643,19 @@ export function DevGraphView() {
             </>
           )}
 
-          <span class="w-px h-5 bg-slate-800 mx-0.5" />
-
-          <button
-            type="button"
-            disabled={renderingD2}
-            onClick={() => void handleRerenderD2()}
-            class="px-2.5 py-1 rounded-lg border border-sky-400/40 bg-sky-500/15 text-xs text-sky-200 hover:bg-sky-500/25 disabled:opacity-50 cursor-pointer"
-          >
-            {renderingD2 ? 'Rendering...' : 'Re-render D2'}
-          </button>
+          {import.meta.env.DEV && (
+            <>
+              <span class="w-px h-5 bg-slate-800 mx-0.5" />
+              <button
+                type="button"
+                disabled={renderingD2}
+                onClick={() => void handleRerenderD2()}
+                class="px-2.5 py-1 rounded-lg border border-sky-400/40 bg-sky-500/15 text-xs text-sky-200 hover:bg-sky-500/25 disabled:opacity-50 cursor-pointer"
+              >
+                {renderingD2 ? 'Rendering...' : 'Re-render D2'}
+              </button>
+            </>
+          )}
         </div>
       </header>
 

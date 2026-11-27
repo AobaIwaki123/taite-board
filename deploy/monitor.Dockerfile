@@ -27,6 +27,7 @@ COPY --from=builder /bin/monitor /bin/monitor
 COPY --from=builder /bin/timetree-sync /bin/timetree-sync
 COPY --from=builder /bin/taite /bin/taite
 COPY data ./data
+COPY docs/system-graph.json docs/graph-overview.svg docs/graph-dataflow.svg docs/architecture.manifest.json ./docs/
 
 USER 65532:65532
 

@@ -570,14 +570,24 @@ export function ArchView() {
           >
             Back
           </a>
-          {import.meta.env.DEV && (
-            <a
-              href="/?view=graph"
-              class="px-2.5 py-1 rounded-lg border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/25 text-floor font-medium transition-colors"
-            >
-              2D Graph (Dev)
-            </a>
-          )}
+          <a
+            href="/admin"
+            class="px-2.5 py-1 rounded-lg border border-white/10 bg-stone-900 text-stone-300 hover:text-stone-100 text-floor font-medium transition-colors"
+          >
+            Admin
+          </a>
+          <a
+            href="/?view=graph"
+            class="px-2.5 py-1 rounded-lg border border-sky-400/40 bg-sky-500/15 text-sky-200 hover:bg-sky-500/25 text-floor font-medium transition-colors"
+          >
+            2D Graph
+          </a>
+          <a
+            href="/admin/dashboard"
+            class="px-2.5 py-1 rounded-lg border border-white/10 bg-stone-900 text-stone-300 hover:text-stone-100 text-floor font-medium transition-colors"
+          >
+            Monitor
+          </a>
           <div class="min-w-0">
             <h1 class="text-body font-bold tracking-tight text-stone-100 truncate">
               Architecture & Pipeline Reviewer

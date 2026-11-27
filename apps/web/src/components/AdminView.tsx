@@ -723,6 +723,24 @@ export function AdminView() {
               <Icon icon={User} class="w-3.5 h-3.5" />
             </button>
             <a
+              href="/?view=graph"
+              class="flex items-center gap-1 px-2.5 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-bold text-stone-300 hover:text-white whitespace-nowrap transition-colors"
+            >
+              <span>構成図</span>
+            </a>
+            <a
+              href="/?view=arch"
+              class="flex items-center gap-1 px-2.5 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-bold text-stone-300 hover:text-white whitespace-nowrap transition-colors"
+            >
+              <span>3D図</span>
+            </a>
+            <a
+              href="/admin/dashboard"
+              class="flex items-center gap-1 px-2.5 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-bold text-stone-300 hover:text-white whitespace-nowrap transition-colors"
+            >
+              <span>監視</span>
+            </a>
+            <a
               href="/"
               class="flex items-center gap-1 px-2.5 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-xs font-bold text-stone-300 hover:text-white whitespace-nowrap transition-colors"
             >

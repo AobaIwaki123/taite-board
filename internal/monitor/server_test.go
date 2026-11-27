@@ -1033,3 +1033,45 @@ func TestServer_ScrapePipelineEndpoints(t *testing.T) {
 		t.Fatalf("expected 0 pending items after dismiss, got %+v", listResp.Items)
 	}
 }
+
+func TestServer_ArchitectureDocEndpoints(t *testing.T) {
+	docsDir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(docsDir, "system-graph.json"), []byte(`{"schema_version":1,"nodes":[],"edges":[]}`), 0644)
+	_ = os.WriteFile(filepath.Join(docsDir, "graph-overview.svg"), []byte(`<svg xmlns="http://www.w3.org/2000/svg"></svg>`), 0644)
+	_ = os.WriteFile(filepath.Join(docsDir, "graph-dataflow.svg"), []byte(`<svg id="df"></svg>`), 0644)
+	_ = os.WriteFile(filepath.Join(docsDir, "architecture.manifest.json"), []byte(`{"components":[]}`), 0644)
+
+	handler := NewHandlerWithConfig(NewCollector("test-v1"), nil, nil, HandlerConfig{
+		DocsDir: docsDir,
+	})
+
+	cases := []struct {
+		path string
+		ct   string
+		body string
+	}{
+		{"/api/system-graph", "application/json", `"schema_version":1`},
+		{"/api/graph-overview.svg", "image/svg+xml", `<svg xmlns=`},
+		{"/api/graph-dataflow.svg", "image/svg+xml", `<svg id="df"`},
+		{"/api/architecture-manifest", "application/json", `"components":[]`},
+	}
+
+	for _, tc := range cases {
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("%s returned %d: %s", tc.path, rec.Code, rec.Body.String())
+		}
+		if got := rec.Header().Get("Content-Type"); !strings.Contains(got, tc.ct) {
+			t.Errorf("%s Content-Type = %q, want %q", tc.path, got, tc.ct)
+		}
+		if !strings.Contains(rec.Body.String(), tc.body) {
+			t.Errorf("%s body mismatch: %s", tc.path, rec.Body.String())
+		}
+		postRec := httptest.NewRecorder()
+		handler.ServeHTTP(postRec, httptest.NewRequest(http.MethodPost, tc.path, nil))
+		if postRec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("%s POST expected 405, got %d", tc.path, postRec.Code)
+		}
+	}
+}

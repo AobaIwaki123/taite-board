@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ type HandlerConfig struct {
 	CloudRunJob         string
 	CloudRunAPIBase     string
 	ScrapeStatePath     string
+	DocsDir             string
 	TriggerReconcileJob func(ctx context.Context, group string, dryRun bool) (string, error)
 	ImageFingerprinter  schedule.ImageFingerprinter
 }
@@ -154,6 +156,15 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "ok")
 	})
+
+	docsDir := strings.TrimSpace(cfg.DocsDir)
+	if docsDir == "" {
+		docsDir = "docs"
+	}
+	registerDocEndpoint(mux, "/api/system-graph", docsDir, "system-graph.json", "application/json; charset=utf-8")
+	registerDocEndpoint(mux, "/api/graph-overview.svg", docsDir, "graph-overview.svg", "image/svg+xml; charset=utf-8")
+	registerDocEndpoint(mux, "/api/graph-dataflow.svg", docsDir, "graph-dataflow.svg", "image/svg+xml; charset=utf-8")
+	registerDocEndpoint(mux, "/api/architecture-manifest", docsDir, "architecture.manifest.json", "application/json; charset=utf-8")
 
 	// 5. Intake API (Fetch & Resolve X Post)
 	type intakeRequest struct {
@@ -1371,5 +1382,30 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{
 		"error": msg,
+	})
+}
+
+func registerDocEndpoint(mux *http.ServeMux, route, docsDir, filename, contentType string) {
+	targetPath := filepath.Join(docsDir, filename)
+	mux.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		data, err := os.ReadFile(targetPath)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				writeJSONError(w, http.StatusNotFound, "architecture artifact not found")
+				return
+			}
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("reading %s: %v", filename, err))
+			return
+		}
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusOK)
+		if r.Method != http.MethodHead {
+			_, _ = w.Write(data)
+		}
 	})
 }
