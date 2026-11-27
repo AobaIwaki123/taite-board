@@ -1,10 +1,12 @@
 import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
 import { isSessionPast, getSessionProgress, getTodayStr } from '../utils/date';
+import { parseSpecialNotes } from '../utils/notes';
 import { Icon } from './Icon';
 import { ExpenseMemoCard } from './ExpenseMemoCard';
 import { PromotionBanner } from './PromotionBanner';
 import {
+  AlertTriangle,
   Calendar,
   CalendarDays,
   Check,
@@ -448,6 +450,32 @@ export function CockpitView({
 
       {/* レギュレーション・特記事項 */}
       <div class="space-y-2">
+        {/* 特記事項 */}
+        {(() => {
+          const specialNotes = parseSpecialNotes(session.special_notes);
+          if (specialNotes.length === 0) return null;
+          return (
+            <div
+              data-testid="special-notes-card"
+              class="p-3.5 rounded-xl bg-amber-500/12 border-2 border-amber-400/60 shadow-md shadow-amber-950/40 text-xs flex items-start gap-2.5"
+            >
+              <Icon icon={AlertTriangle} class="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+              <div class="space-y-1 min-w-0 flex-1">
+                <div class="font-extrabold text-amber-200 tracking-wide">特記事項</div>
+                {specialNotes.length === 1 ? (
+                  <p class="text-amber-50 leading-relaxed font-medium break-words">{specialNotes[0]}</p>
+                ) : (
+                  <ul class="space-y-1 text-amber-50 leading-relaxed font-medium list-disc pl-4">
+                    {specialNotes.map((line, idx) => (
+                      <li key={idx} class="break-words">{line}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* 撮影可否・撮可曲ルール */}
         {(session.photo?.rule ||
           session.photo?.song_number ||

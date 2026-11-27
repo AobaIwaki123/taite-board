@@ -14,7 +14,7 @@
 | **06** | [`06-ticket-price-extraction.md`](06-ticket-price-extraction.md) | チケット料金（`ticket.prices`）の抽出・保持パイプライン整備と家計簿連携改善 | **可能（バックエンド中心・07と連携）** | `internal/resolve/`, `internal/parser/`, `internal/schedule/`, `internal/monitor/`, `AdminView.tsx` |
 | **07** | [`07-expense-memo-drink-input-and-privacy-notice.md`](07-expense-memo-drink-input-and-privacy-notice.md) | 家計簿ドリンク代の任意金額入力対応とプライバシー非共有の注意書き明記 | **可能（フロントエンドで独立可）** | `apps/web/src/utils/expense.ts`, `ExpenseMemoCard.tsx`, `SyncAccountModal.tsx` |
 | **08** | [`08-google-calendar-export.md`](08-google-calendar-export.md) | 公演詳細からの Google カレンダー登録導線（時間・会場・URL 出力）追加 | **可能（フロントエンドで独立可）** | `apps/web/src/utils/`, `CockpitView.tsx` |
-| **09** | [`09-special-notes-visibility.md`](09-special-notes-visibility.md) | 特記事項（`special_notes`）の表示欠落解消と視認性強化 | **可能（フロントエンドで独立可）** | `apps/web/src/components/CockpitView.tsx`, `ListView.tsx` |
+| **09** | [`09-special-notes-visibility.md`](09-special-notes-visibility.md) | 特記事項（`special_notes`）の表示欠落解消と視認性強化 | **完了（Cockpit/List 表示強化済み）** | `apps/web/src/components/CockpitView.tsx`, `ListView.tsx` |
 | **10** | [`10-timetree-x-image-dedupe.md`](10-timetree-x-image-dedupe.md) | TimeTree 既存予定への X 追加時における画像重複とソース優先順位の解消 | **可能（Go バックエンド中心で独立可）** | `internal/schedule/visual_dedupe.go`, `internal/monitor/server.go`, `internal/reconcile/` |
 
 ## 共通の開発ルール・前提
