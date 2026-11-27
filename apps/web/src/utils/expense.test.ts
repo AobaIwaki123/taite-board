@@ -48,6 +48,16 @@ test('calculateExpenseTotal computes sums correctly', () => {
     }),
     9700
   );
+
+  assert.equal(
+    calculateExpenseTotal({
+      ticketFee: 2500,
+      drinkFee: 1200, // custom 2D fee
+      chekiSignedCount: 0,
+      chekiRegularCount: 1,
+    }),
+    4700
+  );
 });
 
 test('defaultSessionExpense provides safe initial structure', () => {

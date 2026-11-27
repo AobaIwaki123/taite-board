@@ -7,7 +7,7 @@ export type DrinkFeeOption = (typeof DRINK_FEE_OPTIONS)[number];
 export interface SessionExpense {
   ticketFee: number;
   ticketLabel?: string; // '前方' | '通常' | '手入力' | '無料' など
-  drinkFee: DrinkFeeOption;
+  drinkFee: number;
   chekiSignedCount: number; // サイン有り (¥2,000)
   chekiRegularCount: number; // サイン無し (¥1,000)
   memo: string;

@@ -4,7 +4,6 @@ import {
   CHEKI_SIGNED_PRICE,
   CHEKI_REGULAR_PRICE,
   DRINK_FEE_OPTIONS,
-  type DrinkFeeOption,
   type SessionExpense,
   defaultSessionExpense,
   calculateExpenseTotal,
@@ -197,7 +196,7 @@ export function ExpenseMemoCard({
             </div>
           </div>
 
-          {/* ドリンク代 (D代: 0 / 500 / 600 / 700) */}
+          {/* ドリンク代 (プリセット + 任意入力) */}
           <div class="space-y-1.5 pt-1 border-t border-white/5">
             <div class="flex items-center justify-between text-stone-400">
               <span class="font-bold">ドリンク代 (D代)</span>
@@ -213,7 +212,7 @@ export function ExpenseMemoCard({
                   onClick={() =>
                     updateExpense((prev) => ({
                       ...prev,
-                      drinkFee: fee as DrinkFeeOption,
+                      drinkFee: fee,
                     }))
                   }
                   class={`py-1 rounded-lg text-xs font-bold transition-all border text-center ${
@@ -225,6 +224,26 @@ export function ExpenseMemoCard({
                   {fee === 0 ? '0円 (込)' : `¥${fee}`}
                 </button>
               ))}
+            </div>
+            <div class="flex items-center justify-end gap-1 pt-0.5">
+              <span class="text-stone-500 text-[11px]">任意入力:</span>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                placeholder="0"
+                aria-label="ドリンク代 任意入力"
+                value={expense.drinkFee || ''}
+                onInput={(e) => {
+                  const val = parseInt((e.target as HTMLInputElement).value, 10) || 0;
+                  updateExpense((prev) => ({
+                    ...prev,
+                    drinkFee: Math.max(0, val),
+                  }));
+                }}
+                class="w-20 px-2 py-0.5 rounded bg-stone-900 border border-white/10 text-right text-stone-200 font-mono focus:outline-none focus:border-sky-500"
+              />
+              <span class="text-stone-500 text-[11px]">円</span>
             </div>
           </div>
 
@@ -362,10 +381,10 @@ export function ExpenseMemoCard({
 
           {/* 保存・同期に関する案内 */}
           <div class="text-xs text-stone-300 leading-relaxed bg-stone-900/60 p-2.5 rounded-lg border border-white/5 flex items-center justify-between gap-2 flex-wrap">
-            <span>
+            <span class="flex-1 min-w-[180px]">
               {syncUserId
-                ? `入力内容は「${syncUserId}」のアカウントでクラウド同期されます。`
-                : '未ログイン時はこの端末のブラウザ内のみに保存されます。'}
+                ? `入力内容は「${syncUserId}」の他端末同期用領域にのみ保存され、管理画面や集計機能へ共有・表示されることはありません。`
+                : '未ログイン時はこの端末のブラウザ内のみに保存され、外部サーバーや管理者側へ送信・共有されることはありません。'}
             </span>
             {onOpenSyncModal && (
               <button
