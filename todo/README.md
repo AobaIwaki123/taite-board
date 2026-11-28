@@ -16,6 +16,10 @@
 | **08** | [`08-google-calendar-export.md`](08-google-calendar-export.md) | 公演詳細からの Google カレンダー登録導線（時間・会場・URL 出力）追加 | **完了（CockpitView 導線追加済み）** | `apps/web/src/utils/calendar.ts`, `CockpitView.tsx` |
 | **09** | [`09-special-notes-visibility.md`](09-special-notes-visibility.md) | 特記事項（`special_notes`）の表示欠落解消と視認性強化 | **完了（Cockpit/List 表示強化済み）** | `apps/web/src/components/CockpitView.tsx`, `ListView.tsx` |
 | **10** | [`10-timetree-x-image-dedupe.md`](10-timetree-x-image-dedupe.md) | TimeTree 既存予定への X 追加時における画像重複とソース優先順位の解消 | **完了（単一セッション走査化・`/patch` 適用・X 優先保持）** | `internal/schedule/visual_dedupe.go`, `internal/monitor/server.go`, `internal/reconcile/` |
+| **11** | [`11-admin-auth-rbac-hardening.md`](11-admin-auth-rbac-hardening.md) | 管理者権限（RBAC）・認証境界・入力防御のハードニング（`:8082` 露出・`Secure` Cookie・CSRF・`fixture_path`・`AdminAuthGate` 統一） | **先行推奨（セキュリティ境界修正）** | `cmd/monitor/main.go`, `internal/syncapi/handler.go`, `internal/monitor/server.go`, `deploy/nginx.conf`, `k8s/manifests/` |
+| **12** | [`12-gcs-concurrency-and-store-consolidation.md`](12-gcs-concurrency-and-store-consolidation.md) | バックエンド書込競合の根絶（世代ロック統一・並列反映防止）と GCS・レガシーミラー・State ストア統合整理 | **可能（11/13と連携）** | `internal/gcs/`, `internal/monitor/`, `internal/reconcile/`, `internal/scrape/`, `internal/schedule/` |
+| **13** | [`13-unused-paths-and-legacy-surface-cleanup.md`](13-unused-paths-and-legacy-surface-cleanup.md) | 可視化構成に基づく無駄なパス・ポート・レガシー HTML・休止 CronJob・冗長 Nginx 設定の廃止整理 | **可能（11/12完了後または並行設計可）** | `deploy/nginx.conf`, `internal/monitor/`, `k8s/manifests/`, `docs/system-graph.yaml` |
+| **14** | [`14-ui-ux-reliability-fixes.md`](14-ui-ux-reliability-fixes.md) | UI/UX の実不具合修正（`PortalView` 静的データ・バージョンズレ解消、一括反映直列化、`AdminAuthGate` 統一） | **可能（Web 単体で独立可）** | `apps/web/src/App.tsx`, `PortalView.tsx`, `AdminView.tsx` |
 
 ## 共通の開発ルール・前提
 
