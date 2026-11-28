@@ -20,6 +20,7 @@
 | **12** | [`12-gcs-concurrency-and-store-consolidation.md`](12-gcs-concurrency-and-store-consolidation.md) | バックエンド書込競合の根絶（世代ロック統一・並列反映防止）と GCS・レガシーミラー・State ストア統合整理 | **可能（11/13と連携）** | `internal/gcs/`, `internal/monitor/`, `internal/reconcile/`, `internal/scrape/`, `internal/schedule/` |
 | **13** | [`13-unused-paths-and-legacy-surface-cleanup.md`](13-unused-paths-and-legacy-surface-cleanup.md) | 可視化構成に基づく無駄なパス・ポート・レガシー HTML・休止 CronJob・冗長 Nginx 設定の廃止整理 | **可能（11/12完了後または並行設計可）** | `deploy/nginx.conf`, `internal/monitor/`, `k8s/manifests/`, `docs/system-graph.yaml` |
 | **14** | [`14-ui-ux-reliability-fixes.md`](14-ui-ux-reliability-fixes.md) | UI/UX の実不具合修正（`PortalView` 静的データ・バージョンズレ解消、一括反映直列化、`AdminAuthGate` 統一） | **可能（Web 単体で独立可）** | `apps/web/src/App.tsx`, `PortalView.tsx`, `AdminView.tsx` |
+| **15** | [`15-special-notes-parser-audit.md`](15-special-notes-parser-audit.md) | 特記事項（`special_notes`）の実データ検査と必要に応じたパーサー・マージ処理の修正 | **可能（パーサー独立で着手可）** | `internal/resolve/`, `internal/parser/`, `internal/timetreesync/`, `internal/schedule/` |
 
 ## 共通の開発ルール・前提
 
