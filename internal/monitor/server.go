@@ -89,7 +89,7 @@ func NewHandler(collector *Collector) http.Handler {
 		WebhookURL:         webhookURL,
 		CloudRunJob:        strings.TrimSpace(os.Getenv("CLOUD_RUN_RECONCILE_JOB")),
 		CloudRunAPIBase:    strings.TrimSpace(os.Getenv("CLOUD_RUN_API_BASE")),
-		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(6 * time.Second),
+		ImageFingerprinter: schedule.NewHTTPImageFingerprinter(8 * time.Second),
 	})
 }
 
@@ -429,7 +429,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			return
 		}
 		if cfg.ImageFingerprinter != nil {
-			if deduped, _, dedupeErr := schedule.VisualDedupeScheduleBytes(ctx, updatedBytes, cfg.ImageFingerprinter); dedupeErr == nil {
+			if deduped, _, dedupeErr := schedule.VisualDedupeSessionByIDBytes(ctx, updatedBytes, sessionID, cfg.ImageFingerprinter); dedupeErr == nil {
 				updatedBytes = deduped
 			}
 		}
@@ -650,6 +650,11 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			recordAndNotifyFailure(collector, cfg, "patch_error", group, targetDate, targetTitle, targetVenue, strings.TrimSpace(req.SourceURL), errMsg)
 			writeJSONError(w, http.StatusUnprocessableEntity, errMsg)
 			return
+		}
+		if cfg.ImageFingerprinter != nil {
+			if deduped, _, dedupeErr := schedule.VisualDedupeSessionByIDBytes(ctx, updatedBytes, sessionID, cfg.ImageFingerprinter); dedupeErr == nil {
+				updatedBytes = deduped
+			}
 		}
 
 		if err := writeGroupSchedule(ctx, cfg, group, updatedBytes); err != nil {
