@@ -96,6 +96,17 @@ func Extract(calendarID string, event timetree.Event) (schedule.AddSessionOption
 	if opts.TicketURL == "" && ticketLink.MatchString(event.URL) {
 		opts.TicketURL = event.URL
 	}
+	if extractedPrices := resolve.ExtractTicketPrices(event.Description); len(extractedPrices) > 0 {
+		prices := make([]schedule.TicketPrice, 0, len(extractedPrices))
+		for _, p := range extractedPrices {
+			prices = append(prices, schedule.TicketPrice{
+				Tier:   p.Tier,
+				Price:  p.Price,
+				Amount: p.Amount,
+			})
+		}
+		opts.TicketPrices = prices
+	}
 	opts.Title = cleanText(opts.Title)
 	opts.AdmissionBonus = cleanText(opts.AdmissionBonus)
 	if opts.Title == "" {

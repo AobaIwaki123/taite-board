@@ -230,6 +230,19 @@ func (r *Resolver) Resolve(text string, images []string) (candidate.EventCandida
 			Confidence: 0.95,
 		})
 	}
+	if prices := ExtractTicketPrices(text); len(prices) > 0 {
+		cand.TicketPrices = prices
+		summary := make([]string, 0, len(prices))
+		for _, p := range prices {
+			summary = append(summary, strings.TrimSpace(p.Tier+" "+p.Price))
+		}
+		evidences = append(evidences, candidate.Evidence{
+			Field:      "ticket_prices",
+			Source:     "text",
+			Quote:      strings.Join(summary, " / "),
+			Confidence: 0.9,
+		})
+	}
 
 	// Extract Clean Title (prefer quoted event title, ignoring photo song lines)
 	cand.Title = extractCleanTitle(text)

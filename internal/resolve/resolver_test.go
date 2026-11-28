@@ -210,3 +210,49 @@ https://ticketdive.com/event/261125_PF`
 		t.Errorf("unexpected booth/ticket: %+v", pCand)
 	}
 }
+
+func TestExtractTicketPrices(t *testing.T) {
+	post := `
+🎀リボンクロック出演情報🎀
+11/28(土) 渋谷RING
+LIVE 18:30〜19:00
+特典会 19:15〜20:15
+🎁入場特典：2Sチェキ券（¥1,500相当）
+🎫チケット料金
+前方S ¥5,000 (+1D) / 一般 ¥2,500 (+1D) / 女性 無料
+当日 +¥500
+※別途1ドリンク代600円
+https://tiget.net/events/999999
+`
+	prices := ExtractTicketPrices(post)
+	if len(prices) != 4 {
+		t.Fatalf("expected 4 extracted ticket prices, got %d: %+v", len(prices), prices)
+	}
+	want := []struct {
+		tier   string
+		price  string
+		amount int
+	}{
+		{"前方S", "¥5,000 (+1D)", 5000},
+		{"一般", "¥2,500 (+1D)", 2500},
+		{"女性", "無料", 0},
+		{"当日", "+¥500", 500},
+	}
+	for i, w := range want {
+		if prices[i].Tier != w.tier || prices[i].Price != w.price || prices[i].Amount != w.amount {
+			t.Errorf("price[%d] = %+v, want %+v", i, prices[i], w)
+		}
+	}
+
+	r, err := NewResolver("../../data/curated/entities.json")
+	if err != nil {
+		t.Fatalf("failed to init resolver: %v", err)
+	}
+	cand, _, _ := r.Resolve("料金：【前売】3,200円 / 【当日】3,700円\n11/29 渋谷CLUB QUATTRO\nLIVE 19:00-19:25", nil)
+	if len(cand.TicketPrices) != 2 {
+		t.Fatalf("expected 2 ticket prices via Resolve, got %+v", cand.TicketPrices)
+	}
+	if cand.TicketPrices[0].Tier != "前売" || cand.TicketPrices[0].Amount != 3200 || cand.TicketPrices[1].Tier != "当日" || cand.TicketPrices[1].Amount != 3700 {
+		t.Errorf("unexpected resolved ticket prices: %+v", cand.TicketPrices)
+	}
+}

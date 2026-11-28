@@ -338,9 +338,10 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		LiveEnd         string `json:"live_end"`
 		BenefitStart    string `json:"benefit_start"`
 		BenefitEnd      string `json:"benefit_end"`
-		Booth           string `json:"booth"`
-		TicketURL       string   `json:"ticket_url"`
-		ImageURL        string   `json:"image_url"`
+		Booth           string                  `json:"booth"`
+		TicketURL       string                  `json:"ticket_url"`
+		TicketPrices    []schedule.TicketPrice  `json:"ticket_prices"`
+		ImageURL        string                  `json:"image_url"`
 		Images          []string `json:"images"`
 		AdmissionBonus  string   `json:"admission_bonus"`
 		SpecialNotes    string `json:"special_notes"`
@@ -408,6 +409,7 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			BenefitEndTime:   strings.TrimSpace(req.BenefitEnd),
 			Booth:            strings.TrimSpace(req.Booth),
 			TicketURL:        strings.TrimSpace(req.TicketURL),
+			TicketPrices:     req.TicketPrices,
 			ImageURL:         strings.TrimSpace(req.ImageURL),
 			ImageURLs:        req.Images,
 			SourceTweetURL:   strings.TrimSpace(req.SourceURL),
@@ -534,8 +536,10 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 		Group             string `json:"group"`
 		SessionID         string `json:"session_id"`
 		Date              string `json:"date"`
-		AdmissionBonus    string `json:"admission_bonus"`
-		PhotoSong         string `json:"photo_song"`
+		AdmissionBonus    string                 `json:"admission_bonus"`
+		TicketURL         string                 `json:"ticket_url"`
+		TicketPrices      []schedule.TicketPrice `json:"ticket_prices"`
+		PhotoSong         string                 `json:"photo_song"`
 		PhotoSongNumber   int    `json:"photo_song_number"`
 		PhotoDevice       string `json:"photo_device"`
 		PhotoRule         string `json:"photo_rule"`
@@ -641,6 +645,8 @@ func NewHandlerWithConfig(collector *Collector, fetcher PostFetcher, resolver In
 			PhotoDevice:       strings.TrimSpace(req.PhotoDevice),
 			PhotoAvailable:    photoAvailable,
 			AdmissionBonus:    strings.TrimSpace(req.AdmissionBonus),
+			TicketURL:         strings.TrimSpace(req.TicketURL),
+			TicketPrices:      req.TicketPrices,
 			SpecialNotes:      strings.TrimSpace(req.SpecialNotes),
 			SourceTweetURL:    strings.TrimSpace(req.SourceURL),
 			UpdateOfficialURL: req.UpdateOfficialURL,

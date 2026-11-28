@@ -348,6 +348,17 @@ func applyResolvedIfMissing(dst *schedule.AddSessionOptions, c candidate.EventCa
 	if dst.TicketURL == "" {
 		dst.TicketURL = c.TicketURL
 	}
+	if len(dst.TicketPrices) == 0 && len(c.TicketPrices) > 0 {
+		prices := make([]schedule.TicketPrice, 0, len(c.TicketPrices))
+		for _, p := range c.TicketPrices {
+			prices = append(prices, schedule.TicketPrice{
+				Tier:   p.Tier,
+				Price:  p.Price,
+				Amount: p.Amount,
+			})
+		}
+		dst.TicketPrices = prices
+	}
 	if dst.PhotoSong == "" {
 		dst.PhotoSong = c.PhotoSong
 	}

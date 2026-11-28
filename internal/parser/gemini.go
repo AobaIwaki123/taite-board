@@ -123,10 +123,11 @@ type extractedOutput struct {
 	LiveEndRaw      string `json:"live_end_raw"`
 	BenefitStartRaw string `json:"benefit_start_raw"`
 	BenefitEndRaw   string `json:"benefit_end_raw"`
-	BenefitBoothRaw string `json:"benefit_booth_raw"`
-	AdmissionBonus  string `json:"admission_bonus"`
-	TicketURL       string `json:"ticket_url"`
-	PhotoSong       string `json:"photo_song"`
+	BenefitBoothRaw string                  `json:"benefit_booth_raw"`
+	AdmissionBonus  string                  `json:"admission_bonus"`
+	TicketURL       string                  `json:"ticket_url"`
+	TicketPrices    []candidate.TicketPrice `json:"ticket_prices"`
+	PhotoSong       string                  `json:"photo_song"`
 	PhotoSongNumber int    `json:"photo_song_number"`
 	PhotoDevice     string `json:"photo_device"`
 	Evidence        []struct {
@@ -198,6 +199,9 @@ Extract the following JSON strictly:
   "benefit_booth_raw": "Benefit booth / table / timing label (e.g. 並行A, ロビーB, 終演後)",
   "admission_bonus": "Nomination admission bonus (do NOT put benefit session times here)",
   "ticket_url": "Ticket sales URL if present",
+  "ticket_prices": [
+    {"tier": "Ticket tier label (e.g. 前方, 一般, 前売, 当日)", "price": "Display price (e.g. ¥4,000, ¥2,500 (+1D), 無料)", "amount": 4000}
+  ],
   "photo_song": "Allowed song title if photo/video is allowed",
   "photo_song_number": 0,
   "photo_device": "still_only or video_ok or empty string",
@@ -319,6 +323,7 @@ If a field is not found, leave as empty string. Do not hallucinate.`,
 			BenefitBoothRaw: out.BenefitBoothRaw,
 			AdmissionBonus:  out.AdmissionBonus,
 			TicketURL:       out.TicketURL,
+			TicketPrices:    out.TicketPrices,
 			PhotoSong:       out.PhotoSong,
 			PhotoSongNumber: out.PhotoSongNumber,
 			PhotoDevice:     out.PhotoDevice,

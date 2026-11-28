@@ -6,6 +6,11 @@ import {
   getSyncSession,
 } from '../utils/sync';
 import { setAttendedSessionIds as persistAttendedIds } from '../utils/attendance';
+import {
+  IntakeTicketPrice,
+  formatTicketPricesInput,
+  parseTicketPricesInput,
+} from '../utils/ticket';
 import { Icon } from './Icon';
 import { SyncAccountModal } from './SyncAccountModal';
 import {
@@ -39,6 +44,7 @@ interface IntakeCandidate {
   benefit_booth_raw?: string;
   admission_bonus?: string;
   ticket_url?: string;
+  ticket_prices?: IntakeTicketPrice[];
   photo_song?: string;
   photo_song_number?: number;
   photo_device?: string;
@@ -66,6 +72,7 @@ interface QueueForm {
   booth: string;
   bonus: string;
   ticketUrl: string;
+  ticketPrices: string;
   photoSong: string;
   photoSongNumber: string;
   photoDevice: string;
@@ -188,6 +195,7 @@ function deriveFormFromItem(item: IntakeItem): QueueForm {
     booth: c.benefit_booth_raw || '',
     bonus: c.admission_bonus || fallbackBonus,
     ticketUrl: c.ticket_url || (ticketMatch ? ticketMatch[0] : ''),
+    ticketPrices: formatTicketPricesInput(c.ticket_prices),
     photoSong: c.photo_song || '',
     photoSongNumber: c.photo_song_number ? String(c.photo_song_number) : '',
     photoDevice: c.photo_device || '',
@@ -208,6 +216,7 @@ function emptyForm(): QueueForm {
     booth: '',
     bonus: '',
     ticketUrl: '',
+    ticketPrices: '',
     photoSong: '',
     photoSongNumber: '',
     photoDevice: '',
@@ -217,7 +226,9 @@ function emptyForm(): QueueForm {
 }
 
 function hasOptionalDetails(f: QueueForm): boolean {
-  return Boolean(f.benefitStart || f.benefitEnd || f.booth || f.ticketUrl || f.notes);
+  return Boolean(
+    f.benefitStart || f.benefitEnd || f.booth || f.ticketUrl || f.ticketPrices || f.notes,
+  );
 }
 
 function GroupedField({
@@ -384,6 +395,9 @@ export function AdminView() {
           if (c.benefit_booth_raw) f.booth = c.benefit_booth_raw;
           if (c.admission_bonus && !f.bonus) f.bonus = c.admission_bonus;
           if (c.ticket_url && !f.ticketUrl) f.ticketUrl = c.ticket_url;
+          if (c.ticket_prices && c.ticket_prices.length > 0 && !f.ticketPrices) {
+            f.ticketPrices = formatTicketPricesInput(c.ticket_prices);
+          }
           if (c.photo_song && !f.photoSong) f.photoSong = c.photo_song;
           if (c.photo_song_number && !f.photoSongNumber) {
             f.photoSongNumber = String(c.photo_song_number);
@@ -559,6 +573,7 @@ export function AdminView() {
           benefit_end: f.benefitEnd.trim(),
           booth: f.booth.trim(),
           ticket_url: f.ticketUrl.trim(),
+          ticket_prices: parseTicketPricesInput(f.ticketPrices),
           image_url: entry.item?.images?.[0] || '',
           images: entry.item?.images || [],
           admission_bonus: f.bonus.trim(),
@@ -1256,6 +1271,21 @@ export function AdminView() {
                                   )
                                 }
                                 placeholder="https://..."
+                                class={ROW_INPUT_CLASS}
+                              />
+                            </GroupedField>
+                            <GroupedField label="チケット料金（券種 金額 / ...）">
+                              <input
+                                type="text"
+                                value={f.ticketPrices}
+                                onInput={(e) =>
+                                  updateField(
+                                    entry.qid,
+                                    'ticketPrices',
+                                    (e.target as HTMLInputElement).value,
+                                  )
+                                }
+                                placeholder="例: 前方 ¥4,000 / 一般 ¥2,500 (+1D) / 女性 無料"
                                 class={ROW_INPUT_CLASS}
                               />
                             </GroupedField>
