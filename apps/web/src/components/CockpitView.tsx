@@ -1,6 +1,7 @@
 import { useRef } from 'preact/hooks';
 import { Session, Promotion } from '../types/schedule';
 import { isSessionPast, getSessionProgress, getTodayStr } from '../utils/date';
+import { buildGoogleCalendarUrl } from '../utils/calendar';
 import { parseSpecialNotes } from '../utils/notes';
 import { Icon } from './Icon';
 import { ExpenseMemoCard } from './ExpenseMemoCard';
@@ -9,6 +10,7 @@ import {
   AlertTriangle,
   Calendar,
   CalendarDays,
+  CalendarPlus,
   Check,
   CheckCircle2,
   Clock,
@@ -586,8 +588,8 @@ export function CockpitView({
         )}
       </div>
 
-      {/* チケット購入ボタン */}
-      <div class="pt-1">
+      {/* チケット購入ボタン & カレンダー追加 */}
+      <div class="pt-1 space-y-2">
         {isTicketPending ? (
           <div class="flex items-center justify-center gap-1.5 py-3 rounded-xl bg-stone-800 text-stone-400 font-bold text-sm border border-white/10 select-none">
             <Icon icon={Ticket} class="w-4 h-4 shrink-0" />
@@ -606,6 +608,15 @@ export function CockpitView({
             </span>
           </a>
         )}
+        <a
+          href={buildGoogleCalendarUrl(session)}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl bg-stone-900/90 hover:bg-stone-800 text-stone-200 font-bold text-xs border border-white/10 hover:border-white/20 transition-colors"
+        >
+          <Icon icon={CalendarPlus} class="w-4 h-4 text-sky-400 shrink-0" />
+          <span>Google カレンダーに追加</span>
+        </a>
       </div>
 
       {/* 現場メモ・出費（簡易家計簿） */}

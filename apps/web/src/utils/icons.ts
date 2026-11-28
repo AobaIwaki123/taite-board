@@ -9,6 +9,7 @@ export {
   Box,
   Calendar,
   CalendarDays,
+  CalendarPlus,
   Camera,
   Check,
   CheckCircle2,
