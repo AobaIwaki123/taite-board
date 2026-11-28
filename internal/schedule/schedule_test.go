@@ -208,3 +208,60 @@ func TestAddSession_UpsertDedupe(t *testing.T) {
 		t.Errorf("expected photo map populated on upsert, got %+v", photoDoc.Sessions[0]["photo"])
 	}
 }
+
+func TestApplyAddSession_TicketPricesCreateAndPreserve(t *testing.T) {
+	initial := []byte(`{"schema_version":1,"timezone":"Asia/Tokyo","target_group":{"name":"group"},"sessions":[]}`)
+	created, id, err := ApplyAddSession(initial, AddSessionOptions{
+		Date:      "2026-11-30",
+		Title:     "無銭対バン",
+		VenueName: "渋谷RING",
+		TicketURL: "https://tiget.net/events/123",
+		TicketPrices: []TicketPrice{
+			{Tier: "前方", Price: "¥3,500 (+1D)", Amount: 3500},
+			{Tier: "一般", Price: "無料", Amount: 0},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create failed: %v", err)
+	}
+	if id == "" {
+		t.Fatal("expected generated id")
+	}
+	var doc struct {
+		Sessions []struct {
+			Ticket struct {
+				Platform string                   `json:"platform"`
+				URL      string                   `json:"url"`
+				Prices   []map[string]interface{} `json:"prices"`
+			} `json:"ticket"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(created, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Sessions) != 1 || len(doc.Sessions[0].Ticket.Prices) != 2 {
+		t.Fatalf("expected 2 ticket prices saved, got %+v", doc.Sessions)
+	}
+	if doc.Sessions[0].Ticket.Prices[1]["amount"] != float64(0) {
+		t.Errorf("expected free tier to keep integer amount 0, got %+v", doc.Sessions[0].Ticket.Prices[1])
+	}
+
+	// Merging new extracted prices MUST NOT overwrite existing non-empty prices
+	merged, _, err := ApplyAddSession(created, AddSessionOptions{
+		Date:            "2026-11-30",
+		TargetSessionID: id,
+		TicketPrices: []TicketPrice{
+			{Tier: "上書きテスト", Price: "¥9,999", Amount: 9999},
+		},
+	})
+	if err != nil {
+		t.Fatalf("merge failed: %v", err)
+	}
+	doc.Sessions = nil
+	if err := json.Unmarshal(merged, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Sessions[0].Ticket.Prices) != 2 || doc.Sessions[0].Ticket.Prices[0]["tier"] != "前方" {
+		t.Fatalf("existing curated prices were overwritten: %+v", doc.Sessions[0].Ticket.Prices)
+	}
+}

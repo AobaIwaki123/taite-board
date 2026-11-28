@@ -1,6 +1,6 @@
 # TODO-06: チケット料金 (`ticket.prices`) の抽出・登録・家計簿連携の改善
 
-- **ステータス**: 未着手（起票済み）
+- **ステータス**: 完了（抽出・保存・管理画面編集・家計簿連携を統合済み）
 - **目的**: X 告知・AI パース・TimeTree 同期・管理画面の全体を通じてチケット料金（券種別価格）を欠落なく取得・保存し、公演詳細および家計簿クイック選択に反映する。
 
 ## 現状と課題
@@ -26,6 +26,14 @@
 
 ## 検証条件
 
-- [ ] 複数券種（前方 / 一般 / 無料 / 当日増分）を含む X 投稿および TimeTree 予定から `ticket.prices` が構造化抽出され、`schedule.schema.json` バリデーションを通過する。
-- [ ] `AddSession` / `timetreesync` の再実行で既に入力済みの `ticket.prices` が消えたり重複したりしない。
-- [ ] `CockpitView` のチケット料金表示と `ExpenseMemoCard` のクイック選択ボタンに金額が反映される。
+- [x] 複数券種（前方 / 一般 / 無料 / 当日増分）を含む X 投稿および TimeTree 予定から `ticket.prices` が構造化抽出され、`schedule.schema.json` バリデーションを通過する。
+- [x] `AddSession` / `timetreesync` の再実行で既に入力済みの `ticket.prices` が消えたり重複したりしない。
+- [x] `CockpitView` のチケット料金表示と `ExpenseMemoCard` のクイック選択ボタンに金額が反映される。
+
+## 実装内容サマリ
+
+- `internal/candidate/candidate.go`, `internal/resolve/ticket.go`, `internal/resolve/resolver.go`: `TicketPrice` (`tier`, `price`, `amount`) 型と `ExtractTicketPrices`（前方/一般/前売/当日/無料・1D注記・特典相当額除外・日付時刻非誤爆対応）を追加し、`Resolver.Resolve` から抽出。
+- `internal/parser/gemini.go`: Gemini 抽出 JSON テンプレートと `EventCandidate` 変換へ `ticket_prices` を追加。
+- `internal/schedule/add.go`, `internal/schedule/update.go`: `AddSessionOptions`・`UpdateSessionOptions` へ `TicketPrices` を追加し、新規作成時の保存および既存 `ticket.prices` 非空時の保護付き補完を実装。
+- `internal/timetreesync/extract.go`, `internal/scrape/runner.go`, `internal/xsync/xsync.go`, `internal/monitor/server.go`: TimeTree 説明文、X スクレイプ/補完、AI パースマージ、`/api/intake/promote`・`/api/intake/patch` 全経路で `TicketPrices` を伝播。
+- `apps/web/src/utils/ticket.ts`, `apps/web/src/components/AdminView.tsx`: 候補値・AI パース結果からの自動プリフィルと編集入力欄（`前方 ¥4,000 / 一般 ¥2,500 (+1D)` 形式）および `/intake/promote` 送信を追加。

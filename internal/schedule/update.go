@@ -49,6 +49,8 @@ type UpdateSessionOptions struct {
 	PhotoSongNumber   int
 	PhotoDevice       string
 	AdmissionBonus    string
+	TicketURL         string
+	TicketPrices      []TicketPrice
 	SourceTweetURL    string
 	UpdateOfficialURL bool
 	SpecialNotes      string
@@ -146,6 +148,29 @@ func ApplyUpdateSession(raw []byte, opts UpdateSessionOptions) ([]byte, error) {
 				} else if !strings.Contains(existing, opts.SpecialNotes) {
 					sMap["special_notes"] = fmt.Sprintf("%s / %s", opts.SpecialNotes, existing)
 				}
+			}
+
+			// 3.5 Update Ticket URL / Prices if missing
+			if opts.TicketURL != "" || len(opts.TicketPrices) > 0 {
+				tMap, _ := sMap["ticket"].(map[string]interface{})
+				if tMap == nil {
+					tMap = map[string]interface{}{"platform": "", "url": nil, "prices": []interface{}{}}
+				}
+				if opts.TicketURL != "" {
+					if exURL, _ := tMap["url"].(string); exURL == "" {
+						tMap["url"] = opts.TicketURL
+						if exPlat, _ := tMap["platform"].(string); exPlat == "" {
+							tMap["platform"] = detectTicketPlatform(opts.TicketURL)
+						}
+					}
+				}
+				if len(opts.TicketPrices) > 0 {
+					exPrices, _ := tMap["prices"].([]interface{})
+					if len(exPrices) == 0 {
+						tMap["prices"] = buildTicketPricesSlice(opts.TicketPrices)
+					}
+				}
+				sMap["ticket"] = tMap
 			}
 
 			// 4. Update Source Tweet URL and Source Refs

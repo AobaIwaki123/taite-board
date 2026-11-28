@@ -11,6 +11,12 @@ import (
 
 var ErrAmbiguousSession = errors.New("ambiguous sessions; specify target session")
 
+type TicketPrice struct {
+	Tier   string `json:"tier"`
+	Price  string `json:"price"`
+	Amount int    `json:"amount,omitempty"`
+}
+
 type AddSessionOptions struct {
 	TargetSessionID         string
 	PreserveExisting        bool
@@ -28,6 +34,7 @@ type AddSessionOptions struct {
 	Booth                   string
 	TicketPlatform          string
 	TicketURL               string
+	TicketPrices            []TicketPrice
 	ImageURL                string
 	ImageURLs               []string
 	SourceTweetURL          string
@@ -152,7 +159,7 @@ func ApplyAddSession(raw []byte, opts AddSessionOptions) ([]byte, string, error)
 	ticket := map[string]interface{}{
 		"platform": ticketPlatform,
 		"url":      ticketURL,
-		"prices":   []interface{}{},
+		"prices":   buildTicketPricesSlice(opts.TicketPrices),
 	}
 
 	// Build Source Refs & official X Tweet URL (validate requires source_tweet_url to be an X status URL when non-empty)
@@ -436,18 +443,31 @@ func mergeSessionFields(sMap map[string]interface{}, opts AddSessionOptions, new
 	}
 	sMap["benefit"] = benMap
 
-	// Ticket: populate missing URL/platform while preserving existing prices
-	if opts.TicketURL != "" {
+	// Ticket: populate missing URL/platform and empty prices while preserving curated prices
+	if opts.TicketURL != "" || len(opts.TicketPrices) > 0 {
 		tMap, _ := sMap["ticket"].(map[string]interface{})
 		if tMap == nil {
 			tMap = map[string]interface{}{"prices": []interface{}{}}
 		}
-		exURL, _ := tMap["url"].(string)
-		if exURL == "" {
-			tMap["url"] = opts.TicketURL
-			if ticketPlatform != "" {
-				tMap["platform"] = ticketPlatform
+		changed := false
+		if opts.TicketURL != "" {
+			exURL, _ := tMap["url"].(string)
+			if exURL == "" {
+				tMap["url"] = opts.TicketURL
+				if ticketPlatform != "" {
+					tMap["platform"] = ticketPlatform
+				}
+				changed = true
 			}
+		}
+		if len(opts.TicketPrices) > 0 {
+			exPrices, _ := tMap["prices"].([]interface{})
+			if len(exPrices) == 0 {
+				tMap["prices"] = buildTicketPricesSlice(opts.TicketPrices)
+				changed = true
+			}
+		}
+		if changed {
 			sMap["ticket"] = tMap
 		}
 	}
@@ -597,4 +617,31 @@ func collectOptionImageURLs(opts AddSessionOptions) []string {
 
 func buildPhotoMapFromAdd(opts AddSessionOptions) map[string]interface{} {
 	return buildPhotoObject(opts.PhotoAvailable, opts.PhotoRule, "", opts.PhotoSong, opts.PhotoDevice, opts.PhotoSongNumber)
+}
+
+func buildTicketPricesSlice(prices []TicketPrice) []interface{} {
+	if len(prices) == 0 {
+		return []interface{}{}
+	}
+	out := make([]interface{}, 0, len(prices))
+	for _, p := range prices {
+		tier := strings.TrimSpace(p.Tier)
+		price := strings.TrimSpace(p.Price)
+		if tier == "" && price == "" {
+			continue
+		}
+		entry := map[string]interface{}{
+			"tier":  tier,
+			"price": price,
+		}
+		if p.Amount > 0 || (p.Amount == 0 && isZeroYenPriceLabel(price)) {
+			entry["amount"] = p.Amount
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+func isZeroYenPriceLabel(price string) bool {
+	return strings.Contains(price, "無料") || price == "¥0" || price == "￥0" || price == "0円"
 }

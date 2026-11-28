@@ -457,6 +457,9 @@ func mergeAICandidate(base, ai candidate.EventCandidate) candidate.EventCandidat
 	if ai.TicketURL != "" && base.TicketURL == "" {
 		base.TicketURL = ai.TicketURL
 	}
+	if len(ai.TicketPrices) > 0 && len(base.TicketPrices) == 0 {
+		base.TicketPrices = append([]candidate.TicketPrice(nil), ai.TicketPrices...)
+	}
 	if ai.PhotoSong != "" && base.PhotoSong == "" {
 		base.PhotoSong = ai.PhotoSong
 	}
@@ -478,6 +481,14 @@ func applyUpsertFromCandidate(schedBytes []byte, cand candidate.EventCandidate, 
 			photoRule = fmt.Sprintf("『%s』撮影可能", cand.PhotoSong)
 		}
 	}
+	ticketPrices := make([]schedule.TicketPrice, 0, len(cand.TicketPrices))
+	for _, p := range cand.TicketPrices {
+		ticketPrices = append(ticketPrices, schedule.TicketPrice{
+			Tier:   p.Tier,
+			Price:  p.Price,
+			Amount: p.Amount,
+		})
+	}
 	return schedule.ApplyAddSession(schedBytes, schedule.AddSessionOptions{
 		Date:             cand.Date,
 		Title:            cand.Title,
@@ -489,6 +500,7 @@ func applyUpsertFromCandidate(schedBytes []byte, cand candidate.EventCandidate, 
 		BenefitEndTime:   cand.BenefitEndRaw,
 		Booth:            cand.BenefitBoothRaw,
 		TicketURL:        cand.TicketURL,
+		TicketPrices:     ticketPrices,
 		ImageURLs:        post.Images,
 		SourceTweetURL:   post.URL,
 		AdmissionBonus:   cand.AdmissionBonus,

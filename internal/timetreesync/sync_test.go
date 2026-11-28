@@ -233,3 +233,22 @@ func TestVisualDedupePreventsDuplicateFlyerAcrossTimeTreeAndX(t *testing.T) {
 		t.Fatalf("expected idempotent second run without write, got %+v err=%v writes=%d", summary2, err, store.writes)
 	}
 }
+
+func TestExtractIncludesTicketPricesFromDescription(t *testing.T) {
+	event := timetree.Event{
+		ID:          "ev-price",
+		Title:       "対バン公演",
+		StartAt:     "2026-11-29T10:00:00+09:00",
+		Description: "🎪会場：新宿WALLY\n🎤出演：18:00〜18:20\n🎫料金：前方 ¥4,000 / 通常 ¥2,000 (+1D)",
+	}
+	opts, err := Extract("ribbon_clock", event)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(opts.TicketPrices) != 2 {
+		t.Fatalf("expected 2 ticket prices extracted from TimeTree description, got %+v", opts.TicketPrices)
+	}
+	if opts.TicketPrices[0].Tier != "前方" || opts.TicketPrices[0].Amount != 4000 || opts.TicketPrices[1].Tier != "通常" || opts.TicketPrices[1].Price != "¥2,000 (+1D)" {
+		t.Errorf("unexpected extracted prices: %+v", opts.TicketPrices)
+	}
+}

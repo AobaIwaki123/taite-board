@@ -30,22 +30,30 @@ type Evidence struct {
 	Confidence float64 `json:"confidence"`
 }
 
+// TicketPrice represents an extracted ticket tier and price.
+type TicketPrice struct {
+	Tier   string `json:"tier"`
+	Price  string `json:"price"`
+	Amount int    `json:"amount,omitempty"`
+}
+
 // EventCandidate represents extracted candidate event parameters before curation.
 type EventCandidate struct {
-	Title            string `json:"title,omitempty"`
-	Date             string `json:"date"`
-	VenueRaw         string `json:"venue_raw"`
-	VenueCanonicalID string `json:"venue_canonical_id,omitempty"`
-	GroupRaw         string `json:"group_raw"`
-	GroupCanonicalID string `json:"group_canonical_id,omitempty"`
-	LiveStartRaw     string `json:"live_start_raw"`
-	LiveEndRaw       string `json:"live_end_raw"`
-	BenefitStartRaw  string `json:"benefit_start_raw,omitempty"`
-	BenefitEndRaw    string `json:"benefit_end_raw,omitempty"`
-	BenefitBoothRaw  string `json:"benefit_booth_raw,omitempty"`
-	AdmissionBonus   string `json:"admission_bonus,omitempty"`
-	TicketURL        string `json:"ticket_url,omitempty"`
-	PhotoAllowed     *bool  `json:"photo_allowed,omitempty"`
+	Title            string        `json:"title,omitempty"`
+	Date             string        `json:"date"`
+	VenueRaw         string        `json:"venue_raw"`
+	VenueCanonicalID string        `json:"venue_canonical_id,omitempty"`
+	GroupRaw         string        `json:"group_raw"`
+	GroupCanonicalID string        `json:"group_canonical_id,omitempty"`
+	LiveStartRaw     string        `json:"live_start_raw"`
+	LiveEndRaw       string        `json:"live_end_raw"`
+	BenefitStartRaw  string        `json:"benefit_start_raw,omitempty"`
+	BenefitEndRaw    string        `json:"benefit_end_raw,omitempty"`
+	BenefitBoothRaw  string        `json:"benefit_booth_raw,omitempty"`
+	AdmissionBonus   string        `json:"admission_bonus,omitempty"`
+	TicketURL        string        `json:"ticket_url,omitempty"`
+	TicketPrices     []TicketPrice `json:"ticket_prices,omitempty"`
+	PhotoAllowed     *bool         `json:"photo_allowed,omitempty"`
 	PhotoSong        string `json:"photo_song,omitempty"`
 	PhotoSongNumber  int    `json:"photo_song_number,omitempty"`
 	PhotoDevice      string `json:"photo_device,omitempty"`
