@@ -130,3 +130,75 @@ func TestVisualDedupeScheduleBytesRemovesCrossSourceDuplicateAndKeepsDistinct(t 
 		t.Fatalf("expected image_url updated to kept representative, got %s", got.ImageURL)
 	}
 }
+
+func TestVisualDedupePrefersXOverTimeTreeWhenTimeTreeCameFirst(t *testing.T) {
+	raw := []byte(`{
+  "schema_version": 1,
+  "timezone": "Asia/Tokyo",
+  "sessions": [
+    {
+      "id": "20261129-1",
+      "image_url": "https://attachments.timetreeapp.com/dup-flyer.jpg",
+      "images": [
+        {"type": "flyer", "label": "告知画像", "url": "https://attachments.timetreeapp.com/dup-flyer.jpg"},
+        {"type": "flyer", "label": "告知画像", "url": "https://pbs.twimg.com/media/flyer.jpg?name=large"},
+        {"type": "flyer", "label": "告知画像", "url": "https://pbs.twimg.com/media/timetable.jpg?name=large"}
+      ]
+    },
+    {
+      "id": "20261101-1",
+      "image_url": "https://attachments.timetreeapp.com/other.jpg",
+      "images": [
+        {"type": "flyer", "label": "告知画像", "url": "https://attachments.timetreeapp.com/other.jpg"},
+        {"type": "flyer", "label": "告知画像", "url": "https://attachments.timetreeapp.com/other-copy.jpg"}
+      ]
+    }
+  ]
+}`)
+
+	fp := &stubFingerprinter{
+		sigs: map[string]ImageSignature{
+			"https://attachments.timetreeapp.com/dup-flyer.jpg":     {Hash: 0x2d0ca3a2bbcbd71f, AspectRatio: 0.748, Valid: true},
+			"https://pbs.twimg.com/media/flyer.jpg?name=large":      {Hash: 0xad0ca323bfcb4f1f, AspectRatio: 0.748, Valid: true},
+			"https://pbs.twimg.com/media/timetable.jpg?name=large":  {Hash: 0xa5eaeaeaebcb5d1f, AspectRatio: 0.748, Valid: true},
+		},
+		errs: map[string]error{
+			"https://attachments.timetreeapp.com/other.jpg":      errors.New("should not fetch untouched session"),
+			"https://attachments.timetreeapp.com/other-copy.jpg": errors.New("should not fetch untouched session"),
+		},
+	}
+
+	out, removed, err := VisualDedupeSessionByIDBytes(context.Background(), raw, "20261129-1", fp)
+	if err != nil {
+		t.Fatalf("VisualDedupeSessionByIDBytes: %v", err)
+	}
+	if removed != 1 {
+		t.Fatalf("expected 1 removed duplicate in target session, got %d", removed)
+	}
+
+	var doc struct {
+		Sessions []struct {
+			ID       string `json:"id"`
+			ImageURL string `json:"image_url"`
+			Images   []struct {
+				URL string `json:"url"`
+			} `json:"images"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(out, &doc); err != nil {
+		t.Fatal(err)
+	}
+	s0 := doc.Sessions[0]
+	if len(s0.Images) != 2 {
+		t.Fatalf("expected 2 images in 20261129-1, got %d: %+v", len(s0.Images), s0.Images)
+	}
+	if s0.Images[0].URL != "https://pbs.twimg.com/media/flyer.jpg?name=large" {
+		t.Fatalf("expected X image to replace TimeTree duplicate, got %s", s0.Images[0].URL)
+	}
+	if s0.ImageURL != "https://pbs.twimg.com/media/flyer.jpg?name=large" {
+		t.Fatalf("expected image_url upgraded to X URL, got %s", s0.ImageURL)
+	}
+	if len(doc.Sessions[1].Images) != 2 {
+		t.Fatalf("expected untouched session 20261101-1 to keep 2 images")
+	}
+}

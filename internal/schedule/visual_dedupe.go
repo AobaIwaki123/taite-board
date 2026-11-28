@@ -230,8 +230,27 @@ func IsVisuallyDuplicate(a, b ImageSignature) bool {
 	return gridMAE16(a.Grid, b.Grid) <= visualMaxMAE16
 }
 
+type keptVisualImage struct {
+	entry map[string]interface{}
+	url   string
+	sig   ImageSignature
+}
+
+// imageSourceRank prefers original high-resolution X media over TimeTree re-uploads.
+func imageSourceRank(rawURL string) int {
+	lower := strings.ToLower(strings.TrimSpace(rawURL))
+	switch {
+	case strings.Contains(lower, "pbs.twimg.com"):
+		return 3
+	case strings.Contains(lower, "attachments.timetreeapp.com"):
+		return 1
+	default:
+		return 2
+	}
+}
+
 // VisualDedupeSession removes exact URL duplicates and visually identical images (e.g., X vs TimeTree re-uploads)
-// from a session map while preserving the earliest copy and keeping image_url consistent.
+// from a session map while preserving the higher-priority source URL (X > generic > TimeTree) and keeping image_url consistent.
 // Any network or decode failure fails open so unreachable images are never mistakenly deleted.
 func VisualDedupeSession(ctx context.Context, sMap map[string]interface{}, fp ImageFingerprinter) (removed int, changed bool) {
 	beforeLen := 0
@@ -249,12 +268,7 @@ func VisualDedupeSession(ctx context.Context, sMap map[string]interface{}, fp Im
 		return removed, changed
 	}
 
-	type keptImage struct {
-		entry map[string]interface{}
-		url   string
-		sig   ImageSignature
-	}
-	kept := make([]keptImage, 0, len(imgs))
+	kept := make([]keptVisualImage, 0, len(imgs))
 	out := make([]interface{}, 0, len(imgs))
 	droppedURLs := make(map[string]string)
 
@@ -271,24 +285,33 @@ func VisualDedupeSession(ctx context.Context, sMap map[string]interface{}, fp Im
 		}
 		sig, err := fp.Fingerprint(ctx, u)
 		if err != nil || !sig.Valid {
-			kept = append(kept, keptImage{entry: im, url: u})
+			kept = append(kept, keptVisualImage{entry: im, url: u})
 			out = append(out, im)
 			continue
 		}
-		duplicateOf := ""
-		for _, k := range kept {
+		dupIdx := -1
+		for idx, k := range kept {
 			if IsVisuallyDuplicate(k.sig, sig) {
-				duplicateOf = k.url
+				dupIdx = idx
 				break
 			}
 		}
-		if duplicateOf != "" {
-			droppedURLs[u] = duplicateOf
+		if dupIdx >= 0 {
+			existing := &kept[dupIdx]
+			if imageSourceRank(u) > imageSourceRank(existing.url) {
+				oldURL := existing.url
+				existing.entry["url"] = u
+				existing.url = u
+				existing.sig = sig
+				droppedURLs[oldURL] = u
+			} else {
+				droppedURLs[u] = existing.url
+			}
 			removed++
 			changed = true
 			continue
 		}
-		kept = append(kept, keptImage{entry: im, url: u, sig: sig})
+		kept = append(kept, keptVisualImage{entry: im, url: u, sig: sig})
 		out = append(out, im)
 	}
 
@@ -296,9 +319,14 @@ func VisualDedupeSession(ctx context.Context, sMap map[string]interface{}, fp Im
 		sMap["images"] = out
 		curImgURL := strings.TrimSpace(stringField(sMap, "image_url"))
 		if curImgURL != "" {
-			if replacement, dropped := droppedURLs[curImgURL]; dropped {
-				sMap["image_url"] = replacement
+			for step := 0; step < 4; step++ {
+				if replacement, dropped := droppedURLs[curImgURL]; dropped && replacement != curImgURL {
+					curImgURL = replacement
+					continue
+				}
+				break
 			}
+			sMap["image_url"] = curImgURL
 		}
 		if stringField(sMap, "image_url") == "" && len(kept) > 0 {
 			sMap["image_url"] = kept[0].url
@@ -310,6 +338,19 @@ func VisualDedupeSession(ctx context.Context, sMap map[string]interface{}, fp Im
 // VisualDedupeScheduleBytes runs VisualDedupeSession across every session in raw schedule JSON.
 // Only sessions whose images change are re-serialized; root fields outside modified sessions stay intact.
 func VisualDedupeScheduleBytes(ctx context.Context, raw []byte, fp ImageFingerprinter) ([]byte, int, error) {
+	return visualDedupeScheduleBytesFiltered(ctx, raw, "", fp)
+}
+
+// VisualDedupeSessionByIDBytes runs VisualDedupeSession only on the specified sessionID
+// so interactive intake endpoints do not re-download unrelated sessions' images.
+func VisualDedupeSessionByIDBytes(ctx context.Context, raw []byte, sessionID string, fp ImageFingerprinter) ([]byte, int, error) {
+	if strings.TrimSpace(sessionID) == "" {
+		return raw, 0, nil
+	}
+	return visualDedupeScheduleBytesFiltered(ctx, raw, strings.TrimSpace(sessionID), fp)
+}
+
+func visualDedupeScheduleBytesFiltered(ctx context.Context, raw []byte, targetSessionID string, fp ImageFingerprinter) ([]byte, int, error) {
 	if fp == nil {
 		return raw, 0, nil
 	}
@@ -331,6 +372,9 @@ func VisualDedupeScheduleBytes(ctx context.Context, raw []byte, fp ImageFingerpr
 	for i, sBytes := range rawSessions {
 		var sMap map[string]interface{}
 		if err := json.Unmarshal(sBytes, &sMap); err != nil {
+			continue
+		}
+		if targetSessionID != "" && strings.TrimSpace(stringField(sMap, "id")) != targetSessionID {
 			continue
 		}
 		removed, changed := VisualDedupeSession(ctx, sMap, fp)
