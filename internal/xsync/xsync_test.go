@@ -74,7 +74,7 @@ func TestReSyncScheduleBytes_BackfillsSecondPhotoAndAppliesAICostGuards(t *testi
       "venue": {"canonical_id": "venue:hall", "name": "Hall", "map_query": "Hall", "map_url": "https://maps.google.com/?q=Hall"},
       "live": {"start_time": "19:05", "end_time": "19:25"},
       "benefit": {"type": "並行", "start_time": "19:30", "end_time": "20:30"},
-      "ticket": {"platform": "", "url": null, "prices": []},
+      "ticket": {"platform": "", "url": null, "prices": [{"tier": "一般", "price": "¥3,000", "amount": 3000}]},
       "images": [
         {"type": "flyer", "url": "https://pbs.twimg.com/media/a.jpg"},
         {"type": "flyer", "url": "https://pbs.twimg.com/media/b.jpg"}
@@ -147,5 +147,66 @@ func TestReSyncScheduleBytes_BackfillsSecondPhotoAndAppliesAICostGuards(t *testi
 	}
 	if got := doc.Sessions[0].Images; len(got) != 2 || got[1].URL != "https://pbs.twimg.com/media/timetable.jpg?name=large" {
 		t.Fatalf("expected 11.25 timetable added and dup flyer removed, got %+v", got)
+	}
+}
+
+func TestReSyncScheduleBytes_BackfillsMissingTicketPricesEvenWithTwoImages(t *testing.T) {
+	initial := []byte(`{
+  "schema_version": 1,
+  "timezone": "Asia/Tokyo",
+  "target_group": {"name": "リボンクロック"},
+  "sessions": [
+    {
+      "id": "20261128-1",
+      "title": "アイコレ",
+      "date": "2026-11-28",
+      "day_of_week": "土",
+      "venue": {"canonical_id": "venue:lumine-0", "name": "LUMINE 0", "map_query": "LUMINE 0", "map_url": "https://maps.google.com/?q=LUMINE+0"},
+      "live": {"start_time": "10:45", "end_time": "11:00"},
+      "benefit": {"type": "並行", "start_time": "11:05", "end_time": "12:05", "booth": "ロビーB"},
+      "ticket": {"platform": "TIGET", "url": "https://tiget.net/events/537396", "prices": []},
+      "images": [
+        {"type": "flyer", "url": "https://pbs.twimg.com/media/a.jpg"},
+        {"type": "flyer", "url": "https://pbs.twimg.com/media/b.jpg"}
+      ],
+      "source_refs": [{"type": "x_post", "source_id": "2121498371148202474", "url": "https://x.com/Ribbon_Clock/status/2121498371148202474"}]
+    }
+  ]
+}`)
+	fetcher := &fakeFetcher{posts: map[string]*raw.Post{
+		"https://x.com/Ribbon_Clock/status/2121498371148202474": {
+			SourceID: "2121498371148202474",
+			URL:      "https://x.com/Ribbon_Clock/status/2121498371148202474",
+			Text:     "🎟️チケット\n♡S席：¥4,500\n♡A席：¥2,500\n♡当日券：各チケット+¥500\n※各チケット+1D",
+		},
+	}}
+	res, err := resolve.NewResolver("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	outBytes, rep, err := ReSyncScheduleBytes(context.Background(), "ribonclock", initial, Options{
+		Fetcher:         fetcher,
+		Resolver:        res,
+		MinImagesToSkip: 2,
+		IncludePast:     true,
+	})
+	if err != nil {
+		t.Fatalf("ReSyncScheduleBytes failed: %v", err)
+	}
+	if !rep.Changed || rep.Updated != 1 {
+		t.Fatalf("expected ticket price backfill update, got %+v", rep)
+	}
+	var doc struct {
+		Sessions []struct {
+			Ticket struct {
+				Prices []candidate.TicketPrice `json:"prices"`
+			} `json:"ticket"`
+		} `json:"sessions"`
+	}
+	if err := json.Unmarshal(outBytes, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Sessions[0].Ticket.Prices) != 3 || doc.Sessions[0].Ticket.Prices[0].Tier != "S席" || doc.Sessions[0].Ticket.Prices[2].Price != "各+¥500" {
+		t.Fatalf("unexpected backfilled prices: %+v", doc.Sessions[0].Ticket.Prices)
 	}
 }

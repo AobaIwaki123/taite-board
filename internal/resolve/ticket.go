@@ -11,15 +11,15 @@ import (
 var (
 	ticketSectionStartRx = regexp.MustCompile(`(?i)(?:🎫|🎟|💰|💵|チケット|TICKET|料金|入場料|PRICE|ENTRY)`)
 	ticketSectionStopRx  = regexp.MustCompile(`(?i)^(?:🎤|📸|🎁|📍|🎪|⏰|🎬|📹|出演|出番|特典会|物販|入場特典|お目当て特典|動員特典|来場特典|会場|場所|OPEN|START|撮影)`)
-	ticketSkipLineRx     = regexp.MustCompile(`(?i)(?:🎁|入場特典|お目当て特典|動員特典|来場特典|チェキ券|ランチェキ|物販|グッズ|写メ券|動画券|ポイント|相当)`)
-	ticketHeaderStripRx  = regexp.MustCompile(`(?i)^(?:[🎫🎟💰💵■◆▼●★☆・※\s]+|【\s*(?:チケット(?:料金|代|情報)?|料金|入場料|TICKET|PRICE)\s*】\s*|(?:チケット(?:料金|代|情報)?|料金|入場料|TICKET|PRICE)\s*[:：]\s*)+`)
+	ticketSkipLineRx     = regexp.MustCompile(`(?i)(?:🎁|🉐|入場特典|お目当て特典|動員特典|来場特典|チェキ券|ランチェキ|物販|グッズ|写メ券|動画券|ポイント|相当|キャッシュバック)`)
+	ticketHeaderStripRx  = regexp.MustCompile("(?i)^(?:[🎫🎟💰💵■◆▼●★☆♡❤♥❥♢♦・※\\s\\x{fe0e}\\x{fe0f}]+|【\\s*(?:チケット(?:料金|代|情報)?|料金|入場料|TICKET|PRICE)\\s*】\\s*|(?:チケット(?:料金|代|情報)?|料金|入場料|TICKET|PRICE)\\s*[:：]\\s*)+")
 	ticketCurrencyRx     = regexp.MustCompile(`(?:¥\s*\d|\d[\d,]*\s*円)`)
 	ticketTierHintRx     = regexp.MustCompile(`(?:前方|前売|一般|当日|優先|VIP|SS|S席|A席|女性|学生|カメコ|撮影|観覧|入場).*無料`)
 	priceTokenRx         = regexp.MustCompile(`(?:\+\s*)?(?:¥\s*\d{1,3}(?:,\d{3})+|¥\s*\d+|\d{1,3}(?:,\d{3})+\s*円|\d+\s*円|(?:入場|観覧|チケット)?無料)`)
 	drinkSuffixRx        = regexp.MustCompile(`^\s*(?:\([^)]*(?:1D|ドリンク|D代|別途)[^)]*\)|\+?\s*1D(?:代)?(?:別|込)?)`)
 	trailingTierParenRx  = regexp.MustCompile(`^\s*\(([^()]{1,20})\)`)
 	drinkOnlyTierRx      = regexp.MustCompile(`(?i)(?:1D|ドリンク|D代|別途|手数料|送料)`)
-	ticketTierKeywordRx  = regexp.MustCompile(`(?i)(?:前売|前方|一般|当日|優先|VIP|SS|S席|A席|B席|女性|学生|通常|入場|観覧|チケット|FREE|フリー)`)
+	ticketTierKeywordRx  = regexp.MustCompile(`(?i)(?:前売|前方|一般|当日|優先|VIP|SS|S席|A席|B席|女性|学生|通常|入場|観覧|FREE|フリー)`)
 )
 
 func normalizeTicketLine(s string) string {
@@ -93,7 +93,7 @@ func ExtractTicketPrices(text string) []candidate.TicketPrice {
 			}
 
 			rawBefore := work[cursor:start]
-			tier := cleanTicketTierLabel(rawBefore)
+			tier, isEach := cleanTicketTierLabel(rawBefore)
 
 			if drinkOnlyTierRx.MatchString(tier) && !ticketTierKeywordRx.MatchString(tier) {
 				cursor = end
@@ -103,11 +103,14 @@ func ExtractTicketPrices(text string) []candidate.TicketPrice {
 			suffix := ""
 			consumedEnd := end
 			if ds := drinkSuffixRx.FindStringIndex(work[end:]); ds != nil {
-				suffix = strings.TrimSpace(work[end+ds[0] : end+ds[1]])
-				consumedEnd = end + ds[1]
+				candSuffix := strings.TrimSpace(work[end+ds[0] : end+ds[1]])
+				if !ticketTierKeywordRx.MatchString(candSuffix) || !priceTokenRx.MatchString(candSuffix) {
+					suffix = candSuffix
+					consumedEnd = end + ds[1]
+				}
 			} else if tier == "" {
 				if tp := trailingTierParenRx.FindStringSubmatchIndex(work[end:]); tp != nil {
-					candTier := cleanTicketTierLabel(work[end+tp[2] : end+tp[3]])
+					candTier, _ := cleanTicketTierLabel(work[end+tp[2] : end+tp[3]])
 					if candTier != "" && !drinkOnlyTierRx.MatchString(candTier) {
 						tier = candTier
 						consumedEnd = end + tp[1]
@@ -119,6 +122,9 @@ func ExtractTicketPrices(text string) []candidate.TicketPrice {
 			if !ok {
 				cursor = consumedEnd
 				continue
+			}
+			if isEach && strings.HasPrefix(formattedPrice, "+") {
+				formattedPrice = "各" + formattedPrice
 			}
 			if suffix != "" {
 				formattedPrice = formattedPrice + " " + suffix
@@ -143,12 +149,28 @@ func ExtractTicketPrices(text string) []candidate.TicketPrice {
 	return results
 }
 
-func cleanTicketTierLabel(raw string) string {
+func cleanTicketTierLabel(raw string) (string, bool) {
 	s := strings.TrimSpace(ticketHeaderStripRx.ReplaceAllString(strings.TrimSpace(raw), ""))
-	s = strings.Trim(s, "/・|｜,、:：- \t")
+	s = strings.Trim(s, "/・|｜,、:：-() \t")
+	isEach := false
+	// Handle "当日券：各チケット" -> ("当日券", true)
+	if left, right, ok := strings.Cut(s, ":"); ok {
+		l := strings.TrimSpace(left)
+		r := strings.TrimSpace(right)
+		if r == "" || r == "各" || r == "各チケット" || r == "各エリア" {
+			if strings.Contains(r, "各") {
+				isEach = true
+			}
+			s = l
+		}
+	}
+	if strings.HasSuffix(s, "各") && len(s) > len("各") {
+		s = strings.TrimSpace(strings.TrimSuffix(s, "各"))
+		isEach = true
+	}
 	// Strip leading standalone punctuation segments like "各"
-	if s == "各" || s == "各チケット" {
-		return ""
+	if s == "各" || s == "各チケット" || s == "各エリア" {
+		return "", true
 	}
 	// If multiple slash-delimited fragments exist before the price, keep the last non-empty tier segment
 	if idx := strings.LastIndexAny(s, "/・|｜"); idx >= 0 {
@@ -157,7 +179,7 @@ func cleanTicketTierLabel(raw string) string {
 			s = tail
 		}
 	}
-	s = strings.TrimSpace(s)
+	s = strings.TrimSpace(ticketHeaderStripRx.ReplaceAllString(s, ""))
 	for _, pair := range [][2]string{{"【", "】"}, {"[", "]"}, {"「", "」"}, {"『", "』"}, {"(", ")"}} {
 		if strings.HasPrefix(s, pair[0]) && strings.HasSuffix(s, pair[1]) {
 			inner := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(s, pair[0]), pair[1]))
@@ -166,7 +188,7 @@ func cleanTicketTierLabel(raw string) string {
 			}
 		}
 	}
-	return strings.Trim(s, "/・|｜,、:：- \t")
+	return strings.Trim(s, "/・|｜,、:：- \t"), isEach
 }
 
 func parsePriceToken(token string) (int, string, bool) {

@@ -74,6 +74,9 @@ type sessionView struct {
 	Benefit struct {
 		StartTime string `json:"start_time"`
 	} `json:"benefit"`
+	Ticket struct {
+		Prices []json.RawMessage `json:"prices"`
+	} `json:"ticket"`
 	Images []struct {
 		URL string `json:"url"`
 	} `json:"images"`
@@ -174,9 +177,9 @@ func ReSyncScheduleBytes(ctx context.Context, group string, rawBytes []byte, opt
 			report.Outcomes = append(report.Outcomes, out)
 			continue
 		}
-		if opts.MinImagesToSkip > 0 && len(s.Images) >= opts.MinImagesToSkip {
+		if opts.MinImagesToSkip > 0 && len(s.Images) >= opts.MinImagesToSkip && len(s.Ticket.Prices) > 0 {
 			out.Status = "skipped"
-			out.Reason = fmt.Sprintf("already has %d images (>= %d)", len(s.Images), opts.MinImagesToSkip)
+			out.Reason = fmt.Sprintf("already has %d images (>= %d) and %d ticket price(s)", len(s.Images), opts.MinImagesToSkip, len(s.Ticket.Prices))
 			report.Skipped++
 			report.Outcomes = append(report.Outcomes, out)
 			continue
