@@ -255,4 +255,29 @@ https://tiget.net/events/999999
 	if cand.TicketPrices[0].Tier != "前売" || cand.TicketPrices[0].Amount != 3200 || cand.TicketPrices[1].Tier != "当日" || cand.TicketPrices[1].Amount != 3700 {
 		t.Errorf("unexpected resolved ticket prices: %+v", cand.TicketPrices)
 	}
+
+	realHeartAndCashback := `🎟️チケット
+♡S席：¥4,500
+♡A席：¥2,500
+♡女性チケット：¥2,000
+♡当日券：各チケット+¥500
+※各チケット+1D
+🉐11:00までの入場で早割¥1,000のキャッシュバックございます！`
+	heartPrices := ExtractTicketPrices(realHeartAndCashback)
+	if len(heartPrices) != 4 {
+		t.Fatalf("expected 4 prices for heart/cashback format, got %d: %+v", len(heartPrices), heartPrices)
+	}
+	if heartPrices[0].Tier != "S席" || heartPrices[3].Tier != "当日券" || heartPrices[3].Price != "各+¥500" {
+		t.Errorf("unexpected heart/cashback prices: %+v", heartPrices)
+	}
+
+	dollyTimeTree := `料金：S席4,500円 / A席2,500円 / 女性A席2,000円（当日各＋500円・各チケット別途1D 700円）
+※11:00までの入場で1,000円キャッシュバック`
+	dollyPrices := ExtractTicketPrices(dollyTimeTree)
+	if len(dollyPrices) != 4 {
+		t.Fatalf("expected 4 prices for dollykiss format, got %d: %+v", len(dollyPrices), dollyPrices)
+	}
+	if dollyPrices[2].Tier != "女性A席" || dollyPrices[2].Price != "¥2,000" || dollyPrices[3].Tier != "当日" || dollyPrices[3].Price != "各+¥500" {
+		t.Errorf("unexpected dollykiss parsed prices: %+v", dollyPrices)
+	}
 }
